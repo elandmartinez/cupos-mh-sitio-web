@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DashboardApp from '../components/dashboardApp';
+import '../styles/dashboard.css';
+---
+
+<Layout title="Dashboard">
+  <main>
+    <DashboardApp client:only="react" />
+  </main>
+</Layout>
