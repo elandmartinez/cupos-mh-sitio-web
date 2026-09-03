@@ -1,0 +1,42 @@
+/*
+ * Shared design tokens for the whole app.
+ * Base neutrals: bone (light) + dark (near-black eggplant).
+ * Secondary/brand accents: purple + fuchsia.
+ * Import this once in the root layout so every page/component can rely on it.
+ */
+:root {
+  /* Base neutrals */
+  --color-bone: #f5f3ef;
+  --color-bone-soft: #faf9f6;
+  --color-dark: #110015;
+
+  /* Secondary / brand accents */
+  --color-purple: #522e93;
+  --color-purple-dark: #3c2170;
+  --color-purple-soft: #efe9f9;
+  --color-fuchsia: #a50062;
+  --color-fuchsia-dark: #7d004a;
+  --color-fuchsia-soft: #fbe6f0;
+  --gradient-brand: linear-gradient(135deg, var(--color-purple) 0%, var(--color-fuchsia) 100%);
+
+  /* Semantic */
+  --color-text: var(--color-dark);
+  --color-text-muted: #6f6478;
+  --color-surface: #ffffff;
+  --color-border: #e6e2da;
+  --color-danger-bg: #fdecec;
+  --color-danger-text: #9a1b3a;
+  --color-danger-bg-hover: #fbd9d9;
+  --color-warning-bg: #fdf1e0;
+  --color-warning-text: #8a5a12;
+  --color-warning-bg-hover: #fbe4bd;
+
+  /* Elevation & shape */
+  --shadow-sm: 0 1px 2px rgba(17, 0, 21, 0.06);
+  --shadow-md: 0 12px 28px -12px rgba(17, 0, 21, 0.28);
+  --shadow-lg: 0 24px 48px -16px rgba(17, 0, 21, 0.35);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-full: 999px;
+}
