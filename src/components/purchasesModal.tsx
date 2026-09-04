@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { usePurchasePayments } from '../hooks/usePurchasePayments';
+import { formatCurrency } from '../helpers/currency';
 
 import type { Product } from '../hooks/useProducts';
 import type {
@@ -224,7 +225,7 @@ export default function PurchasesModal({
                       />
                     </div>
                     <div className="purchaseProgressLabel">
-                      {purchase.amount_paid_so_far ?? 0} / {purchase.agreed_fees ?? 0}
+                      {formatCurrency(purchase.amount_paid_so_far)} / {formatCurrency(purchase.agreed_fees)}
                     </div>
                   </div>
 
@@ -289,7 +290,7 @@ export default function PurchasesModal({
                           {payments.map((payment) => (
                             <li key={payment.id} className="paymentItem">
                               <span>
-                                {payment.amount}
+                                {formatCurrency(payment.amount)}
                                 {payment.is_extra_fee ? ' (extra)' : ''}
                               </span>
                               <button

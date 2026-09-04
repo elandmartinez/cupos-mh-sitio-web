@@ -5,6 +5,8 @@ import { useClientPurchases } from '../hooks/useClientPurchases';
 import { useAuth } from '../context/authContext';
 import PurchasesModal from './purchasesModal';
 import ConfirmModal from './confirmModal';
+import ProductImage from './productImage';
+import { formatCurrency } from '../helpers/currency';
 import monsterHighLogo from "../../public/monster-high-logo-color.png";
 
 import type { Product, CreateProductInput } from "../hooks/useProducts"
@@ -18,7 +20,7 @@ const emptyFormData: CreateProductInput = {
 
 export default function Dashboard() {
   const { products, loading, error, addProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
-  const { uploadProductImage, renameProductImage, deleteProductImage, getPublicUrl } = useProductImages();
+  const { uploadProductImage, renameProductImage, deleteProductImage, getSignedUrl } = useProductImages();
   const {
     purchasesByProduct,
     fetchPurchasesForProducts,
@@ -207,13 +209,12 @@ export default function Dashboard() {
               const productPurchases = purchasesByProduct[product.id] || [];
               return (
               <div key={product.id} className="productCard">
-                <img
-                  src={`${getPublicUrl(product)}?v=${imageVersion}`}
+                <ProductImage
+                  product={product}
+                  imageVersion={imageVersion}
+                  getSignedUrl={getSignedUrl}
                   alt={product.name || 'Producto'}
                   className="productImage"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
                 />
                 <div>
                   <div className="productHeader">
@@ -229,7 +230,7 @@ export default function Dashboard() {
                       Lanzamiento: {product.release_date || 'N/D'}
                     </div>
                     <div className="metaValue">
-                      Valor: {product.value ?? 0}
+                      Valor: {formatCurrency(product.value)}
                     </div>
                   </div>
 
@@ -338,10 +339,11 @@ export default function Dashboard() {
                   <div className="imagePreviewGrid">
                     {isEditing && currentImageVisible && !pendingImage && (
                       <div className="imagePreviewItem">
-                        <img
-                          src={`${getPublicUrl(isEditing)}?v=${imageVersion}`}
-                          alt=""
-                          onError={() => setCurrentImageVisible(false)}
+                        <ProductImage
+                          product={isEditing}
+                          imageVersion={imageVersion}
+                          getSignedUrl={getSignedUrl}
+                          onMissing={() => setCurrentImageVisible(false)}
                         />
                         <div className="imagePreviewActions">
                           <button

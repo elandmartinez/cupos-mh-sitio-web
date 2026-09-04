@@ -26,12 +26,30 @@ export function getProductImagePath(product: ProductRef) {
   return `${sanitizeSegment(product.name || 'producto')}-${product.id}`;
 }
 
-/** Public URL for a product's image (may 404 if none has been uploaded yet). */
-export function getProductImageUrl(product: ProductRef) {
-  const { data } = supabase.storage
+/** How long a signed image URL stays valid before it needs to be re-requested. */
+const SIGNED_URL_EXPIRY_SECONDS = 60 * 60; // 1 hour
+
+/**
+ * Short-lived signed URL for a product's image, or `null` when the product
+ * has no image yet (or the request otherwise fails).
+ *
+ * The bucket is private, so `getPublicUrl()` doesn't work here — per
+ * https://supabase.com/docs/guides/storage/buckets/fundamentals, private
+ * buckets are only readable via `createSignedUrl()` or an authenticated
+ * `download()`. Unlike `getPublicUrl`, this makes a real network request,
+ * so callers need to await it (see `<ProductImage>`, which owns fetching
+ * this for display).
+ */
+export async function getProductImageSignedUrl(
+  product: ProductRef,
+  expiresIn: number = SIGNED_URL_EXPIRY_SECONDS,
+): Promise<string | null> {
+  const { data, error } = await supabase.storage
     .from(PRODUCT_IMAGES_BUCKET)
-    .getPublicUrl(getProductImagePath(product));
-  return data.publicUrl;
+    .createSignedUrl(getProductImagePath(product), expiresIn);
+
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
 }
 
 export function useProductImages() {
@@ -48,7 +66,7 @@ export function useProductImages() {
         .upload(path, file, { contentType: file.type, upsert: true });
 
       if (uploadError) throw uploadError;
-      return { path, url: getProductImageUrl(product), error: null };
+      return { path, url: await getProductImageSignedUrl(product), error: null };
     } catch (err: any) {
       setError(err.message || 'Failed to upload product image.');
       return { path: null, url: null, error: err.message };
@@ -98,7 +116,7 @@ export function useProductImages() {
     uploadProductImage,
     renameProductImage,
     deleteProductImage,
-    getPublicUrl: getProductImageUrl,
+    getSignedUrl: getProductImageSignedUrl,
     getPath: getProductImagePath,
   };
 }
