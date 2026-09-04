@@ -4,6 +4,7 @@ import { useProductImages } from '../hooks/useProductImages';
 import { useClientPurchases } from '../hooks/useClientPurchases';
 import { useAuth } from '../context/authContext';
 import PurchasesModal from './purchasesModal';
+import ConfirmModal from './confirmModal';
 import monsterHighLogo from "../../public/monster-high-logo-color.png";
 
 import type { Product, CreateProductInput } from "../hooks/useProducts"
@@ -38,6 +39,7 @@ export default function Dashboard() {
   // showing a browser-cached copy of a since-replaced/removed image.
   const [imageVersion, setImageVersion] = useState(0);
   const [purchasesProduct, setPurchasesProduct] = useState<Product | null>(null);
+  const [productPendingDelete, setProductPendingDelete] = useState<Product | null>(null);
 
   // Keep purchase counts in sync with the product list
   useEffect(() => {
@@ -139,6 +141,20 @@ export default function Dashboard() {
     await deleteProduct(product.id);
   };
 
+  const handleRequestDeleteProduct = (product: Product) => {
+    setProductPendingDelete(product);
+  };
+
+  const handleCancelDeleteProduct = () => {
+    setProductPendingDelete(null);
+  };
+
+  const handleConfirmDeleteProduct = async () => {
+    if (!productPendingDelete) return;
+    await handleDeleteProduct(productPendingDelete);
+    setProductPendingDelete(null);
+  };
+
   const handleOpenPurchases = (product: Product) => {
     setPurchasesProduct(product);
   };
@@ -225,7 +241,7 @@ export default function Dashboard() {
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDeleteProduct(product)}
+                      onClick={() => handleRequestDeleteProduct(product)}
                       className="btnDelete"
                     >
                       Eliminar
@@ -381,6 +397,17 @@ export default function Dashboard() {
           updatePurchase={updatePurchase}
           deletePurchase={deletePurchase}
           applyPurchaseUpdate={applyPurchaseUpdate}
+        />
+      )}
+
+      {productPendingDelete && (
+        <ConfirmModal
+          title="Eliminar producto"
+          message={`¿Estás seguro de que quieres eliminar "${productPendingDelete.name}"? Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={handleConfirmDeleteProduct}
+          onCancel={handleCancelDeleteProduct}
         />
       )}
     </div>
