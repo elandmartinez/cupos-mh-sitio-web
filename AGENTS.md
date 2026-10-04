@@ -1,3 +1,18 @@
+## Project reference
+
+`DOCUMENTATION.md` is the reference document for this repo — it describes what the
+app does, the architecture, routes, data model, hooks/components, build &
+deployment, developer tooling, and known issues/tech debt.
+
+**Read it first** whenever you need context, or when you're unsure how something is
+supposed to work, before searching or assuming. Prefer it over guesswork, but trust
+the code over the doc when the two disagree.
+
+Keep it current: if a change alters the architecture, routes, data model, hooks, or
+known issues, update `DOCUMENTATION.md` in the same change and bump its
+"Last documented" line.
+
+
 ## Development
 
 When starting the dev server, use background mode:
