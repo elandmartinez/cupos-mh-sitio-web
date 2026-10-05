@@ -69,6 +69,19 @@ Reusable skills in `.agents/skills/`:
   Guidelines (accessibility, focus, forms, motion, typography). Use it to review.
 - `redesign-existing-projects` — audit-first protocol for bigger visual overhauls.
 
+Reusable subagents in `.cursor/agents/` — **delegate; don't serialise.** They run in
+isolated contexts, so independent checks fan out in parallel and their noisy output
+(build logs, DOM dumps, screenshots) stays out of the main conversation:
+
+- `gate-verifier` — re-runs `tsc`, `build` and the static-artifact/hermetic checks on the
+  current tree, returns PASS/FAIL with raw evidence. Read-only; run it before committing.
+- `ui-verifier` — headless-Chrome screenshots plus real DOM geometry at 390/1280 px,
+  checked against `DESIGN.md`. Run after touching components, styles or layouts.
+- `docs-sync` — audits `DOCUMENTATION.md` / `DESIGN.md` / `CHANGELOG.md` against the code
+  and fixes the drift (routes, data model, hooks, tech debt, §15 history, date stamp).
+- `data-layer-reviewer` — reviews repositories/hooks/auth against the Supabase skills.
+- `commit-steward` — stages explicit paths and writes the Conventional Commit.
+
 ### Verifying UI changes
 
 Chrome is installed and works headless. Take a real screenshot and look at it

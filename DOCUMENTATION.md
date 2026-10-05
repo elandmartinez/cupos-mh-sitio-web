@@ -515,8 +515,9 @@ No `vercel.json` is needed: Vercel's Astro preset runs `npm run build` and reads
 
 ## 12. Developer & AI tooling
 
-The repo carries configuration for several AI coding assistants, all committed in
-`b698b2b "created set up files for external AI tools"`:
+The repo carries configuration for several AI coding assistants, most of it committed in
+`b698b2b "created set up files for external AI tools"` — the subagent set described below
+was added later:
 
 | Path | What it is |
 | :-- | :-- |
@@ -525,9 +526,30 @@ The repo carries configuration for several AI coding assistants, all committed i
 | `.agents/skills/` | Vendored agent skills — Supabase (`supabase`, `supabase-postgres-best-practices`) plus design (`web-design-guidelines` from `vercel-labs/agent-skills`, `redesign-existing-projects` from `Leonxlnx/taste-skill`), mirrored under `.claude/skills/`. |
 | `skills-lock.json` | Lockfile for the above (sources + content hashes; see §14 for the two entries without a hash). |
 | `.cursor/rules/codegraph.mdc` | Cursor rule describing when/how to use the CodeGraph MCP tools (`alwaysApply: true`). |
+| `.cursor/agents/` | Project **subagents** — one `.md` per agent (YAML `name`/`description` + system prompt). See *Subagents* below. Project-level, so they take priority over any same-named user agent in `~/.cursor/agents/`. |
 | `.codegraph/` | CodeGraph index for this repo (`config.json` + `.gitignore` are committed). |
 | `.vscode/extensions.json` | Recommends `saoudrizwan.claude-dev` (Cline). |
 | `.claude/`, `.agents/` | Skill files consumed by Claude-based agents. |
+
+### Subagents
+
+Five project subagents live in `.cursor/agents/`. They exist so independent work runs **in
+parallel** in isolated contexts instead of serially inside one conversation: the main agent
+can edit while `ui-verifier` measures the layout and `docs-sync` checks the prose, and none
+of those three need the others' context. Delegating also keeps large command output (build
+logs, DOM dumps) out of the main context.
+
+| Agent | Delegate to it when | Writes files? |
+| :-- | :-- | :-- |
+| `gate-verifier` | After any code, config, dependency or style change, and before every commit. Runs `npx tsc --noEmit`, `npm run build`, the static-artifact shape check (no `functions/`, no function route in `config.json`) and the static-only source checks, then reports PASS/FAIL with raw evidence. | No — read-only. |
+| `ui-verifier` | After touching `src/components/*.tsx`, `src/styles/*.css`, `src/pages/*.astro` or `src/layouts/*`. Headless-Chrome screenshots plus real DOM geometry at 390 px and 1280 px, checked against `DESIGN.md`: targets ≥ 44 px, visible focus ring, contrast via tokens, disclosure ARIA, reduced motion. | Only throwaway `/tmp` screenshots. |
+| `docs-sync` | After any change to components, hooks, repositories, routes, styles or tech debt, and after every commit. Audits `DOCUMENTATION.md` / `DESIGN.md` / `CHANGELOG.md` against the code and fixes the drift: stale routes, data model, hook rows, §14 items, §15 history, the date stamp. | Yes, docs only. |
+| `data-layer-reviewer` | After touching any repository, hook, query or type. Reviews against the vendored Supabase skills: single client, `RepoResult<T>` never throwing, loading/error states, N+1, cascade assumptions, RLS. | No by default. |
+| `commit-steward` | Once changes are verified. Stages **explicit paths** (never `git add -A`, so `dist/` stays out of history) and writes the Conventional-Commits message, including the git-pager and heredoc workarounds this terminal needs. | Commits; does not author code. |
+
+A subagent's `description` field is what drives delegation, so each one is phrased as *when*
+to use it and includes "use proactively". Keep them focused on one job each — an agent that
+does two things is picked for neither.
 
 ### Design tooling
 
