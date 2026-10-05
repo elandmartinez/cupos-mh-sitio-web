@@ -678,12 +678,17 @@ Ordered roughly by how much they matter:
 | `3e20ddc` | feat: add confirmation modal for product deletion |
 | `7b72590` | feat: implement product image component and currency formatting helper |
 | `d5f3cb0` | chore: stop tracking node_modules |
-| `b698b2b` | created set up files for external AI tools *(HEAD, `master`)* |
+| `b698b2b` | created set up files for external AI tools |
+| `f36b6a1` | feat: overhaul design system and guidelines |
+| `66f2031` | feat: add collapsible dashboard sections and read-only Mis ventas |
+
+Rows list feature and scaffold commits; documentation-only commits are not tracked
+here.
 
 So the app was built in this order: **Astro scaffold → auth + login → data hooks →
 UI polish (confirm modal, images, currency) → repo hygiene (`node_modules`) → AI
-tooling.** The domain model (products → purchases → payments) and the storage layer
-have existed since `2e0b0c6`.
+tooling → design system → dashboard sections + repository layer.** The domain model
+(products → purchases → payments) and the storage layer have existed since `2e0b0c6`.
 
 ## 16. Suggested next steps
 
