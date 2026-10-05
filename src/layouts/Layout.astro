@@ -18,8 +18,9 @@ const { title } = Astro.props;
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 		<meta name="description" content="Gestión de cupos, compras y pagos de clientes." />
-		<!-- Matches the dark top bar so mobile browser chrome blends in. -->
-		<meta name="theme-color" content="#110015" />
+		<!-- Blends the mobile browser chrome with the page background
+		     (--color-surface-subtle, see theme.css). -->
+		<meta name="theme-color" content="#f8fafc" />
 		<meta name="color-scheme" content="light" />
 		<!-- Outfit is the one typeface (see DESIGN.md); system fonts are the
 		     fallback when the network is unavailable. -->
@@ -37,14 +38,10 @@ const { title } = Astro.props;
 </html>
 
 <style>
+	/* Everything global (margins, box-sizing, body background, color) is owned
+	   by theme.css — this block only keeps the page from scrolling sideways. */
 	html,
 	body {
-		margin: 0;
 		width: 100%;
-		height: 100%;
-	}
-
-	body {
-		background-color: var(--color-bone);
 	}
 </style>

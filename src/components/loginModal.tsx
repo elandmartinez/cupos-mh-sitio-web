@@ -43,16 +43,10 @@ export default function LoginModal() {
       <section className="authCard" aria-labelledby="authTitle">
         <div className="authHeader">
           <h2 id="authTitle" className="authTitle">
-            Bienvenida de nuevo
+            Inicia sesión
           </h2>
-          <p className="authSubtitle">Ingresa tus datos para acceder a tu cuenta</p>
+          <p className="authSubtitle">Ingresa con tu correo y contraseña para ver tu panel.</p>
         </div>
-
-        {errorMsg && (
-          <p className="errorMessage" role="alert">
-            {errorMsg}
-          </p>
-        )}
 
         <form onSubmit={handleSubmit} className="authForm">
           <div className="fieldGroup">
@@ -87,11 +81,29 @@ export default function LoginModal() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={errorMsg ? true : undefined}
+              aria-describedby={errorMsg ? 'passwordError' : undefined}
               required
             />
+            {/* A credentials failure belongs to the field it concerns — inline,
+                in place, with what to do next. Never a banner or a toast. */}
+            {errorMsg && (
+              <p className="fieldError" id="passwordError" role="alert">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+                  <path
+                    d="M8 4.6v4.1M8 11.1v.2"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span>{errorMsg}</span>
+              </p>
+            )}
           </div>
 
-          <button type="submit" className="submitBtn" disabled={loading}>
+          <button type="submit" className="btnPrimary submitBtn" disabled={loading}>
             {loading ? (
               <>
                 <span className="spinner" aria-hidden="true" />

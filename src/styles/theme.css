@@ -1,88 +1,119 @@
 /*
- * Shared design tokens + global primitives for the whole app.
+ * UXonFly design system — tokens + global primitives for the whole app.
  *
- * This is the single source of truth for color, type, spacing, elevation and
- * motion; see DESIGN.md for the rationale and the usage rules.
+ * Installed from UXonFly: the vendored upstream text lives at
+ * .agents/uxonfly.md, DESIGN.md is the project-adapted contract, and this file
+ * is its implementation. When this file and DESIGN.md disagree, this file wins
+ * for values — then fix DESIGN.md.
  *
  * Imported once by src/layouts/Layout.astro so every page gets it.
  *
- * Neutrals are warm (bone cream + near-black plum ink) with exactly one accent
- * family: violet (--color-purple) as primary, magenta (--color-fuchsia) for
- * emphasis and the brand gradient endpoint only.
+ * Only the brand is ours: ONE accent (--color-primary, the Monster High violet)
+ * and ONE typeface (--font-sans, Outfit). Everything else is the system's —
+ * the slate neutral family, the 4/8/12/16/24/32/48/64 spacing scale, the
+ * 4/8/12/16 radius scale, a single elevation shadow and border-first surfaces.
  */
 :root {
-  /* Base neutrals */
-  --color-bone: #f5f3ef;
-  --color-bone-soft: #faf9f6;
-  --color-dark: #110015;
+  /* --- Brand accent — one per screen, primary action only --------------- */
+  --color-primary: #522e93;
+  --color-primary-hover: #45277e; /* darker step */
+  --color-primary-active: #3c2170; /* darker still */
+  --color-primary-subtle: #efe9f9;
+  --color-primary-subtle-hover: #e4d9f5;
+  --color-primary-subtle-active: #d8c9ee;
+  --color-on-primary: #ffffff; /* 9.6:1 on --color-primary */
 
-  /* Secondary / brand accents */
-  --color-purple: #522e93;
-  --color-purple-dark: #3c2170;
-  --color-purple-soft: #efe9f9;
-  --color-fuchsia: #a50062;
-  --color-fuchsia-dark: #7d004a;
-  --color-fuchsia-soft: #fbe6f0;
-  --gradient-brand: linear-gradient(135deg, var(--color-purple) 0%, var(--color-fuchsia) 100%);
-
-  /* Accent state variants (fills + borders on hover/active) */
-  --color-purple-soft-hover: #e4d9f5;
-  --color-purple-soft-active: #d8c9ee;
-  --color-border-accent: #dcd3ea;
-
-  /* Semantic */
-  --color-text: var(--color-dark);
-  --color-text-muted: #6d6459;
+  /* --- Neutrals (slate) — never pure black, one gray family ------------ */
+  --color-text: #0f172a; /* slate-900 */
+  --color-text-muted: #64748b; /* slate-500 */
+  --color-text-subtle: #94a3b8; /* slate-400 */
   --color-surface: #ffffff;
-  --color-border: #e6e2da;
-  --color-danger-bg: #fdecec;
-  --color-danger-text: #9a1b3a;
-  --color-danger-bg-hover: #fbd9d9;
-  --color-warning-bg: #fdf1e0;
-  --color-warning-text: #8a5a12;
-  --color-warning-bg-hover: #fbe4bd;
+  --color-surface-subtle: #f8fafc; /* slate-50 — muted areas */
+  --color-surface-sunken: #f1f5f9; /* slate-100 */
+  --color-border: #e2e8f0; /* slate-200 */
+  --color-border-strong: #cbd5e1; /* slate-300 */
 
-  /* Elevation & shape — a single light source, tinted with the ink hue */
-  --shadow-sm: 0 1px 2px rgba(17, 0, 21, 0.06);
-  --shadow-md: 0 12px 28px -12px rgba(17, 0, 21, 0.28);
-  --shadow-lg: 0 24px 48px -16px rgba(17, 0, 21, 0.35);
-  --shadow-brand: 0 14px 32px -12px rgba(165, 0, 98, 0.45);
-  --radius-sm: 0.5rem;
-  --radius-md: 0.875rem;
-  --radius-lg: 1.25rem;
-  --radius-full: 999px;
-  --focus-ring: 0 0 0 3px rgba(82, 46, 147, 0.2);
+  /* --- Status — status indicators only, never decoration ---------------- */
+  --color-neutral-subtle: #f1f5f9;
+  --color-neutral-text: #334155;
+  --color-success-subtle: #ecfdf5;
+  --color-success-text: #047857;
+  --color-warning-subtle: #fffbeb;
+  --color-warning-text: #b45309;
+  --color-danger-subtle: #fef2f2;
+  --color-danger-text: #b91c1c;
+  --color-danger-hover: #991b1b;
+  --color-danger-active: #7f1d1d;
+  --color-info-subtle: #eff6ff;
+  --color-info-text: #1d4ed8;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
 
-  /* Type */
+  /* --- Shape ----------------------------------------------------------- */
+  --radius-sm: 4px; /* badges, small chips */
+  --radius-md: 8px; /* default — buttons, inputs */
+  --radius-lg: 12px; /* cards, modals */
+  --radius-xl: 16px; /* large containers */
+  --radius-full: 9999px;
+
+  /* --- Elevation — border-first; one shadow, for floating UI only ------- */
+  --shadow-elevated: 0 1px 3px rgba(15, 23, 42, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.06);
+  --overlay-backdrop: rgba(15, 23, 42, 0.5);
+  --overlay-control: rgba(15, 23, 42, 0.65);
+  --overlay-control-hover: rgba(15, 23, 42, 0.85);
+  --color-on-overlay: #ffffff;
+
+  /* --- Focus — 2px ring in the primary color, 2px offset --------------- */
+  --focus-ring: 0 0 0 2px rgba(82, 46, 147, 0.5);
+  --focus-ring-offset: 2px;
+
+  /* --- Layering -------------------------------------------------------- */
+  --z-sticky: 20;
+  --z-overlay: 50;
+  --z-skip-link: 100;
+
+  /* --- Type — our typeface, the system's scale ------------------------- */
   --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
   --font-display: var(--font-sans);
-  --text-2xs: 0.6875rem;
-  --text-xs: 0.75rem;
-  --text-sm: 0.8125rem;
-  --text-base: 0.9375rem;
-  --text-md: 1.0625rem;
-  --text-lg: 1.375rem;
-  --text-xl: 2rem;
-  --text-2xl: clamp(2rem, 8vw, 3.5rem);
-  --leading-tight: 1.15;
-  --leading-snug: 1.35;
-  --leading-normal: 1.5;
-  --tracking-display: -0.035em;
-  --tracking-tight: -0.02em;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
+  --text-xs: 0.75rem; /* 12 / 16 */
+  --text-sm: 0.875rem; /* 14 / 20 */
+  --text-base: 1rem; /* 16 / 24 — body floor */
+  --text-lg: 1.125rem; /* 18 / 28 */
+  --text-xl: 1.25rem; /* 20 / 28 */
+  --text-2xl: 1.5rem; /* 24 / 32 */
+  --text-3xl: 2rem; /* 32 / 40 */
+  --text-4xl: 3rem; /* 48 / 52 */
+  --leading-heading: 1.2;
+  --leading-body: 1.5;
+  --tracking-heading: -0.02em;
   --tracking-label: 0.04em;
-  --measure: 34rem;
+  --measure: 40rem; /* ~65 characters at 16px */
 
-  /* Spacing scale (4px → 48px) */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
+  /* --- Spacing — the 8-stop scale, named in pixels --------------------- */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --field-gap: var(--space-16);
+  --section-gap: var(--space-32);
+  --page-padding: var(--space-16);
+  --page-padding-wide: var(--space-24);
   --content-width: 64rem;
+
+  /* --- Motion ---------------------------------------------------------- */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -98,10 +129,10 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: var(--leading-normal);
+  font-size: var(--text-base); /* 16px floor — never smaller for body copy */
+  line-height: var(--leading-body);
   color: var(--color-text);
-  background-color: var(--color-bone);
+  background-color: var(--color-surface-subtle);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -111,72 +142,84 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-heading);
   text-wrap: balance;
+  margin: 0;
 }
 
-p {
-  text-wrap: pretty;
+h1 {
+  font-size: var(--text-3xl);
+  font-weight: 700; /* top-level page titles only */
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
+h2 {
+  font-size: var(--text-xl);
+  font-weight: 600;
 }
 
-button {
-  touch-action: manipulation;
-  /* We supply our own :active feedback, so suppress the default tap flash. */
-  -webkit-tap-highlight-color: transparent;
+h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
 }
 
-/* Numbers meant to be compared should line up in a column. */
-.metaValue,
-.purchaseProgressLabel,
-.paymentItem,
-.saleMoney,
-.collapsibleMeta {
+/* Data-heavy numbers line up in columns. */
+.tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* Always give keyboard users a ring (inputs opt in to a softer glow). */
+/* Supporting copy that sits next to a value or under a heading: page
+   subtitles, list metadata, empty-state hints. Never body paragraphs. */
+.textMuted {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+
+/* Keyboard users always get a solid 2px ring at a 2px offset. The system's
+   spec is the same ring at 50% opacity; a solid ring is the accessible floor
+   (WCAG 1.4.11 wants 3:1) and accessibility outranks the component spec. */
 :focus-visible {
-  outline: 2px solid var(--color-purple);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-primary);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* Skip link — offscreen until focused (rendered by Layout.astro). */
 .skipLink {
   position: absolute;
   top: -4rem;
-  left: var(--space-4);
-  z-index: 100;
-  padding: 0.6rem 1rem;
-  background-color: var(--color-dark);
-  color: var(--color-bone);
-  border-radius: var(--radius-sm);
+  left: var(--space-16);
+  z-index: var(--z-skip-link);
+  padding: var(--space-8) var(--space-16);
+  background-color: var(--color-text);
+  color: var(--color-surface);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
-  transition: top 0.15s ease-in-out;
+  transition: top var(--duration-fast) var(--ease-standard);
 }
 
 .skipLink:focus {
-  top: var(--space-4);
+  top: var(--space-16);
 }
 
 /* Inline loading indicator; pair with copy ending in "…". */
 .spinner {
   width: 1.125rem;
   height: 1.125rem;
+  flex-shrink: 0;
   border: 2px solid var(--color-border);
-  border-top-color: var(--color-purple);
+  border-top-color: var(--color-primary);
   border-radius: var(--radius-full);
   animation: spin 0.7s linear infinite;
+}
+
+/* A spinner on the primary fill needs a light track to read at all. */
+.btnPrimary .spinner,
+.btnDanger .spinner {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: var(--color-on-primary);
 }
 
 @keyframes spin {
@@ -198,13 +241,15 @@ button {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Form primitives — shared by the login and dashboard stylesheets.        */
+/* Form primitives — shared by every screen.                              */
+/* Label above the field, always visible; help text and error text share   */
+/* one vertical slot so validating never shifts the layout.                */
 /* ---------------------------------------------------------------------- */
 
 .fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-8);
 }
 
 .label {
@@ -220,56 +265,320 @@ button {
   color: var(--color-text-muted);
 }
 
+/* Validation message — what failed, right below the field, never in a toast.
+   Rendered with an icon by the consuming component. */
+.fieldError {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger-text);
+}
+
+.fieldError svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.125rem;
+}
+
 .input,
 .textarea {
   width: 100%;
-  min-height: 2.75rem; /* 44px — comfortable touch target */
-  padding: 0.65rem 0.8rem;
+  min-height: 2.5rem; /* md — 40px, padding included */
+  padding: 0 var(--space-12);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-bone-soft);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  font-family: inherit;
+  /* 16px here rather than the 14px the spec gives buttons: this is body-size
+     text, and 16px stops iOS zooming the viewport when a field takes focus. */
   font-size: var(--text-base);
   color: var(--color-text);
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out,
-    background-color 0.15s ease-in-out;
-}
-
-.input::placeholder,
-.textarea::placeholder {
-  color: var(--color-text-muted);
-  opacity: 0.75;
-}
-
-/* The glow ring replaces the outline, so this stays keyboard-friendly. */
-.input:focus,
-.textarea:focus,
-.input:focus-visible,
-.textarea:focus-visible {
-  outline: none;
-  background-color: var(--color-surface);
-  border-color: var(--color-purple);
-  box-shadow: var(--focus-ring);
-}
-
-.input:disabled,
-.textarea:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .textarea {
+  padding: var(--space-8) var(--space-12);
   min-height: 5rem;
   resize: vertical;
 }
 
-/* Inline error / status message. Pair with role="alert" so it is announced. */
-.errorMessage {
-  margin: 0 0 var(--space-4);
-  padding: 0.7rem var(--space-4);
-  border: 1px solid rgba(154, 27, 58, 0.15);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-danger-bg);
-  color: var(--color-danger-text);
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-text-subtle);
+}
+
+/* The global :focus-visible ring does the work; the border tints with it. */
+.input:focus,
+.textarea:focus,
+.input:focus-visible,
+.textarea:focus-visible {
+  border-color: var(--color-primary);
+}
+
+.input:disabled,
+.textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Buttons — sizes sm 32 / md 40 / lg 48; primary, secondary, ghost,      */
+/* danger. Every variant has hover, active, focus-visible and disabled.   */
+/* ONE primary per screen. Never use a button for navigation.             */
+/* ---------------------------------------------------------------------- */
+
+.btnPrimary,
+.btnSecondary,
+.btnGhost,
+.btnDanger,
+.btnIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: 2.5rem; /* md — 40px, the default size */
+  padding: 0 var(--space-16);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: inherit;
   font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+/* Icon-only: square and label-free, so it always needs an aria-label. */
+.btnIcon {
+  width: 2.5rem;
+  padding: 0;
+  background-color: transparent;
+  color: var(--color-text-muted);
+}
+
+.btnPrimary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.btnPrimary:active:not(:disabled) {
+  background-color: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+.btnSecondary {
+  background-color: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background-color: var(--color-surface-sunken);
+}
+
+.btnSecondary:active:not(:disabled) {
+  background-color: var(--color-border);
+}
+
+.btnGhost {
+  background-color: transparent;
+  color: var(--color-text);
+}
+
+.btnGhost:hover:not(:disabled),
+.btnIcon:hover:not(:disabled) {
+  background-color: var(--color-surface-sunken);
+}
+
+.btnGhost:active:not(:disabled),
+.btnIcon:active:not(:disabled) {
+  background-color: var(--color-border);
+}
+
+/* Destructive actions only. Red-700, not red-500: white on #ef4444 is 3.1:1. */
+.btnDanger {
+  background-color: var(--color-danger-text);
+  border-color: var(--color-danger-text);
+  color: var(--color-on-primary);
+}
+
+.btnDanger:hover:not(:disabled) {
+  background-color: var(--color-danger-hover);
+}
+
+.btnDanger:active:not(:disabled) {
+  background-color: var(--color-danger-active);
+}
+
+.btnPrimary:disabled,
+.btnSecondary:disabled,
+.btnGhost:disabled,
+.btnDanger:disabled,
+.btnIcon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Destructive action inside a list or on a card: quiet until hovered, so a
+   grid of records doesn't turn into a wall of red. The confirm dialog still
+   owns the solid danger button. */
+.btnGhost--danger {
+  color: var(--color-danger-text);
+}
+
+.btnGhost--danger:hover:not(:disabled) {
+  background-color: var(--color-danger-subtle);
+  color: var(--color-danger-text);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Surfaces and feedback primitives                                       */
+/* ---------------------------------------------------------------------- */
+
+/* Card — a border, never a shadow. Radius 12px, padding 24px. */
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-24);
+}
+
+/* Badge — status, counts and labels only. Never clickable, never navigation. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 1.5rem;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.badge--neutral {
+  background-color: var(--color-neutral-subtle);
+  color: var(--color-neutral-text);
+}
+
+.badge--primary {
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+
+.badge--success {
+  background-color: var(--color-success-subtle);
+  color: var(--color-success-text);
+}
+
+.badge--warning {
+  background-color: var(--color-warning-subtle);
+  color: var(--color-warning-text);
+}
+
+.badge--danger {
+  background-color: var(--color-danger-subtle);
+  color: var(--color-danger-text);
+}
+
+.badge--info {
+  background-color: var(--color-info-subtle);
+  color: var(--color-info-text);
+}
+
+/* Banner — persistent, page-level information. Critical errors never toasts. */
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.banner--danger {
+  background-color: var(--color-danger-subtle);
+  border-color: var(--color-danger-text);
+  color: var(--color-danger-text);
+}
+
+.banner p {
+  flex: 1 1 14rem;
+  margin: 0;
+}
+
+/* Empty state — illustration, heading, subtext and ONE CTA, in that order. */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-32) var(--space-16);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   text-align: center;
+}
+
+/* Inside an existing surface (card, modal) the empty state drops its frame. */
+.emptyState--plain {
+  padding: var(--space-24) var(--space-16);
+  background-color: transparent;
+  border: none;
+}
+
+.emptyStateArt {
+  width: 6rem; /* the 120px ceiling */
+  height: 6rem;
+  color: var(--color-text-subtle);
+}
+
+.emptyStateTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.emptyStateBody {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.emptyStateAction {
+  margin-top: var(--space-8);
+}
+
+/* Status region — a spinner and a one-line caption while data loads. */
+.statusMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-32) var(--space-16);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.statusMessage p {
+  margin: 0;
+  max-width: var(--measure);
 }

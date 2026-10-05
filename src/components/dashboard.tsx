@@ -9,6 +9,7 @@ import ProductImage from './productImage';
 import Modal from './modal';
 import CollapsibleSection from './collapsibleSection';
 import SalesSection from './salesSection';
+import EmptyState from './emptyState';
 import { formatCurrency } from '../helpers/currency';
 import monsterHighLogo from "../../public/monster-high-logo-color.png";
 
@@ -99,6 +100,10 @@ export default function Dashboard() {
   const productsMeta = loading
     ? undefined
     : `${products.length} producto${products.length === 1 ? '' : 's'}`;
+
+  // One primary action per screen: while the empty state owns the "Nuevo
+  // producto" button, the page header must not render a second identical one.
+  const showProductsEmptyState = !loading && products.length === 0;
 
   const bumpImageVersion = () => setImageVersion((v) => v + 1);
 
@@ -240,70 +245,72 @@ export default function Dashboard() {
         <div className="pageHeader">
           <div className="pageHeaderText">
             <h1 className="title">Panel de gestión</h1>
-            <p className="subtitle">Tu catálogo, las compras de tus clientes y sus pagos</p>
+            <p className="textMuted">Tu catálogo, las compras de tus clientes y sus pagos.</p>
           </div>
 
           <div className="pageHeaderActions">
             <button
               type="button"
               onClick={handleRefresh}
-              className="btnRefresh"
+              className="btnIcon btnRefresh"
               aria-label="Refrescar productos y ventas"
               title="Refrescar"
             >
               <span aria-hidden="true">⟳</span>
             </button>
-            <button
-              type="button"
-              onClick={handleOpenNewForm}
-              className="btnNew"
-              aria-haspopup="dialog"
-            >
-              <span className="btnNewIcon" aria-hidden="true">
-                +
-              </span>{' '}
-              Nuevo producto
-            </button>
+            {!showProductsEmptyState && (
+              <button
+                type="button"
+                onClick={handleOpenNewForm}
+                className="btnPrimary"
+                aria-haspopup="dialog"
+              >
+                <span aria-hidden="true">+</span> Nuevo producto
+              </button>
+            )}
           </div>
         </div>
 
+        {/* A failure that blocks the panel is a banner above it, never a toast:
+            it stays on screen, names what failed and offers the retry. */}
+        {error && (
+          <div className="banner banner--danger dashboardBanner" role="alert">
+            <p>{error}</p>
+            <button type="button" onClick={handleRefresh} className="btnSecondary">
+              Reintentar
+            </button>
+          </div>
+        )}
+
         <div className="dashboardSections">
           <CollapsibleSection title="Mis productos" meta={productsMeta}>
-            {error && (
-              <div className="errorAlert" role="alert">
-                {error}
-              </div>
-            )}
-
             {loading ? (
               <div className="statusMessage" role="status" aria-live="polite">
                 <span className="spinner" aria-hidden="true" />
                 <p>Cargando productos…</p>
               </div>
-            ) : products.length === 0 ? (
-              <div className="statusMessage">
-                <h3 className="emptyStateTitle">Todavía no hay productos</h3>
-                <p className="emptyStateBody">
-                  Agrega tu primer cupo para empezar a registrar compras y pagos de clientes.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleOpenNewForm}
-                  className="btnNew emptyStateAction"
-                  aria-haspopup="dialog"
-                >
-                  <span className="btnNewIcon" aria-hidden="true">
-                    +
-                  </span>{' '}
-                  Nuevo producto
-                </button>
-              </div>
+            ) : showProductsEmptyState ? (
+              <EmptyState
+                art="products"
+                title="Todavía no hay productos"
+                body="Publica tu primer cupo para poder registrar las compras de tus clientes y el avance de sus pagos."
+                action={
+                  <button
+                    type="button"
+                    onClick={handleOpenNewForm}
+                    className="btnPrimary"
+                    aria-haspopup="dialog"
+                  >
+                    <span aria-hidden="true">+</span> Nuevo producto
+                  </button>
+                }
+              />
             ) : (
               <div className="productsGrid">
               {products.map((product) => {
                 const productPurchases = purchasesByProduct[product.id] || [];
                 return (
-                  <div key={product.id} className="productCard">
+                  <div key={product.id} className="card productCard">
                     <ProductImage
                       product={product}
                       imageVersion={imageVersion}
@@ -314,7 +321,7 @@ export default function Dashboard() {
                     <div>
                       <div className="productHeader">
                         <h3 className="productName">{product.name}</h3>
-                        <span className="badgeId">ID: {product.id}</span>
+                        <span className="badge badge--primary">ID: {product.id}</span>
                       </div>
                       <p className="productDescription">{product.description}</p>
                     </div>
@@ -324,7 +331,7 @@ export default function Dashboard() {
                         <div className="metaRelease">
                           Lanzamiento: {product.release_date || 'N/D'}
                         </div>
-                        <div className="metaValue">
+                        <div className="metaValue tabular">
                           Valor: {formatCurrency(product.value)}
                         </div>
                       </div>
@@ -333,7 +340,7 @@ export default function Dashboard() {
                         <button
                           type="button"
                           onClick={() => handleEditClick(product)}
-                          className="btnEdit"
+                          className="btnSecondary btnCardAction"
                           aria-haspopup="dialog"
                           aria-label={`Editar ${product.name ?? 'producto'}`}
                         >
@@ -342,7 +349,7 @@ export default function Dashboard() {
                         <button
                           type="button"
                           onClick={() => handleRequestDeleteProduct(product)}
-                          className="btnDelete"
+                          className="btnGhost btnGhost--danger btnCardAction"
                           aria-haspopup="dialog"
                           aria-label={`Eliminar ${product.name ?? 'producto'}`}
                         >
@@ -354,7 +361,7 @@ export default function Dashboard() {
                     <button
                       type="button"
                       onClick={() => handleOpenPurchases(product)}
-                      className="btnPurchases"
+                      className="btnSecondary btnPurchases"
                       aria-haspopup="dialog"
                     >
                       <span aria-hidden="true">🛍️</span> Compras
@@ -372,6 +379,7 @@ export default function Dashboard() {
               purchases={allPurchases}
               loading={purchasesLoading}
               error={purchasesError}
+              onRetry={handleRefresh}
             />
           </CollapsibleSection>
         </div>
@@ -380,13 +388,13 @@ export default function Dashboard() {
       {showForm && (
         <Modal labelledBy="productFormTitle" onClose={closeForm}>
           <div className="formCardHeader">
-            <h2 className="formTitle" id="productFormTitle">
-              {isEditing ? 'Editar producto' : 'Agregar nuevo producto'}
+            <h2 id="productFormTitle">
+              {isEditing ? 'Editar producto' : 'Nuevo producto'}
             </h2>
               <button
                 type="button"
                 onClick={closeForm}
-                className="btnClose"
+                className="btnIcon btnClose"
                 aria-label="Cerrar formulario"
               >
                 ×
@@ -509,11 +517,11 @@ export default function Dashboard() {
             </div>
 
             <div className="buttonGroup">
-              <button type="submit" className="btnPrimary">
-                {isEditing ? 'Actualizar' : 'Crear'}
-              </button>
               <button type="button" onClick={closeForm} className="btnSecondary">
                 Cancelar
+              </button>
+              <button type="submit" className="btnPrimary">
+                {isEditing ? 'Guardar cambios' : 'Crear producto'}
               </button>
             </div>
           </form>
@@ -534,9 +542,9 @@ export default function Dashboard() {
 
       {productPendingDelete && (
         <ConfirmModal
-          title="Eliminar producto"
-          message={`¿Estás seguro de que quieres eliminar "${productPendingDelete.name}"? Esta acción no se puede deshacer.`}
-          confirmLabel="Eliminar"
+          title="¿Eliminar producto?"
+          message={`Se eliminará "${productPendingDelete.name}" junto con sus compras y sus pagos. No se puede deshacer.`}
+          confirmLabel="Eliminar producto"
           cancelLabel="Cancelar"
           onConfirm={handleConfirmDeleteProduct}
           onCancel={handleCancelDeleteProduct}

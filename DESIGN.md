@@ -7,148 +7,178 @@ implementation of the tokens below — when the two disagree, the CSS wins.
 Adapted from the Stitch `DESIGN.md` convention (see the `awesome-design-md`
 reference in `.agents/skills/`).
 
-**Last reviewed:** 2026-10-04
+**Last reviewed:** 2026-10-05
 
 ---
 
 ## 1. Visual theme & atmosphere
 
-A calm, warm, editorial admin tool wearing a bold brand. The app is a
-reseller's quota/commission tracker: a small operator books "cupos" (slots),
-adds client purchases, and logs payments. It is used on a phone, one-handed,
-often in a hurry — so **clarity and tap-target size beat decoration**.
+A calm, practical admin tool wearing a bold brand. The app is a reseller's
+quota/commission tracker: a small operator books "cupos" (slots), adds client
+purchases, and logs payments. It is used on a phone, one-handed, often in a
+hurry — so **clarity and tap-target size beat decoration**.
 
-The brand (Monster High) supplies two saturated accent hues. Everything else is
-quiet: warm cream surfaces, a near-black eggplant ink, generous whitespace and
-a single consistent light source for elevation.
+One hue supplies the brand: the Monster High violet (`--color-primary`).
+Everything else is a cool **slate** neutral — near-black ink, white surfaces,
+hairline borders and generous whitespace. Surfaces are **border-first**: the
+edge does the work, not a shadow.
 
-Feel: *warm editorial boutique + dependable ledger*. Not "SaaS dashboard
-template", not "AI purple-gradient landing page". The accent is a signature,
-not a wallpaper.
+Feel: *calm ledger*. Not "SaaS gradient dashboard", not "AI purple wallpaper".
+The accent is a signature, not a wallpaper — one accent per screen.
 
 Density: **low** (3/10). Airy padding over compact tables. If a screen feels
 crowded, remove an element rather than shrink the type.
 
 ## 2. Color palette & roles
 
-Brand hues are **given** — they come from the client's logo and are not ours to
+Brand hue is **given** — it comes from the client's logo and is not ours to
 re-tune. Consistency is achieved through *restrained usage*, not hue changes.
+
+**Brand accent — one, and only one**
 
 | Token | Value | Role |
 | --- | --- | --- |
-| `--color-dark` | `#110015` | Ink + the top bar. Near-black plum, never pure `#000`. |
-| `--color-text` | = `--color-dark` | Body text on light surfaces. |
-| `--color-text-muted` | `#6d6459` | Secondary text. Warm taupe — the *only* gray family. |
-| `--color-bone` | `#f5f3ef` | App background. |
-| `--color-bone-soft` | `#faf9f6` | Inset fields, subtle fills. |
-| `--color-surface` | `#ffffff` | Cards, modals. |
-| `--color-border` | `#e6e2da` | 1px hairlines, dividers. |
-| `--color-purple` | `#522e93` | **Primary accent.** Focus rings, primary actions, badges. |
-| `--color-purple-dark` | `#3c2170` | Pressed state for primary. |
-| `--color-purple-soft` | `#efe9f9` | Accent fill (badges, tertiary buttons). |
-| `--color-fuchsia` | `#a50062` | **Emphasis only.** Money amounts, gradient end-stop. |
-| `--color-fuchsia-dark` | `#7d004a` | Pressed emphasis. |
-| `--color-fuchsia-soft` | `#fbe6f0` | Emphasis fill. |
-| `--gradient-brand` | 135deg purple → fuchsia | Primary CTA + logo lockup **only**. |
-| `--color-danger-text` / `--color-danger-bg` | `#9a1b3a` / `#fdecec` | Destructive + inline errors. |
-| `--color-warning-text` / `--color-warning-bg` | `#8a5a12` / `#fdf1e0` | Secondary/neutral action (Edit). |
+| `--color-primary` | `#522e93` | **The** accent. Primary actions, focus ring, active/selected state, emphasis. |
+| `--color-primary-hover` | `#45277e` | Hover step for accent fills. |
+| `--color-primary-active` | `#3c2170` | Pressed step. |
+| `--color-primary-subtle` | `#efe9f9` | Accent tint — `badge--primary`, subtle fills, quiet accent buttons. |
+| `--color-primary-subtle-hover` / `-active` | `#e4d9f5` / `#d8c9ee` | Hover / pressed for that tint. |
+| `--color-on-primary` | `#ffffff` | Text on accent fills (9.6:1 on `#522e93`). |
+
+**Neutrals — one slate family, never pure black**
+
+| Token | Value | Role |
+| --- | --- | --- |
+| `--color-text` | `#0f172a` | Body text and headings. Near-black slate, never `#000`. |
+| `--color-text-muted` | `#64748b` | Secondary text, meta lines, labels. |
+| `--color-text-subtle` | `#94a3b8` | Least-important / disabled text. |
+| `--color-surface` | `#ffffff` | Cards, modals, the top bar. |
+| `--color-surface-subtle` | `#f8fafc` | Muted areas, inset fields, zebra rows. |
+| `--color-surface-sunken` | `#f1f5f9` | Tracks, wells, hovered ghost buttons. |
+| `--color-border` | `#e2e8f0` | The default 1px hairline. |
+| `--color-border-strong` | `#cbd5e1` | Stronger dividers, secondary-button border. |
+
+**Status — indicators only, never decoration**
+
+| Token | Value |
+| --- | --- |
+| `--color-success-text` / `-subtle` | `#047857` / `#ecfdf5` |
+| `--color-warning-text` / `-subtle` | `#b45309` / `#fffbeb` |
+| `--color-danger-text` / `-subtle` | `#b91c1c` / `#fef2f2` |
+| `--color-danger-hover` / `-active` | `#991b1b` / `#7f1d1d` |
+| `--color-info-text` / `-subtle` | `#1d4ed8` / `#eff6ff` |
+| `--color-neutral-text` / `-subtle` | `#334155` / `#f1f5f9` |
 
 **Rules**
 
-- One accent *family* (violet→magenta). Purple is the workhorse; fuchsia is the
-  exception. Never introduce a third hue.
-- The gradient is a brand device: **≤ 1 gradient element per view** (the primary
-  CTA). Everything else uses flat accent colors.
-- One gray family only: warm (`#6d6459` taupe, `#e6e2da` hairline). Do not add
-  cool/blue-grays.
-- Never pure `#000`, and never gray shadows. Shadows are tinted with the ink hue.
+- One accent, on one thing per screen (the primary action). Everything else is
+  slate plus, where status is involved, a semantic badge.
+- **There is no second accent and no brand gradient.** Emphasis comes from
+  weight, size and the accent — never from a new hue.
+- One gray family only: cool slate. Do not introduce warm/taupe grays.
+- Never pure `#000`, and never gray-black shadows. Shadows are tinted with the
+  ink hue — `rgba(15, 23, 42, …)`.
 - Semantic color is never the only signal — pair it with text ("Pagado", "Sin
   pagos registrados") or an icon.
 
 ## 3. Typography rules
 
 Single family, **Outfit** (Google Fonts, weights 400–700), loaded with
-`display=swap` plus a system fallback stack so the app degrades gracefully
-offline. One family keeps a small app coherent; Outfit's geometric forms give
-headlines presence without shouting.
+`display=swap` plus a system fallback stack (`--font-sans`) so the app degrades
+gracefully offline. One family keeps a small app coherent; Outfit's geometric
+forms give headlines presence without shouting. `--font-mono` exists for code
+only — never for UI copy.
 
 | Token | Size | Use |
 | --- | --- | --- |
-| `--text-2xs` | 11px | Badges (`ID: 12`), uppercase + `--tracking-label`. |
-| `--text-xs` | 12px | Meta lines (release date), modal sub-labels. |
-| `--text-sm` | 13px | Form labels, chips, small buttons. |
-| `--text-base` | 15px | Body, inputs, buttons. |
-| `--text-md` | 17px | Card titles (`.productName`). |
-| `--text-lg` | 22px | Page title (h1). |
-| `--text-xl` | 32px | Login wordmark (mobile). |
-| `--text-2xl` | `clamp(2.5rem, 9vw, 3.5rem)` | Login wordmark (desktop). |
+| `--text-xs` | 12px | Badges, meta lines, uppercase labels + `--tracking-label`. |
+| `--text-sm` | 14px | Secondary text, card meta, buttons, sale rows. |
+| `--text-base` | 16px | Body, inputs, card titles (`.productName`) — the floor. |
+| `--text-lg` | 18px | Modal titles (`.authTitle`), h3. |
+| `--text-xl` | 20px | Section headings (h2). |
+| `--text-2xl` | 24px | Page title on mobile (`.title`), h1 base, login wordmark. |
+| `--text-3xl` | 32px | Page title from `640px` up, h1 at rest. |
+| `--text-4xl` | 48px | Reserved — not used today. |
 
 **Rules**
 
-- Display/heading text: negative tracking (`--tracking-tight` /
-  `--tracking-display`) with `--leading-tight`. Small caps/labels: *positive*
-  tracking (`--tracking-label`).
-- Body copy ≤ 65 characters (`--measure`), `--leading-normal`.
+- Display/heading text: negative tracking (`--tracking-heading`, -0.02em) with
+  `--leading-heading` (1.2). Small caps/labels: *positive* tracking
+  (`--tracking-label`, 0.04em) with `text-transform: uppercase`.
+- Body copy ≤ `--measure` (40rem ≈ 65 characters), `--leading-body` (1.5).
 - Weights: 400 body · 500 labels/UI · 600 buttons & card titles · 700 headlines.
   Avoid 800+, it reads as shouting in Outfit.
 - Money and comparable numbers get `font-variant-numeric: tabular-nums` so
   `$1,250` and `$9,999` align in a column.
 - Ellipsis is always the single character `…`, never `...` (`Iniciando sesión…`).
 - Headings get `text-wrap: balance`, paragraphs `text-wrap: pretty`.
-- Never all-caps a sentence — caps are reserved for 11px badges/labels.
+- Never all-caps a sentence — caps are reserved for 12px badges/labels.
 
 ## 4. Component stylings
 
-**Buttons** — all share `touch-action: manipulation`, an explicit hover state,
-`:active { transform: scale(.98) }` and a `:focus-visible` ring. Minimum hit
-area 44×44px (`.btnEdit` / `.btnDelete` pad out to reach it).
+**Buttons** (`theme.css`) — shared base: inline-flex, `--radius-md`, `min-height`
+2.5rem (40px, the `md` default), 14px/500, transitioning background,
+border-color and color. Sizes are **sm 32 / md 40 / lg 48**. Every variant has
+hover, active, `:focus-visible` and disabled. **One primary per screen; never
+use a button for navigation.**
 
 | Class | Look |
 | --- | --- |
-| `.btnNew` / `.submit-btn` | Brand gradient, white ink, `--radius-full`, `--shadow-brand`. The primary action — one per view. |
-| `.btnPrimary` | Same gradient, `--radius-sm` — modal form submits. |
-| `.btnSecondary` | Bone fill, hairline border, ink text — Cancel. |
-| `.btnDanger` | `--color-danger-text` fill, white ink — destructive confirm only. |
-| `.btnEdit` | Warning-soft (amber) fill: signals "this modifies data", calmer than a solid accent. |
-| `.btnDelete` | Danger-soft fill, never solid red — it sits in a dense card row. |
-| `.btnGhost` | Transparent + 1px light border, for the dark top bar. |
-| `.btnClose` / `.imageRemoveBtn` | Circular icon buttons — **must** carry `aria-label`. |
+| `.btnPrimary` | Solid `--color-primary`, white ink. The one primary action per view. |
+| `.btnSecondary` | White fill, `--color-border-strong` border, ink text — Cancel. |
+| `.btnGhost` | Transparent, ink text; sunken fill on hover — top bar and quiet actions. |
+| `.btnGhost--danger` | Ghost that turns `--color-danger-subtle` on hover — delete inside a card or row. |
+| `.btnDanger` | Solid `--color-danger-text` (red-700, not red-500) — the confirm dialog only. |
+| `.btnIcon` | 2.5rem square, transparent, muted icon — **must** carry `aria-label`. |
 
-**Inputs** — bone-soft fill, hairline border, 8px radius, 44px tall. Focus =
-white fill + `--color-purple` border + 3px `--focus-ring` glow. Labels are
-always visible above the field (13px, weight 500) and wired with `htmlFor`/`id`
-— never placeholder-as-label. Use the right `type`/`inputmode`/`autocomplete`
-(`type="email"` + `autoComplete="username"` on login).
+The dashboard's own button classes are *layout*, not looks: `.btnRefresh`,
+`.btnClose`, `.btnCardAction`, `.btnPurchases`, `.purchasesNewBtn`,
+`.paymentSubmitBtn`, `.rowRemoveBtn`, `.imageRemoveBtn`.
 
-**Cards** (`.productCard`, `.purchaseCard`) — white, hairline border,
-`--radius-md`, `--shadow-sm`. Hover raises to `--shadow-md` and warms the border
-to the accent, signalling the whole card is actionable.
+**Inputs** (`theme.css`) — white fill, 1px `--color-border`, `--radius-md`,
+`min-height` 2.5rem, and **16px** text (not 14px — 16px stops iOS zooming the
+viewport when a field takes focus). The global `:focus-visible` ring does the
+work and the border tints to `--color-primary` alongside it. Labels are always
+visible above the field (`--text-sm`, weight 500) and wired with `htmlFor`/`id`
+— never placeholder-as-label. Help text (`.fieldHint`, 12px muted) and
+validation (`.fieldError`, 14px danger + icon) share one vertical slot so
+validating never shifts the layout. Use the right `type`/`inputmode`/
+`autocomplete` (`type="email"` + `autoComplete="username"` on login).
+
+**Cards** (`.card` + the app's `.productCard` / `.purchaseCard`) — white, 1px
+hairline border, `--radius-lg`, 24px padding. **Border-first: no shadow at
+rest.** Hover may warm the border to the accent, signalling the whole card is
+actionable.
 
 **Sections / disclosure** (`.collapsibleSection`, `.collapsibleTrigger`) — how the
 dashboard groups its top-level content ("Mis productos", "Mis ventas"). A section
 is **not** a card: the header is a hairline-ruled row sitting directly on the
-cream background, so the cards or rows inside stay the only surface on screen
+page background, so the cards or rows inside stay the only surface on screen
 (see "don't nest cards inside cards"). The whole row is the button — full-width,
-`min-height` 44px, `aria-expanded` + `aria-controls` — with the title (17px/600)
-left, an optional muted 12px `meta` summary right, and a muted `▲`/`▼` chevron as
-the affordance. Hover washes it to `--color-bone-soft`, active to
-`--color-purple-soft`, and `:focus-visible` is an **inset** 2px `--color-purple`
-ring (`outline-offset: -2px`) because an offset ring on an edge-to-edge row gets
-clipped. Collapsing hides the panel with the `hidden` attribute — it stays
-mounted so `aria-controls` always resolves, and the chevron swaps glyph rather
-than animating.
+`min-height` 2.75rem (44px), `aria-expanded` + `aria-controls` — with the title
+(`--text-base`/600, tight tracking) left, an optional muted 12px `meta` summary
+right, and a muted `▲`/`▼` chevron as the affordance. Hover washes it to
+`--color-surface-sunken`, active to `--color-border`, and `:focus-visible` is an
+**inset** 2px `--color-primary` ring (`outline-offset: -2px`) because an offset
+ring on an edge-to-edge row gets clipped. Collapsing hides the panel with the
+`hidden` attribute — it stays mounted so `aria-controls` always resolves, and the
+chevron swaps glyph rather than animating.
 
 **Ledger rows** (`.saleRow`) — the read-only "Mis ventas" list is rows, not cards:
 hairline separators between entries (none after the last), a 12px gutter between
 the client block and the money block, no elevation, no hover. Client name is
-15px/600 ink over a 12px muted meta line; the money block is a right-aligned
-column — `pagado` in `--color-fuchsia` with `de acordado` muted behind it, all in
+14px/600 ink over a 12px muted meta line; the money block is a right-aligned
+column — `pagado` in full-contrast ink with `de acordado` muted behind it, all in
 tabular figures, with the status badge beneath. It has to read as a ledger, so
 the numbers never move when the column changes.
 
-**Progress** (`.purchaseProgressBar`) — 8px track in `--color-bone`, fill in
-`--gradient-brand`, accompanied by a `$paid / $agreed` label. Color alone never
+**Progress** (`.purchaseProgressBar` / `.purchaseProgressFill`) — 8px track, fill
+in `--color-primary`, accompanied by a `$paid / $agreed` label. Color alone never
 carries payment status: the `Pagado` / `Pendiente` badge does.
+
+**Badges** (`.badge` + modifiers) — pill, 12px/500, status only, never
+clickable or navigational: `--primary` (accent tint), `--success`, `--warning`,
+`--danger`, `--info`, `--neutral`.
 
 **Empty & loading states** — never a bare sentence in a box. Loading pairs the
 shared `.spinner` with `Estado…` copy inside an `aria-live="polite"` region;
@@ -164,8 +194,8 @@ they center as cards.
 
 ## 5. Layout principles
 
-- Spacing scale: `--space-1` 4px → `--space-12` 48px. Compose from these; no
-  arbitrary values.
+- Spacing scale: `--space-4` 4px → `--space-64` 64px, in eight stops (4, 8, 12,
+  16, 24, 32, 48, 64). Compose from these; no arbitrary values.
 - Mobile-first single column, capped at `--content-width` (64rem) and centered.
 - Product grid: 1 column → 2 at `640px` → 3 at `1024px`.
 - Breakpoints are fixed: `480px` (header becomes a row), `640px` (2-col grid,
@@ -175,26 +205,26 @@ they center as cards.
 
 ## 6. Depth & elevation
 
-One light source: above and slightly in front. Shadows are warm-plum tinted,
-never gray-black.
+**Border-first.** Surfaces are defined by a 1px hairline, not a shadow: nothing
+in the resting UI floats. There is exactly **one** elevation token, for UI that
+is genuinely above the page.
 
 | Token | Use |
 | --- | --- |
-| `--shadow-sm` | Resting cards — barely there. |
-| `--shadow-md` | Raised/hovered cards, primary buttons. |
-| `--shadow-lg` | Modals only. |
-| `--shadow-brand` | Magenta-tinted bloom under the primary CTA on hover. |
-| `--focus-ring` | 3px accent glow — the one "special" surface treatment. |
+| `--shadow-elevated` | Floating UI only — modals, popovers. Tinted `rgba(15,23,42,…)`, never gray-black. |
+| `--overlay-backdrop` | Modal backdrop — `rgba(15, 23, 42, 0.5)`. |
+| `--focus-ring` | 2px `--color-primary` ring at 2px offset — the one "special" surface treatment. |
 
-Radii: `--radius-sm` 8px (inputs, small buttons) · `--radius-md` 14px (cards) ·
-`--radius-lg` 20px (modals) · `--radius-full` (pills, CTA, icon buttons).
+Radii: `--radius-sm` 4px (badges, small chips) · `--radius-md` 8px (inputs,
+buttons) · `--radius-lg` 12px (cards, modals) · `--radius-xl` 16px (large
+containers) · `--radius-full` (pills).
 
 ## 7. Do's and don'ts
 
 **Do**
 
-- Keep the top bar dark plum and everything below it warm cream — a committed
-  light theme, not random dark sections.
+- Keep the app white/slate with **one** violet accent — a committed light theme,
+  not random dark sections.
 - Give every interactive element a visible `:focus-visible` ring.
 - Make destructive actions confirm first (they do: `confirmModal.tsx`).
 - Show money with `formatCurrency()` (`Intl.NumberFormat('es-CO')`, no symbol)
@@ -203,13 +233,13 @@ Radii: `--radius-sm` 8px (inputs, small buttons) · `--radius-md` 14px (cards) �
 
 **Don't**
 
-- Don't add a second accent hue, a cool gray, or a new font.
+- Don't add a second accent hue, a warm gray, or a new font.
 - Don't use `transition: all` — list the properties.
 - Don't remove an outline without replacing it with a focus ring.
 - Don't put `outline: none` on `:focus` only; support `:focus-visible`.
 - Don't nest cards inside cards; at most one surface level per concept.
 - Don't leave icon-only buttons unlabelled.
-- Don't repeat the brand gradient on every button — it stops meaning "primary".
+- Don't reach for a shadow where a border would do, and never a gray-black one.
 
 ## 8. Responsive behaviour
 
@@ -236,15 +266,17 @@ does not look ragged at 480px and up.
 **Quick reference**
 
 ```
-ink        #110015   plum-black
-bg         #f5f3ef   warm bone
-muted      #6d6459   warm taupe (only gray)
-border     #e6e2da
-accent     #522e93   violet (primary)
-emphasis   #a50062   magenta (money, gradient end)
-danger     #9a1b3a   on #fdecec
-warning    #8a5a12   on #fdf1e0
-radius     8 / 14 / 20px + pill
+ink        #0f172a   slate-900 (never #000)
+surface    #ffffff
+muted      #64748b   slate-500 (the only gray)
+border     #e2e8f0   slate-200
+accent     #522e93   violet — the ONLY accent
+accent-sub #efe9f9
+danger     #b91c1c   on #fef2f2
+success    #047857   on #ecfdf5
+warning    #b45309   on #fffbeb
+radius     4 / 8 / 12 / 16px + pill
+shadow     one (--shadow-elevated), floating UI only
 font       Outfit 400/500/600/700
 ```
 
@@ -255,7 +287,7 @@ font       Outfit 400/500/600/700
   make sure `:focus-visible` shows the `--focus-ring`. No new colors.
 - *"Add a new screen."* → Reuse `Layout.astro` (it sets `lang="es"`, fonts and
   tokens), `role="main"` with `id="main"`, `--content-width` wrapper, and the
-  existing `.btnNew` as the single primary action. Skip link comes from the
+  existing `.btnPrimary` as the single primary action. Skip link comes from the
   layout.
 - *"Add a destructive action."* → Route it through `confirmModal.tsx` (or the
   shared `modal.tsx` with `variant="danger"`), danger-soft styling, and include

@@ -9,6 +9,8 @@ interface ModalProps {
   onClose: () => void;
   /** Extra card class, e.g. "purchasesCard" / "confirmCard". */
   cardClassName?: string;
+  /** "alertdialog" for destructive confirmations, "dialog" (default) otherwise. */
+  role?: 'dialog' | 'alertdialog';
   children: ReactNode;
 }
 
@@ -30,6 +32,7 @@ export default function Modal({
   describedBy,
   onClose,
   cardClassName,
+  role = 'dialog',
   children,
 }: ModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -68,7 +71,9 @@ export default function Modal({
 
       // Only the topmost dialog reacts, so a confirm dialog opened from inside
       // another modal doesn't have its Escape/Tab handled twice.
-      const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"]');
+      const dialogs = document.querySelectorAll<HTMLElement>(
+        '[role="dialog"], [role="alertdialog"]'
+      );
       if (dialogs[dialogs.length - 1] !== card) return;
 
       if (event.key === 'Escape') {
@@ -104,7 +109,7 @@ export default function Modal({
       <div
         ref={cardRef}
         className={cardClassName ? `formCard ${cardClassName}` : 'formCard'}
-        role="dialog"
+        role={role}
         aria-modal="true"
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}

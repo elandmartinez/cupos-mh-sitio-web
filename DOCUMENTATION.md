@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-10-04 · **Covers commit:** `f36b6a1` + the repository-layer & dashboard-sections refactor committed on top of it
+> **Status:** work in progress · **Last documented:** 2026-10-05 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections and UXonFly design-system passes committed on top of it
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -126,8 +126,7 @@ cupos-sitio-web/
     │   ├── purchasesModal.tsx  # per-product purchases + payments UI
     │   ├── productImage.tsx # renders a product image via a signed URL
     │   ├── confirmModal.tsx # destructive-action confirm dialog (built on modal.tsx)
-    │   ├── modal.tsx        # shared dialog shell: role=dialog, Escape, focus trap, scroll lock
-    │   └── Welcome.astro    # Astro starter leftover, not routed/imported anywhere
+    │   └── modal.tsx        # shared dialog shell: role=dialog, Escape, focus trap, scroll lock
     ├── context/
     │   └── authContext.tsx  # AuthProvider + useAuth() (Supabase session)
     ├── repositories/        # the ONLY layer that talks to Supabase (see §10.1)
@@ -147,13 +146,10 @@ cupos-sitio-web/
     │   └── date.ts          # formatDate() — short es-CO label, local-midnight safe
     ├── lib/
     │   └── supabase.ts      # canonical supabase client (env-guarded)
-    ├── styles/
-    │   ├── theme.css        # design tokens + globals + shared form primitives
-    │   ├── dashboard.css    # dashboard layout + interaction states
-    │   └── loginModal.css   # login layout only (tokens come from theme.css)
-    └── assets/
-        ├── astro.svg        # only referenced by the unused Welcome.astro
-        └── background.svg   # only referenced by the unused Welcome.astro
+    └── styles/
+        ├── theme.css        # design tokens + globals + shared components
+        ├── dashboard.css    # dashboard layout + interaction states
+        └── loginModal.css   # login layout only (tokens come from theme.css)
 ```
 
 ## 7. Routes
@@ -423,7 +419,7 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 
 | Component | File | Responsibility |
 | :-- | :-- | :-- |
-| `LoginModal` | `loginModal.tsx` | Email/password form calling `supabase.auth.signInWithPassword()`; shows the error in a `role="alert"` region on failure; on success redirects to `/dashboard`. Renders the Monster High logo, a `h1` wordmark ("Gestión de cupos") and labelled, correctly-typed fields (`type="email"`, `autoComplete="username"`, `spellCheck={false}`). Submits through the brand-gradient `.submitBtn` with an inline `.spinner` while pending. Loaded with `client:load`. |
+| `LoginModal` | `loginModal.tsx` | Email/password form calling `supabase.auth.signInWithPassword()`; shows the error in a `role="alert"` region on failure; on success redirects to `/dashboard`. Renders the Monster High logo, a `h1` wordmark ("Gestión de cupos") and labelled, correctly-typed fields (`type="email"`, `autoComplete="username"`, `spellCheck={false}`). Submits through the accent `.submitBtn` with an inline `.spinner` while pending. Loaded with `client:load`. |
 | `DashboardApp` | `dashboardApp.tsx` | Thin composition: `<AuthProvider><AuthGuard><Dashboard/></AuthGuard></AuthProvider>`. Loaded with `client:only="react"`. |
 | `AuthGuard` | `authGuard.tsx` | Reads `{ user, loading }` from `useAuth()`. Shows an `aria-live="polite"` spinner + "Verificando sesión…" while loading, redirects to `/` when there is no user, otherwise renders children. |
 | `Dashboard` | `dashboard.tsx` | The main screen. Top bar (logo, `user.email`, "Cerrar sesión"), then two collapsible sections: **"Mis productos"** (product grid with refresh + "Nuevo producto", a modal product form for name / description / value / release date / image with live preview rendered through `Modal`, and `ConfirmModal` for deletions) and **"Mis ventas"** (`SalesSection`). It also orchestrates `PurchasesModal`. Refreshing re-reads the products *and* every purchase, because a deleted product's purchases cascade away in the database rather than through the hook. Renames the stored image when a product's name changes and bumps `imageVersion` after any image change to defeat browser caching. Section headers carry a one-line summary (`N producto(s)`, `N pendientes · $X por cobrar`, `Todo pagado`). Loading/empty/error states are explicit; the empty state offers the primary action. |
@@ -433,7 +429,6 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 | `ProductImage` | `productImage.tsx` | Fetches a signed URL for a product and renders `<img>` with explicit `width`/`height` (avoids layout shift) plus `loading="lazy"`; renders nothing while loading and calls `onMissing` when there is no image. Re-fetches only when `product.id`, `product.name` or `imageVersion` change. |
 | `Modal` | `modal.tsx` | The shared dialog shell. `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, Escape to close, backdrop click to close, focus moved in on open and restored to the trigger on close, Tab trapped (only the topmost dialog reacts, so nested confirms work), and a background scroll lock. |
 | `ConfirmModal` | `confirmModal.tsx` | Destructive-action confirmation built on `Modal` (`title`, `message`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`). Cancel is rendered first so the safe choice sits under the thumb, and the consequence sentence is wired up via `aria-describedby`. |
-| `Welcome` | `Welcome.astro` | **Unused.** Astro starter-kit landing page; not imported by any route. Its only `<style>` block is scoped to itself. |
 
 ### 10.4 Helpers
 
@@ -455,8 +450,8 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 
 | File | Purpose |
 | :-- | :-- |
-| `src/styles/theme.css` | **Single source of truth** for the design system: color, type scale, spacing, elevation and motion tokens, plus global primitives (`box-sizing`, `body` typography, `:focus-visible`, `.skipLink`, `.spinner`, `prefers-reduced-motion`) and the **shared form primitives** (`.fieldGroup`, `.label`, `.input`, `.textarea`, `.fieldHint`, `.errorMessage`). Imported once by `Layout.astro`. Token rationale lives in `DESIGN.md`. |
-| `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`, `pageHeader*` (`.pageHeaderActions` centres the refresh button against the taller CTA), `modalOverlay`, `formCard`, `btnNew`/`btnPrimary`/`btnSecondary`/`btnDanger`/`btnEdit`/`btnDelete`/`btnGhost`/`btnRefresh`/`btnClose`, `dashboardSections`, `collapsible*` (section heading, trigger, title, meta, chevron, body), `salesList` with its `sale*` rows, `badgePaid`/`badgePaidDone`/`badgePaidPending`, `statusMessage`, `emptyState*`, `imagePreview*`, `payments*`. Ends with a single "Interaction states" block (hover/active/focus) so states are not scattered per component. Imported by `dashboard.astro`. |
+| `src/styles/theme.css` | **Single source of truth** for the design system, imported once by `Layout.astro`. Holds the tokens (color, type scale, spacing, elevation, motion), the globals (`box-sizing`, `body` typography, `:focus-visible`, `prefers-reduced-motion`, `.skipLink`, `.spinner`, `.tabular`, `.textMuted`) **and the shared components**: the form primitives (`.fieldGroup`, `.label`, `.input`, `.textarea`, `.fieldHint`, `.fieldError`), the button set (`.btnPrimary`/`.btnSecondary`/`.btnGhost`/`.btnDanger`/`.btnIcon`/`.btnGhost--danger`), `.card`, `.badge` + its six modifiers, `.banner`, `.emptyState*` and `.statusMessage`. Token rationale lives in `DESIGN.md`. |
+| `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`/`topBarLogo`/`userEmail`, `mainContent`, `pageHeader*` (`.pageHeaderText .title` steps 24px → 32px at `640px`; `.pageHeaderActions` centres the refresh/close buttons against the taller CTA), `dashboardBanner` (a `.banner` from theme.css), `productsGrid` with the `product*` card parts, the `purchases*` / `payments*` / `payment*` modal internals, `modalOverlay`, `formCard`/`formCardHeader`/`form`/`confirmMessage`/`confirmCard`/`buttonGroup`, `fileInput`/`imagePreview*`/`imageRemoveBtn`, `dashboardSections`, `collapsible*` (heading, trigger, title, meta, chevron, body), and `salesList` with its `sale*` rows (`saleRow`, `saleMain`, `saleClientName`, `saleMeta`, `saleSide`, `saleMoney`, `saleMoneyTotal`). Layout-only modifiers on the shared buttons (`btnRefresh`, `btnClose`, `btnCardAction`, `btnPurchases`, `purchasesNewBtn`, `paymentSubmitBtn`, `rowRemoveBtn`) also live here. Each interaction state (hover/active/focus) sits next to the class it belongs to. Imported by `dashboard.astro`. |
 | `src/styles/loginModal.css` | Login screen layout only: `authShell`, `authHero`, `authLogo`, `authEyebrow`, `authWordmark`, `authCard`, `authHeader`, `authTitle`, `authSubtitle`, `authForm`, `submitBtn`. It defines **no palette of its own** — colors and type come from `theme.css`. Imported by `index.astro`. |
 
 There is no CSS framework and no `@apply`/utility layer — components reference the
@@ -658,9 +653,10 @@ Ordered roughly by how much they matter:
    payments now go through `ConfirmModal` (like products). The image-remove button
    in the product modal still deletes immediately — the image is re-uploadable, so
    this is low-severity, but an undo would be better.
-8. **Dead code:** `src/components/Welcome.astro`, `src/assets/astro.svg`,
-   `src/assets/background.svg` (starters) and `public/arroyo_heydi_-_mileage.pdf`
-   are unused. (The leftover `console.log` in `authGuard.tsx` has been removed.)
+8. ✅ **Dead code removed.** The Astro starter leftovers (`Welcome.astro` plus its
+   `astro.svg`/`background.svg`) and the stray `arroyo_heydi_-_mileage.pdf` have
+   been deleted, and the leftover `console.log` in `authGuard.tsx` is gone. Keeping
+   the tree free of unrouted files is now a review habit rather than an open item.
 9. **Errors are only partly surfaced.** Each hook stores an `error` string, and the
    dashboard now renders both the product error and the purchases error (in its
    own section). Image and payment failures are still silent — `PurchasesModal`
@@ -733,8 +729,9 @@ Roughly in priority order:
    Still open: image and payment failures are swallowed, `updatePayment` is
    unwired, and the sales list has no actions of its own.
 6. **Cleanup:** ✅ the debug `console.log` and the stray `localStorage` write are
-   gone. Still open: delete `Welcome.astro` / starter assets / the stray PDF, and
-   fix `package.json` metadata.
+   gone, and the unused Astro starter page (`Welcome.astro`) with its
+   `astro.svg`/`background.svg` assets and the stray PDF have been deleted.
+   Still open: fix `package.json` metadata (§14.11).
 7. **Extend the docs:** record the actual Supabase schema (SQL migrations) and add a
    screenshot/GIF of the dashboard so this file stays the single source of truth.
 8. **Design-system follow-through:** the login screen and the dashboard now share

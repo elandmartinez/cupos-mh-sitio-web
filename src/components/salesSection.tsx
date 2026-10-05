@@ -1,12 +1,15 @@
 import { useMemo } from 'react';
 import { formatCurrency } from '../helpers/currency';
 import { formatDate } from '../helpers/date';
+import EmptyState from './emptyState';
 import type { ClientPurchaseWithProduct } from '../hooks/useClientPurchases';
 
 interface SalesSectionProps {
   purchases: ClientPurchaseWithProduct[];
   loading: boolean;
   error: string | null;
+  /** Re-runs the fetch after a failure: a blocked panel always offers a way out. */
+  onRetry: () => void;
 }
 
 /**
@@ -17,7 +20,7 @@ interface SalesSectionProps {
  * background as a single surface. Editing a purchase still happens in the
  * Compras modal of its product, where its payments live.
  */
-export default function SalesSection({ purchases, loading, error }: SalesSectionProps) {
+export default function SalesSection({ purchases, loading, error, onRetry }: SalesSectionProps) {
   // Pending first — the reason to open this list — then the newest-first order
   // the query returned (Array#sort is stable, so equal keys keep it).
   const sortedPurchases = useMemo(
@@ -29,9 +32,13 @@ export default function SalesSection({ purchases, loading, error }: SalesSection
   );
 
   if (error) {
+    // Page-level failure: a persistent banner, not a toast, with the retry in it.
     return (
-      <div className="errorAlert" role="alert">
-        {error}
+      <div className="banner banner--danger" role="alert">
+        <p>{error}</p>
+        <button type="button" onClick={onRetry} className="btnSecondary">
+          Reintentar
+        </button>
       </div>
     );
   }
@@ -49,13 +56,11 @@ export default function SalesSection({ purchases, loading, error }: SalesSection
 
   if (sortedPurchases.length === 0) {
     return (
-      <div className="statusMessage">
-        <h3 className="emptyStateTitle">Todavía no hay ventas</h3>
-        <p className="emptyStateBody">
-          Registra una compra en la sección Mis productos y aparecerá aquí, con lo pagado y lo
-          pendiente de cada cliente.
-        </p>
-      </div>
+      <EmptyState
+        art="sales"
+        title="Todavía no hay ventas"
+        body="Registra una compra en Mis productos y aparecerá aquí, con lo pagado y lo pendiente de cada cliente."
+      />
     );
   }
 
@@ -89,9 +94,7 @@ export default function SalesSection({ purchases, loading, error }: SalesSection
                   {formatCurrency(purchase.agreed_fees)}
                 </span>
               </div>
-              <span
-                className={`badgePaid ${isFullyPaid ? 'badgePaidDone' : 'badgePaidPending'}`}
-              >
+              <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
                 {isFullyPaid ? 'Pagado' : 'Pendiente'}
               </span>
             </div>

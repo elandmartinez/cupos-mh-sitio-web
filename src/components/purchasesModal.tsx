@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePurchasePayments } from '../hooks/usePurchasePayments';
 import ConfirmModal from './confirmModal';
 import Modal from './modal';
+import EmptyState from './emptyState';
 import { formatCurrency } from '../helpers/currency';
 
 import type { Product } from '../hooks/useProducts';
@@ -61,6 +62,11 @@ export default function PurchasesModal({
   // first (never deleted immediately on click).
   const [purchasePendingDelete, setPurchasePendingDelete] = useState<ClientPurchase | null>(null);
   const [paymentPendingDelete, setPaymentPendingDelete] = useState<PurchasePayment | null>(null);
+
+  // ONE primary per view: while the empty state, an open form or an expanded
+  // row owns the call to action, the header must not render a second one.
+  const showNewPurchaseCta =
+    purchases.length > 0 && !showPurchaseForm && expandedPurchaseId === null;
 
   const handlePurchaseInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -148,17 +154,21 @@ export default function PurchasesModal({
     <>
       <Modal labelledBy="purchasesTitle" onClose={onClose} cardClassName="purchasesCard">
         <div className="formCardHeader">
-          <h2 className="formTitle" id="purchasesTitle">
-            Compras de {product.name}
-          </h2>
-          <button type="button" onClick={onClose} className="btnClose" aria-label="Cerrar">
+          <h2 id="purchasesTitle">Compras de {product.name}</h2>
+          <button type="button" onClick={onClose} className="btnIcon btnClose" aria-label="Cerrar">
             ×
           </button>
         </div>
 
-        <button type="button" onClick={openNewPurchaseForm} className="btnNew purchasesNewBtn">
-          <span className="btnNewIcon">+</span> Nueva compra
-        </button>
+        {showNewPurchaseCta && (
+          <button
+            type="button"
+            onClick={openNewPurchaseForm}
+            className="btnPrimary purchasesNewBtn"
+          >
+            <span aria-hidden="true">+</span> Nueva compra
+          </button>
+        )}
 
         {showPurchaseForm && (
           <form onSubmit={handlePurchaseSubmit} className="form purchaseForm">
@@ -211,11 +221,11 @@ export default function PurchasesModal({
             </div>
 
             <div className="buttonGroup">
-              <button type="submit" className="btnPrimary">
-                {editingPurchase ? 'Actualizar' : 'Crear'}
-              </button>
               <button type="button" onClick={closePurchaseForm} className="btnSecondary">
                 Cancelar
+              </button>
+              <button type="submit" className="btnPrimary">
+                {editingPurchase ? 'Guardar cambios' : 'Registrar compra'}
               </button>
             </div>
           </form>
@@ -223,7 +233,17 @@ export default function PurchasesModal({
 
         <div className="purchasesList">
           {purchases.length === 0 ? (
-            <div className="statusMessage">Sin compras registradas.</div>
+            <EmptyState
+              art="sales"
+              plain
+              title="Todavía no hay compras"
+              body="Registra la primera compra de este producto para poder seguir el avance de sus pagos."
+              action={
+                <button type="button" onClick={openNewPurchaseForm} className="btnPrimary">
+                  <span aria-hidden="true">+</span> Nueva compra
+                </button>
+              }
+            />
           ) : (
             purchases.map((purchase) => {
               const isExpanded = expandedPurchaseId === purchase.id;
@@ -245,8 +265,8 @@ export default function PurchasesModal({
                       )}
                     </div>
                     <span
-                      className={`badgePaid ${
-                        purchase.is_fully_paid ? 'badgePaidDone' : 'badgePaidPending'
+                      className={`badge ${
+                        purchase.is_fully_paid ? 'badge--success' : 'badge--warning'
                       }`}
                     >
                       {purchase.is_fully_paid ? 'Pagado' : 'Pendiente'}
@@ -269,14 +289,14 @@ export default function PurchasesModal({
                     <button
                       type="button"
                       onClick={() => openEditPurchaseForm(purchase)}
-                      className="btnEdit"
+                      className="btnSecondary"
                     >
                       Editar
                     </button>
                     <button
                       type="button"
                       onClick={() => setPurchasePendingDelete(purchase)}
-                      className="btnDelete"
+                      className="btnGhost btnGhost--danger"
                       aria-haspopup="dialog"
                       aria-label={`Eliminar la compra de ${purchase.client_name}`}
                     >
@@ -285,7 +305,7 @@ export default function PurchasesModal({
                     <button
                       type="button"
                       onClick={() => toggleExpandPurchase(purchase)}
-                      className="btnRefresh purchaseExpandBtn"
+                      className="btnIcon purchaseExpandBtn"
                       aria-label={isExpanded ? 'Ocultar pagos' : 'Ver pagos'}
                     >
                       {isExpanded ? '▲' : '▼'}
@@ -298,35 +318,47 @@ export default function PurchasesModal({
                         onSubmit={(e) => handlePaymentSubmit(e, purchase)}
                         className="paymentForm"
                       >
-                        <input
-                          type="number"
-                          name="amount"
-                          inputMode="numeric"
-                          min="1"
-                          placeholder="Monto"
-                          aria-label="Monto del pago"
-                          value={paymentAmount || ''}
-                          onChange={(e) =>
-                            setPaymentAmount(e.target.value ? parseInt(e.target.value, 10) : 0)
-                          }
-                          className="input paymentAmountInput"
-                          required
-                        />
-                        <label className="paymentExtraFeeLabel">
+                        {/* Label above the field, never a placeholder standing in
+                            for one. The id is scoped per purchase so the ids stay
+                            unique even if several rows are expanded. */}
+                        <div className="fieldGroup">
+                          <label className="label" htmlFor={`paymentAmount-${purchase.id}`}>
+                            Monto del pago
+                          </label>
                           <input
-                            type="checkbox"
-                            checked={paymentIsExtraFee}
-                            onChange={(e) => setPaymentIsExtraFee(e.target.checked)}
+                            id={`paymentAmount-${purchase.id}`}
+                            type="number"
+                            name="amount"
+                            inputMode="numeric"
+                            min="1"
+                            value={paymentAmount || ''}
+                            onChange={(e) =>
+                              setPaymentAmount(e.target.value ? parseInt(e.target.value, 10) : 0)
+                            }
+                            className="input"
+                            required
                           />
-                          Cargo extra
-                        </label>
-                        <button type="submit" className="btnPrimary paymentSubmitBtn">
-                          Agregar pago
-                        </button>
+                          <p className="fieldHint">Se descuenta del saldo pendiente.</p>
+                        </div>
+                        <div className="paymentFormRow">
+                          <label className="paymentExtraFeeLabel">
+                            <input
+                              type="checkbox"
+                              checked={paymentIsExtraFee}
+                              onChange={(e) => setPaymentIsExtraFee(e.target.checked)}
+                            />
+                            Cargo extra
+                          </label>
+                          <button type="submit" className="btnPrimary paymentSubmitBtn">
+                            Agregar pago
+                          </button>
+                        </div>
                       </form>
 
                       {payments.length === 0 ? (
-                        <div className="statusMessage paymentsEmpty">Sin pagos registrados.</div>
+                        <p className="fieldHint">
+                          Todavía no hay pagos. Registra el primer abono con el formulario de arriba.
+                        </p>
                       ) : (
                         <ul className="paymentsList">
                           {payments.map((payment) => (
@@ -338,7 +370,7 @@ export default function PurchasesModal({
                               <button
                                 type="button"
                                 onClick={() => setPaymentPendingDelete(payment)}
-                                className="imageRemoveBtn"
+                                className="btnIcon rowRemoveBtn"
                                 aria-label="Eliminar pago"
                               >
                                 ×
@@ -358,9 +390,9 @@ export default function PurchasesModal({
 
       {purchasePendingDelete && (
         <ConfirmModal
-          title="Eliminar compra"
-          message={`¿Eliminar la compra de "${purchasePendingDelete.client_name}"? Esta acción no se puede deshacer.`}
-          confirmLabel="Eliminar"
+          title="¿Eliminar esta compra?"
+          message={`Se eliminará la compra de "${purchasePendingDelete.client_name}" y sus pagos registrados. No se puede deshacer.`}
+          confirmLabel="Eliminar compra"
           onConfirm={handleConfirmDeletePurchase}
           onCancel={() => setPurchasePendingDelete(null)}
         />
@@ -368,9 +400,9 @@ export default function PurchasesModal({
 
       {paymentPendingDelete && (
         <ConfirmModal
-          title="Eliminar pago"
-          message={`¿Eliminar el pago de ${formatCurrency(paymentPendingDelete.amount)}? Esta acción no se puede deshacer.`}
-          confirmLabel="Eliminar"
+          title="¿Eliminar este pago?"
+          message={`Se eliminará el pago de ${formatCurrency(paymentPendingDelete.amount)} y se recalculará el saldo. No se puede deshacer.`}
+          confirmLabel="Eliminar pago"
           onConfirm={handleConfirmDeletePayment}
           onCancel={() => setPaymentPendingDelete(null)}
         />

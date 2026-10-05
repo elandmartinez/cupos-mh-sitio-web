@@ -1,34 +1,38 @@
 /* ==========================================================================
-   Dashboard — mobile-first layout.
-   Base rules target small screens; media queries progressively enhance
-   spacing/sizing for larger viewports. Colors come from theme.css tokens.
+   Dashboard — layout only.
+
+   Every color, type size, space, radius, shadow and control spec comes from
+   theme.css (installed from UXonFly — see DESIGN.md). This file owns where
+   things sit and how they reflow: the page shell, the top bar, the grids, the
+   dialog shells and the breakpoints.
+
+   Variant classes (.btnPrimary / .btnSecondary / .badge / .card) are applied
+   in the components; the hooks below only size and place them.
    ========================================================================== */
 
-/* NOTE: the box-sizing reset, the font stack and the form primitives
-   (.fieldGroup / .label / .input / .textarea) now live in theme.css, which is
-   loaded on every page. See DESIGN.md. */
+/* ---------------------------------------------------------------------- */
+/* Page shell                                                             */
+/* ---------------------------------------------------------------------- */
 
 .pageContainer {
   min-height: 100vh;
   min-height: 100dvh;
-  background-color: var(--color-bone);
+  background-color: var(--color-surface-subtle);
   color: var(--color-text);
 }
 
-/* ---------------------------------------------------------------------- */
-/* Top bar                                                                 */
-/* ---------------------------------------------------------------------- */
-
+/* A flat bar on the surface with a hairline under it — not a dark slab. */
 .topBar {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background-color: var(--color-dark);
-  color: var(--color-bone);
-  padding: max(0.75rem, env(safe-area-inset-top)) 1rem 0.75rem;
+  gap: var(--space-12);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: max(var(--space-12), env(safe-area-inset-top)) var(--page-padding)
+    var(--space-12);
 }
 
 .topBarLogo {
@@ -41,176 +45,79 @@
 .userEmail {
   flex: 1;
   min-width: 0;
-  font-size: 0.8125rem;
-  color: var(--color-bone-soft);
-  opacity: 0.85;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: right;
 }
 
 .btnGhost {
   flex-shrink: 0;
-  background: transparent;
-  color: var(--color-bone);
-  border: 1px solid rgba(245, 243, 239, 0.3);
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out;
-}
-
-.btnGhost:hover {
-  background-color: rgba(245, 243, 239, 0.12);
 }
 
 /* ---------------------------------------------------------------------- */
-/* Main content                                                            */
+/* Page header                                                            */
 /* ---------------------------------------------------------------------- */
 
 .mainContent {
-  max-width: 64rem;
+  max-width: var(--content-width);
   margin: 0 auto;
-  padding: 1.25rem 1rem 3rem;
+  padding: var(--page-padding) var(--page-padding) var(--space-48);
 }
 
 .pageHeader {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
-  margin-bottom: 1.25rem;
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
 }
 
 .pageHeaderText .title {
-  font-size: 1.375rem;
-  font-weight: 700;
-  color: var(--color-dark);
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
-.pageHeaderText .subtitle {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  margin: 0.15rem 0 0;
+  font-size: var(--text-2xl);
+  color: var(--color-text);
 }
 
 .pageHeaderActions {
   display: flex;
-  /* The refresh button is 44px and the CTA is ~46px tall, so without this the
-     two sit top-aligned and the refresh button reads a couple of pixels high. */
   align-items: center;
-  gap: 0.625rem;
+  gap: var(--space-8);
 }
 
-.btnNew {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  background: var(--gradient-brand);
-  color: #ffffff;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-full);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
-  transition: transform 0.1s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.btnNew:hover {
-  box-shadow: 0 14px 32px -12px rgba(165, 0, 98, 0.45);
-}
-
-.btnNew:active {
-  transform: scale(0.98);
-}
-
-.btnNewIcon {
-  font-size: 1.125rem;
-  line-height: 1;
-}
-
-.btnRefresh {
+.btnRefresh,
+.btnClose {
   flex-shrink: 0;
-  width: 2.75rem;
-  height: 2.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-surface);
-  color: var(--color-purple);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-size: 1.125rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out, transform 0.15s ease-in-out;
 }
 
-.btnRefresh:hover {
-  background-color: var(--color-purple-soft);
-}
-
-.btnRefresh:active {
-  transform: rotate(45deg);
+/* Page-level errors sit above the sections they explain. */
+.dashboardBanner {
+  margin-bottom: var(--space-24);
 }
 
 /* ---------------------------------------------------------------------- */
-/* Status states                                                           */
-/* ---------------------------------------------------------------------- */
-
-.errorAlert {
-  background-color: var(--color-danger-bg);
-  border: 1px solid rgba(154, 27, 58, 0.15);
-  color: var(--color-danger-text);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-sm);
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-}
-
-.statusMessage {
-  padding: 3rem 1rem;
-  text-align: center;
-  color: var(--color-text-muted);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-/* ---------------------------------------------------------------------- */
-/* Product list                                                            */
+/* Product grid — cards in a list are separated by 16px                   */
 /* ---------------------------------------------------------------------- */
 
 .productsGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.875rem;
+  gap: var(--space-16);
 }
 
 .productCard {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1.125rem;
-  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
+/* Bleeds to the card's edges, so the top corners match its radius. */
 .productImage {
-  width: calc(100% + 2.25rem);
-  margin: -1.125rem -1.125rem 0.875rem;
+  width: calc(100% + 2 * var(--space-24));
+  margin: calc(-1 * var(--space-24)) calc(-1 * var(--space-24)) var(--space-16);
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   display: block;
 }
 
@@ -218,109 +125,62 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: var(--space-8);
 }
 
 .productName {
-  font-size: 1.0625rem;
+  font-size: var(--text-base);
   font-weight: 600;
-  color: var(--color-dark);
-  margin: 0;
-}
-
-.badgeId {
-  flex-shrink: 0;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  background-color: var(--color-purple-soft);
-  color: var(--color-purple);
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-full);
+  color: var(--color-text);
 }
 
 .productDescription {
-  font-size: 0.875rem;
+  margin-top: var(--space-8);
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
-  margin-top: 0.375rem;
-  margin-bottom: 0;
 }
 
 .productFooter {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 0.5rem;
+  gap: var(--space-12);
+  margin-top: var(--space-16);
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--color-border);
 }
 
 .metaRelease {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
 .metaValue {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--color-fuchsia);
+  margin-top: var(--space-4);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
 }
 
-.actionRow {
+.actionRow,
+.purchaseActionRow {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: var(--space-8);
 }
 
-.btnEdit {
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning-text);
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.btnEdit:hover {
-  background-color: var(--color-warning-bg-hover);
-}
-
-.btnDelete {
-  background-color: var(--color-danger-bg);
-  color: var(--color-danger-text);
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.btnDelete:hover {
-  background-color: var(--color-danger-bg-hover);
+.btnCardAction {
+  flex: none;
 }
 
 .btnPurchases {
   width: 100%;
-  margin-top: 0.75rem;
-  background-color: var(--color-purple-soft);
-  color: var(--color-purple);
-  padding: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out;
-}
-
-.btnPurchases:hover {
-  background-color: #e4d9f5;
+  margin-top: var(--space-12);
 }
 
 /* ---------------------------------------------------------------------- */
-/* Purchases modal — purchases for a product, with nested payments         */
+/* Purchases modal — a product's purchases, with nested payments          */
 /* ---------------------------------------------------------------------- */
 
 .purchasesCard {
@@ -329,71 +189,53 @@
 
 .purchasesNewBtn {
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-16);
 }
 
 .purchaseForm {
-  margin-bottom: 1.25rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px dashed var(--color-border);
+  margin-bottom: var(--space-24);
+  padding-bottom: var(--space-24);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .purchasesList {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-16);
 }
 
 .purchaseCard {
+  background-color: var(--color-surface-subtle);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0.875rem;
-  background-color: var(--color-bone-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-16);
 }
 
 .purchaseHeader {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: var(--space-8);
 }
 
 .purchaseClientName {
-  font-size: 0.9375rem;
+  font-size: var(--text-base);
   font-weight: 600;
-  color: var(--color-dark);
+  color: var(--color-text);
 }
 
 .purchaseClientPhone {
-  font-size: 0.75rem;
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
-  margin-top: 0.15rem;
-}
-
-.badgePaid {
-  flex-shrink: 0;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  padding: 0.2rem 0.55rem;
-  border-radius: var(--radius-full);
-}
-
-.badgePaidDone {
-  background-color: #e3f5ea;
-  color: #1a7a44;
-}
-
-.badgePaidPending {
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning-text);
 }
 
 .purchaseProgress {
-  margin: 0.625rem 0;
+  margin: var(--space-12) 0;
 }
 
 .purchaseProgressBar {
-  height: 0.4rem;
+  height: 0.375rem;
   border-radius: var(--radius-full);
   background-color: var(--color-border);
   overflow: hidden;
@@ -401,22 +243,20 @@
 
 .purchaseProgressFill {
   height: 100%;
-  background: var(--gradient-brand);
+  background-color: var(--color-primary);
   border-radius: var(--radius-full);
-  transition: width 0.2s ease-in-out;
+  transition: width var(--duration-base) var(--ease-standard);
 }
 
 .purchaseProgressLabel {
-  font-size: 0.75rem;
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
-  margin-top: 0.25rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .purchaseActionRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: var(--space-12);
 }
 
 .purchaseExpandBtn {
@@ -424,270 +264,133 @@
 }
 
 .paymentsSection {
-  margin-top: 0.875rem;
-  padding-top: 0.75rem;
-  border-top: 1px dashed var(--color-border);
+  margin-top: var(--space-16);
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--color-border);
+}
+
+.purchaseForm,
+.paymentForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--field-gap);
 }
 
 .paymentForm {
+  margin-bottom: var(--space-16);
+}
+
+/* Checkbox and its submit share one row under the amount field. */
+.paymentFormRow {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.paymentAmountInput {
-  flex: 1;
-  min-width: 6rem;
+  gap: var(--space-12);
 }
 
 .paymentExtraFeeLabel {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
+  gap: var(--space-8);
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
-  white-space: nowrap;
 }
 
 .paymentSubmitBtn {
   flex: none;
-  width: auto;
-  padding: 0.5rem 0.875rem;
-  font-size: 0.8125rem;
-}
-
-.paymentsEmpty {
-  padding: 1rem;
-  font-size: 0.8125rem;
+  margin-left: auto;
 }
 
 .paymentsList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Remove-control inside a row (payments list, purchase list). */
+.rowRemoveBtn {
+  flex: none;
 }
 
 .paymentItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.4rem 0.6rem;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-12);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 0.8125rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------------------------------------------------------------------- */
-/* New/edit product modal — bottom sheet on mobile, centered card on desktop */
+/* Dialogs — bottom sheet on mobile, centered card from 640px up          */
 /* ---------------------------------------------------------------------- */
 
 .modalOverlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: var(--z-overlay);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background-color: rgba(17, 0, 21, 0.55);
-  backdrop-filter: blur(2px);
-  animation: fadeIn 0.15s ease-out;
+  overflow-y: auto;
+  background-color: var(--overlay-backdrop);
+  animation: fadeIn var(--duration-fast) var(--ease-standard);
 }
 
 .formCard {
   width: 100%;
   max-height: 92vh;
   overflow-y: auto;
+  /* Don't let a scroll gesture leak out to the page behind the sheet. */
+  overscroll-behavior: contain;
   background-color: var(--color-surface);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: 1.25rem 1.25rem max(1.25rem, env(safe-area-inset-bottom));
-  box-shadow: var(--shadow-lg);
-  animation: slideUp 0.2s ease-out;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: var(--space-24) var(--space-24) max(var(--space-24), env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-elevated);
+  animation: slideUp var(--duration-base) var(--ease-standard);
 }
 
 .formCardHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
-  gap: 0.5rem;
-}
-
-.formTitle {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--color-dark);
-  margin: 0;
-}
-
-.btnClose {
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-bone);
-  color: var(--color-text-muted);
-  border: none;
-  border-radius: var(--radius-full);
-  font-size: 1.25rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.btnClose:hover {
-  background-color: var(--color-border);
+  gap: var(--space-8);
+  margin-bottom: var(--space-24);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--field-gap);
 }
 
-/* .fieldGroup / .label / .input / .textarea / .errorMessage are defined once
-   in theme.css so the login screen and the dashboard cannot drift apart. */
-
-.fileInput {
-  width: 100%;
-  padding: 0.55rem 0.7rem;
-  border-radius: var(--radius-sm);
-  border: 1px dashed var(--color-border);
-  background-color: var(--color-bone-soft);
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-.imagePreviewGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-  gap: 0.5rem;
-  margin-top: 0.625rem;
-}
-
-.imagePreviewItem {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bone);
-}
-
-.imagePreviewItem img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.imagePreviewItemPending {
-  border-style: dashed;
-  border-color: var(--color-purple);
-}
-
-.imagePreviewActions {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  display: flex;
-  gap: 0.25rem;
-}
-
-.imageRemoveBtn {
-  width: 1.375rem;
-  height: 1.375rem;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  border: none;
-  background-color: rgba(17, 0, 21, 0.65);
-  color: #ffffff;
-  font-size: 0.75rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.imageRemoveBtn:hover {
-  background-color: rgba(17, 0, 21, 0.85);
-}
-
-.buttonGroup {
-  display: flex;
-  gap: 0.625rem;
-  padding-top: 0.5rem;
-}
-
-.btnPrimary {
-  flex: 1;
-  background: var(--gradient-brand);
-  color: #ffffff;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s ease-in-out;
-}
-
-.btnPrimary:hover {
-  opacity: 0.92;
-}
-
-.btnSecondary {
-  flex: 1;
-  background-color: var(--color-bone);
-  color: var(--color-text);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out;
-}
-
-.btnSecondary:hover {
-  background-color: var(--color-border);
-}
-
-.btnDanger {
-  flex: 1;
-  background-color: var(--color-danger-text);
-  color: #ffffff;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s ease-in-out;
-}
-
-.btnDanger:hover {
-  opacity: 0.9;
-}
-
-/* ---------------------------------------------------------------------- */
-/* Delete confirmation modal                                              */
-/* ---------------------------------------------------------------------- */
+/* .fieldGroup / .label / .input / .textarea / .fieldHint / .fieldError live in
+   theme.css so the login screen and the dashboard cannot drift apart. */
 
 .confirmMessage {
-  font-size: 0.9375rem;
-  color: var(--color-text);
-  line-height: 1.5;
-  margin: 0 0 1.25rem;
+  margin: 0 0 var(--space-24);
+  max-width: var(--measure);
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+}
+
+/* Cancel sits bottom-left, the primary bottom-right — the action order. */
+.buttonGroup {
+  display: flex;
+  gap: var(--space-12);
+  padding-top: var(--space-8);
+}
+
+.buttonGroup > * {
+  flex: 1;
 }
 
 @keyframes fadeIn {
@@ -701,7 +404,7 @@
 
 @keyframes slideUp {
   from {
-    transform: translateY(24px);
+    transform: translateY(var(--space-24));
     opacity: 0;
   }
   to {
@@ -711,7 +414,248 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* Breakpoints — progressively enhance for tablet/desktop                  */
+/* Product image field — drop area, previews, remove chips                */
+/* ---------------------------------------------------------------------- */
+
+.fileInput {
+  width: 100%;
+  padding: var(--space-12);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-subtle);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.imagePreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+}
+
+.imagePreviewItem {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-subtle);
+}
+
+.imagePreviewItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.imagePreviewItemPending {
+  border-style: dashed;
+  border-color: var(--color-primary);
+}
+
+.imagePreviewActions {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  gap: var(--space-4);
+}
+
+/* Overlay chip on a thumbnail — dark, so it reads on any image. */
+.imageRemoveBtn {
+  position: relative;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--overlay-control);
+  color: var(--color-on-overlay);
+  font-size: var(--text-xs);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.imageRemoveBtn:hover {
+  background-color: var(--overlay-control-hover);
+}
+
+/* WCAG 2.5.8: a 44px target for the chip without changing how it looks. */
+.imageRemoveBtn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translate(-50%, -50%);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Collapsible sections — "Mis productos" / "Mis ventas"                  */
+/* A section is a heading row on the page background, not a card: the      */
+/* product cards and the sales rows stay the only surfaces on screen.      */
+/* ---------------------------------------------------------------------- */
+
+.dashboardSections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--section-gap);
+}
+
+/* A section is one block in the page's column flow: spacing comes from the
+   parent's gap, and `min-width: 0` keeps a wide child from overflowing it. */
+.collapsibleSection {
+  min-width: 0;
+}
+
+.collapsibleHeading {
+  margin: 0;
+}
+/* The whole header row is the control, and it lines up with the content
+   below it (no horizontal padding of its own). */
+.collapsibleTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-12) 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.collapsibleTitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: var(--tracking-heading);
+}
+
+.collapsibleMeta {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.collapsibleChevron {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.collapsibleBody {
+  padding-top: var(--space-16);
+}
+
+/* Kept in the DOM so `aria-controls` resolves; `hidden` takes it out of the
+   layout (a class-level `display` would otherwise override the UA rule). */
+.collapsibleBody[hidden] {
+  display: none;
+}
+
+.collapsibleTrigger:hover {
+  background-color: var(--color-surface-sunken);
+}
+
+.collapsibleTrigger:active {
+  background-color: var(--color-border);
+}
+
+/* An inset ring: the row is edge-to-edge, so an offset outline gets clipped. */
+.collapsibleTrigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.collapsibleTrigger:active .collapsibleChevron {
+  transform: translateY(1px);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Sales list — every purchase across all products ("Mis ventas")         */
+/* ---------------------------------------------------------------------- */
+
+.salesList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Wraps so the amount drops under the client name on narrow screens. */
+.saleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4) var(--space-12);
+  padding: var(--space-12) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.saleRow:first-child {
+  padding-top: 0;
+}
+
+.saleRow:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.saleMain {
+  flex: 1 1 11rem;
+  min-width: 0;
+}
+
+.saleClientName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.saleMeta {
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.saleSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin-left: auto;
+  text-align: right;
+}
+
+/* Money is data, not decoration: full-contrast text, tabular figures. */
+.saleMoney {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.saleMoneyTotal {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Breakpoints — progressively enhance for tablet/desktop                 */
 /* ---------------------------------------------------------------------- */
 
 @media (min-width: 480px) {
@@ -724,34 +668,29 @@
   .pageHeaderActions {
     flex-shrink: 0;
   }
-
-  .btnNew {
-    flex: none;
-  }
 }
 
 @media (min-width: 640px) {
   .topBar {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-
-  .topBarLogo {
-    height: 3rem;
+    padding-left: var(--page-padding-wide);
+    padding-right: var(--page-padding-wide);
   }
 
   .mainContent {
-    padding: 1.75rem 1.5rem 3rem;
+    padding: var(--space-32) var(--page-padding-wide) var(--space-48);
+  }
+
+  .pageHeaderText .title {
+    font-size: var(--text-3xl);
   }
 
   .productsGrid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.125rem;
   }
 
   .modalOverlay {
     align-items: center;
-    padding: 1.5rem;
+    padding: var(--space-24);
   }
 
   .formCard {
@@ -771,298 +710,10 @@
 
 @media (min-width: 1024px) {
   .mainContent {
-    padding: 2rem 2rem 3rem;
+    padding: var(--space-32) var(--space-32) var(--space-48);
   }
 
   .productsGrid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
-
-/* ---------------------------------------------------------------------- */
-/* Interaction states                                                      */
-/* Every control gets a hover, an active and a keyboard-focus affordance.   */
-/* Kept in one place instead of sprinkled across each component, and clear  */
-/* of properties the breakpoints above already own.                        */
-/* ---------------------------------------------------------------------- */
-
-/* On the dark top bar the violet ring is invisible - use a light one. */
-.btnGhost:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-dark), 0 0 0 4px var(--color-bone);
-}
-
-.btnGhost {
-  min-height: 2.25rem;
-}
-
-.btnGhost:active {
-  background-color: rgba(245, 243, 239, 0.22);
-}
-
-/* An inner light ring keeps focus visible on the gradient CTAs. */
-.btnNew:focus-visible,
-.btnPrimary:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-purple);
-}
-
-/* Card actions: raise the hit area to a comfortable 36px and add feedback. */
-.btnEdit,
-.btnDelete {
-  min-height: 2.25rem;
-  padding: 0.45rem 0.8rem;
-  transition: background-color 0.15s ease-in-out, transform 0.1s ease-in-out;
-}
-
-.btnEdit:active,
-.btnDelete:active,
-.btnPurchases:active,
-.btnRefresh:active,
-.btnClose:active,
-.imageRemoveBtn:active {
-  transform: scale(0.96);
-}
-
-.btnPurchases {
-  transition: background-color 0.15s ease-in-out;
-}
-
-.btnPurchases:hover {
-  background-color: var(--color-purple-soft-hover);
-}
-
-.btnPurchases:active {
-  background-color: var(--color-purple-soft-active);
-}
-
-/* Text fields inside the payments form sit on the bone surface. */
-.paymentAmountInput {
-  background-color: var(--color-surface);
-}
-
-.btnClose {
-  width: 2.25rem;
-  height: 2.25rem;
-}
-
-/* WCAG 2.5.8: give the thumbnail remove button a 44px target without
-   changing how it looks. */
-.imageRemoveBtn {
-  position: relative;
-}
-
-.imageRemoveBtn::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 2.75rem;
-  height: 2.75rem;
-  transform: translate(-50%, -50%);
-}
-
-/* Cards read as actionable: raise and warm the border on hover/focus. */
-.productCard {
-  transition: box-shadow 0.18s ease-out, border-color 0.18s ease-out;
-}
-
-.productCard:hover,
-.productCard:focus-within {
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-border-accent);
-}
-
-/* Status regions centre their spinner + copy and cap the measure. */
-.statusMessage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.statusMessage p {
-  margin: 0;
-  max-width: var(--measure);
-}
-
-.emptyStateTitle {
-  margin: 0;
-  font-size: var(--text-md);
-  font-weight: 600;
-  color: var(--color-dark);
-}
-
-.emptyStateBody {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.emptyStateAction {
-  margin-top: var(--space-2);
-}
-
-/* Dialogs: don't let a scroll gesture leak out to the page behind. */
-.modalOverlay {
-  overflow-y: auto;
-}
-
-.formCard {
-  overscroll-behavior: contain;
-}
-
-/* ---------------------------------------------------------------------- */
-/* Collapsible sections — "Mis productos" / "Mis ventas"                    */
-/* A section is a heading row on the page background, NOT a card: the       */
-/* product cards and the sales rows stay the only surfaces on screen.       */
-/* ---------------------------------------------------------------------- */
-
-.dashboardSections {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-.collapsibleHeading {
-  margin: 0;
-}
-
-/* The whole header row is the control, and it lines up with the content
-   below it (no horizontal padding of its own). */
-.collapsibleTrigger {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: 2.75rem;
-  padding: var(--space-3) 0;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-dark);
-  cursor: pointer;
-  text-align: left;
-  transition: background-color 0.15s ease-in-out;
-}
-
-.collapsibleTitle {
-  font-size: var(--text-md);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.collapsibleMeta {
-  margin-left: auto;
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  text-align: right;
-}
-
-.collapsibleChevron {
-  flex-shrink: 0;
-  font-size: var(--text-2xs);
-  color: var(--color-text-muted);
-}
-
-.collapsibleBody {
-  padding-top: var(--space-4);
-}
-
-/* Kept in the DOM so `aria-controls` resolves; `hidden` takes it out of the
-   layout (a class-level `display` would otherwise override the UA rule). */
-.collapsibleBody[hidden] {
-  display: none;
-}
-
-/* ---------------------------------------------------------------------- */
-/* Sales list — every purchase across all products ("Mis ventas")           */
-/* ---------------------------------------------------------------------- */
-
-.salesList {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Wraps so the amount drops under the client name on narrow screens. */
-.saleRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--space-1) var(--space-3);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.saleRow:first-child {
-  padding-top: 0;
-}
-
-.saleRow:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.saleMain {
-  flex: 1 1 11rem;
-  min-width: 0;
-}
-
-.saleClientName {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--color-dark);
-}
-
-.saleMeta {
-  margin-top: 0.15rem;
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
-.saleSide {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-1);
-  margin-left: auto;
-  text-align: right;
-}
-
-/* Money wears the emphasis colour; what is still owed stays quiet. */
-.saleMoney {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-fuchsia);
-}
-
-.saleMoneyTotal {
-  font-weight: 500;
-  color: var(--color-text-muted);
-}
-
-/* ---------------------------------------------------------------------- */
-/* Interaction states for the disclosure headers                            */
-/* ---------------------------------------------------------------------- */
-
-.collapsibleTrigger:hover {
-  background-color: var(--color-bone-soft);
-}
-
-.collapsibleTrigger:active {
-  background-color: var(--color-purple-soft);
-}
-
-/* An inset ring: the row is edge-to-edge, so an offset outline gets clipped. */
-.collapsibleTrigger:focus-visible {
-  outline: 2px solid var(--color-purple);
-  outline-offset: -2px;
-}
-
-.collapsibleTrigger:active .collapsibleChevron {
-  transform: translateY(1px);
-}
-

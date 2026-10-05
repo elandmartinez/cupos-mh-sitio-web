@@ -1,8 +1,10 @@
 import Modal from './modal';
 
 interface ConfirmModalProps {
+  /** The question the dialog asks, e.g. "¿Eliminar producto?". */
   title?: string;
   message: string;
+  /** The action, verb + object — "Eliminar producto", never "OK" or "Sí". */
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;
@@ -10,12 +12,13 @@ interface ConfirmModalProps {
 }
 
 /**
- * Destructive-action confirmation. Cancel is listed first so the safe choice
- * sits where the thumb lands, and the consequence sentence is wired to the
- * dialog via aria-describedby.
+ * Destructive-action confirmation: an alertdialog whose consequence sentence is
+ * wired in via aria-describedby. Cancel sits bottom-left and the danger action
+ * bottom-right, and focus starts on the dialog itself — never on the button
+ * that destroys data.
  */
 export default function ConfirmModal({
-  title = 'Confirmar',
+  title = '¿Confirmar acción?',
   message,
   confirmLabel = 'Eliminar',
   cancelLabel = 'Cancelar',
@@ -26,14 +29,13 @@ export default function ConfirmModal({
     <Modal
       labelledBy="confirmTitle"
       describedBy="confirmMessage"
+      role="alertdialog"
       onClose={onCancel}
       cardClassName="confirmCard"
     >
       <div className="formCardHeader">
-        <h2 className="formTitle" id="confirmTitle">
-          {title}
-        </h2>
-        <button type="button" onClick={onCancel} className="btnClose" aria-label="Cerrar">
+        <h2 id="confirmTitle">{title}</h2>
+        <button type="button" onClick={onCancel} className="btnIcon btnClose" aria-label="Cerrar">
           ×
         </button>
       </div>

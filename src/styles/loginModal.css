@@ -1,10 +1,10 @@
 /* ==========================================================================
    Login screen (src/pages/index.astro -> loginModal.tsx).
 
-   Color, type, spacing and the form primitives (.fieldGroup/.label/.input)
-   all come from theme.css + DESIGN.md - this file owns layout only. Keep it
-   that way: one design language shared with the dashboard, not a second
-   palette (the old version shipped its own competing neutral tokens).
+   Colors, type, spacing and the form primitives (.fieldGroup / .label / .input
+   / .fieldError) all come from theme.css (installed from UXonFly — see
+   DESIGN.md); this file owns layout only. Keep it that way: one design
+   language shared with the dashboard, never a second palette.
    ========================================================================== */
 
 .authShell {
@@ -13,12 +13,12 @@
   /* stretch, not center: a shrink-to-fit child wider than the viewport would
      overflow both edges on narrow screens (the wordmark did exactly that). */
   align-items: stretch;
-  gap: var(--space-8);
+  gap: var(--space-24);
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: max(var(--space-8), env(safe-area-inset-top)) var(--space-5)
-    max(var(--space-8), env(safe-area-inset-bottom));
+  padding: max(var(--space-16), env(safe-area-inset-top)) var(--page-padding)
+    max(var(--space-16), env(safe-area-inset-bottom));
 }
 
 /* ---- Hero / wordmark ---------------------------------------------------- */
@@ -27,23 +27,23 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-8);
   width: 100%;
-  padding-top: var(--space-4);
+  padding-top: var(--space-16);
   text-align: center;
 }
 
 .authLogo {
-  width: min(72vw, 15rem);
+  width: min(70vw, 14rem);
   max-width: 100%;
   height: auto;
   display: block;
 }
 
 .authEyebrow {
-  margin: var(--space-2) 0 0;
-  font-size: var(--text-2xs);
-  font-weight: 600;
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 500;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -54,10 +54,7 @@
   max-width: 100%;
   font-size: var(--text-2xl);
   font-weight: 700;
-  letter-spacing: var(--tracking-display);
-  line-height: var(--leading-tight);
-  text-wrap: balance;
-  color: var(--color-dark);
+  color: var(--color-text);
 }
 
 /* ---- Card -------------------------------------------------------------- */
@@ -66,23 +63,21 @@
   width: 100%;
   max-width: 25rem;
   margin: 0 auto; /* centres inside the stretched shell */
-  padding: var(--space-8) var(--space-6);
+  padding: var(--space-24);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
 }
 
 .authHeader {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-24);
   text-align: center;
 }
 
 .authTitle {
-  margin: 0 0 var(--space-1);
+  margin: 0 0 var(--space-4);
   font-size: var(--text-lg);
-  font-weight: 600;
-  color: var(--color-dark);
+  color: var(--color-text);
 }
 
 .authSubtitle {
@@ -94,45 +89,12 @@
 .authForm {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--field-gap);
 }
 
-/* Primary action - the single gradient element on this screen. */
+/* The screen's single primary action. Full width so swapping the label for
+   the loading copy never changes the button's size. */
 .submitBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
   width: 100%;
-  min-height: 2.75rem;
-  margin-top: var(--space-1);
-  padding: 0.75rem var(--space-4);
-  border: none;
-  border-radius: var(--radius-full);
-  background: var(--gradient-brand);
-  color: #ffffff;
-  font-size: var(--text-base);
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
-  transition: box-shadow 0.18s ease-out, transform 0.1s ease-out;
-}
-
-.submitBtn:hover:not(:disabled) {
-  box-shadow: var(--shadow-brand);
-}
-
-.submitBtn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-/* The violet outline disappears against the gradient - use a light inner ring. */
-.submitBtn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-purple);
-}
-
-.submitBtn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
+  margin-top: var(--space-8);
 }

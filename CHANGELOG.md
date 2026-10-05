@@ -6,6 +6,40 @@ that produced them. Newest entry first.
 
 ---
 
+## 2026-10-05 — Design-system migration: prune dead CSS, fix the heading, reconcile the docs
+
+**Commit:** *(pending)* — closes out the UXonFly migration the previous entries started.
+
+**Why:** the code had moved to `src/styles/theme.css`, but the *documents* had not.
+`DESIGN.md` still described the pre-migration look (warm cream/"bone" surfaces, a
+fuchsia accent, `--gradient-brand`, `--text-2xs`), and `DOCUMENTATION.md` §8 still
+credited `dashboard.css` with classes that no longer exist (`btnNew`, `btnEdit`,
+`btnDelete`, `badgePaid*`, `.statusMessage`, `.errorMessage`). Because `theme.css` is
+the source of truth and the docs are how the next person learns the rules, the drift
+was worth fixing in the same pass as the last code cleanups.
+
+**Code**
+
+| Change | Detail |
+| :-- | :-- |
+| `dashboard.tsx` | The page `<h1>` had lost its class during the refactor, so the 24px → 32px step at `640px` never applied. Restored `className="title"`. |
+| `dashboard.css` | Removed two dead rules (`.pageHeaderText .subtitle`, `.btnNew`) — neither class is rendered anywhere. |
+| Deleted | `src/components/Welcome.astro` and its only two consumers, `src/assets/astro.svg` + `src/assets/background.svg`. Unrouted Astro starter leftovers — and the last place the old palette (raw hex, gradients) survived. |
+
+**Docs**
+
+| File | Change |
+| :-- | :-- |
+| `DESIGN.md` | Rewritten against `theme.css`: §1 atmosphere, §2 palette (accent + slate neutrals + status, no gradient and no second hue), §3 type scale, §4 components (the real button set, 40px/16px inputs, border-first cards, the badge matrix), §5 spacing scale, §6 elevation (`--shadow-elevated`), §7 do's/don'ts, §9 quick-reference. |
+| `DOCUMENTATION.md` | §6 tree, §8 stylesheet table, §10.3 component table, §14.8, §16.6 and the date stamp updated; `.errorMessage` → `.fieldError`; "brand-gradient `.submitBtn`" → accent. |
+| `CHANGELOG.md` | This entry. |
+
+**No product change beyond the heading fix:** the build stays static (`output: "static"`,
+no `.vercel/output/functions/`), `tsc --noEmit` is clean, and no dependency was added.
+
+---
+
+
 ## 2026-10-03 — Project subagents for parallel verification
 
 **Commit:** `chore: add project subagents for parallel verification` — the same commit as this
