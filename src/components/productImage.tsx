@@ -65,5 +65,17 @@ export default function ProductImage({
 
   if (!src) return null;
 
-  return <img src={src} alt={alt} className={className} />;
+  return (
+    // Intrinsic size comes from the 16/9 card aspect (1/1 in the preview grid),
+    // set so the layout doesn't shift once the signed URL resolves.
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      width={640}
+      height={360}
+      loading="lazy"
+      decoding="async"
+    />
+  );
 }

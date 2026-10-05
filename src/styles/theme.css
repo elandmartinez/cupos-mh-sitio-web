@@ -1,8 +1,14 @@
 /*
- * Shared design tokens for the whole app.
- * Base neutrals: bone (light) + dark (near-black eggplant).
- * Secondary/brand accents: purple + fuchsia.
- * Import this once in the root layout so every page/component can rely on it.
+ * Shared design tokens + global primitives for the whole app.
+ *
+ * This is the single source of truth for color, type, spacing, elevation and
+ * motion; see DESIGN.md for the rationale and the usage rules.
+ *
+ * Imported once by src/layouts/Layout.astro so every page gets it.
+ *
+ * Neutrals are warm (bone cream + near-black plum ink) with exactly one accent
+ * family: violet (--color-purple) as primary, magenta (--color-fuchsia) for
+ * emphasis and the brand gradient endpoint only.
  */
 :root {
   /* Base neutrals */
@@ -19,9 +25,14 @@
   --color-fuchsia-soft: #fbe6f0;
   --gradient-brand: linear-gradient(135deg, var(--color-purple) 0%, var(--color-fuchsia) 100%);
 
+  /* Accent state variants (fills + borders on hover/active) */
+  --color-purple-soft-hover: #e4d9f5;
+  --color-purple-soft-active: #d8c9ee;
+  --color-border-accent: #dcd3ea;
+
   /* Semantic */
   --color-text: var(--color-dark);
-  --color-text-muted: #6f6478;
+  --color-text-muted: #6d6459;
   --color-surface: #ffffff;
   --color-border: #e6e2da;
   --color-danger-bg: #fdecec;
@@ -31,12 +42,232 @@
   --color-warning-text: #8a5a12;
   --color-warning-bg-hover: #fbe4bd;
 
-  /* Elevation & shape */
+  /* Elevation & shape — a single light source, tinted with the ink hue */
   --shadow-sm: 0 1px 2px rgba(17, 0, 21, 0.06);
   --shadow-md: 0 12px 28px -12px rgba(17, 0, 21, 0.28);
   --shadow-lg: 0 24px 48px -16px rgba(17, 0, 21, 0.35);
+  --shadow-brand: 0 14px 32px -12px rgba(165, 0, 98, 0.45);
   --radius-sm: 0.5rem;
   --radius-md: 0.875rem;
   --radius-lg: 1.25rem;
   --radius-full: 999px;
+  --focus-ring: 0 0 0 3px rgba(82, 46, 147, 0.2);
+
+  /* Type */
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-display: var(--font-sans);
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.375rem;
+  --text-xl: 2rem;
+  --text-2xl: clamp(2rem, 8vw, 3.5rem);
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+  --tracking-display: -0.035em;
+  --tracking-tight: -0.02em;
+  --tracking-label: 0.04em;
+  --measure: 34rem;
+
+  /* Spacing scale (4px → 48px) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --content-width: 64rem;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Global primitives                                                       */
+/* ---------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background-color: var(--color-bone);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  touch-action: manipulation;
+  /* We supply our own :active feedback, so suppress the default tap flash. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Numbers meant to be compared should line up in a column. */
+.metaValue,
+.purchaseProgressLabel,
+.paymentItem {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Always give keyboard users a ring (inputs opt in to a softer glow). */
+:focus-visible {
+  outline: 2px solid var(--color-purple);
+  outline-offset: 2px;
+}
+
+/* Skip link — offscreen until focused (rendered by Layout.astro). */
+.skipLink {
+  position: absolute;
+  top: -4rem;
+  left: var(--space-4);
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  background-color: var(--color-dark);
+  color: var(--color-bone);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s ease-in-out;
+}
+
+.skipLink:focus {
+  top: var(--space-4);
+}
+
+/* Inline loading indicator; pair with copy ending in "…". */
+.spinner {
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-purple);
+  border-radius: var(--radius-full);
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Motion in this app is decorative only — honour the user's preference. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Form primitives — shared by the login and dashboard stylesheets.        */
+/* ---------------------------------------------------------------------- */
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+/* Supporting hint under a control (e.g. accepted file types). */
+.fieldHint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  min-height: 2.75rem; /* 44px — comfortable touch target */
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bone-soft);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out,
+    background-color 0.15s ease-in-out;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.75;
+}
+
+/* The glow ring replaces the outline, so this stays keyboard-friendly. */
+.input:focus,
+.textarea:focus,
+.input:focus-visible,
+.textarea:focus-visible {
+  outline: none;
+  background-color: var(--color-surface);
+  border-color: var(--color-purple);
+  box-shadow: var(--focus-ring);
+}
+
+.input:disabled,
+.textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+/* Inline error / status message. Pair with role="alert" so it is announced. */
+.errorMessage {
+  margin: 0 0 var(--space-4);
+  padding: 0.7rem var(--space-4);
+  border: 1px solid rgba(154, 27, 58, 0.15);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  font-size: var(--text-sm);
+  text-align: center;
 }

@@ -1,174 +1,138 @@
-:root {
-  --bg-color: #f5f3ef;
-  --modal-bg: #ffffff;
-  --text-main: #1c1b18;
-  --text-muted: #737067;
-  --border-color: #e6e2da;
-  --input-bg: #faf9f6;
-  --accent: #2a2825;
-  --accent-hover: #423f3b;
-  --focus-ring: rgba(42, 40, 37, 0.15);
-  --error-bg: #fdf2f2;
-  --error-text: #981b1b;
-}
+/* ==========================================================================
+   Login screen (src/pages/index.astro -> loginModal.tsx).
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  min-height: 100vh;
-}
+   Color, type, spacing and the form primitives (.fieldGroup/.label/.input)
+   all come from theme.css + DESIGN.md - this file owns layout only. Keep it
+   that way: one design language shared with the dashboard, not a second
+   palette (the old version shipped its own competing neutral tokens).
+   ========================================================================== */
 
-.auth-wrapper {
+.authShell {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  /* stretch, not center: a shrink-to-fit child wider than the viewport would
+     overflow both edges on narrow screens (the wordmark did exactly that). */
+  align-items: stretch;
+  gap: var(--space-8);
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: max(var(--space-8), env(safe-area-inset-top)) var(--space-5)
+    max(var(--space-8), env(safe-area-inset-bottom));
+}
+
+/* ---- Hero / wordmark ---------------------------------------------------- */
+
+.authHero {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: start;
-  min-height: 100vh;
-  padding: 1.5rem;
-  box-sizing: border-box;
-}
-
-.auth-logo-wrapper {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  margin: 0 0 0.5rem 0;
-  color: var(--text-main);
+  gap: var(--space-2);
+  width: 100%;
+  padding-top: var(--space-4);
   text-align: center;
 }
 
-.logo {
-  width: 400px;
+.authLogo {
+  width: min(72vw, 15rem);
+  max-width: 100%;
   height: auto;
+  display: block;
 }
 
-.logo-subtitle {
-  font-size: 3rem;
+.authEyebrow {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-2xs);
   font-weight: 600;
-  letter-spacing: -0.025em;
-  margin: 0 0 0.5rem 0;
-  color: var(--text-main);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 
-.logo-text {
-  font-size: 2.0rem;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  margin: 0 0 0.5rem 0;
-  color: var(--text-main);
-  margin: 3rem 0;
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 400px;
-  background: var(--modal-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 18px;
-  padding: 2.5rem 2rem;
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.02),
-    0 10px 15px -3px rgba(0, 0, 0, 0.04),
-    0 20px 25px -5px rgba(0, 0, 0, 0.02);
-}
-
-.auth-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.auth-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  margin: 0 0 0.5rem 0;
-  color: var(--text-main);
-}
-
-.auth-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-muted);
+.authWordmark {
   margin: 0;
+  max-width: 100%;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+  color: var(--color-dark);
 }
 
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
+/* ---- Card -------------------------------------------------------------- */
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.form-label {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-main);
-}
-
-.form-input {
+.authCard {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background-color: var(--input-bg);
-  font-size: 0.9375rem;
-  color: var(--text-main);
-  box-sizing: border-box;
-  transition: all 0.2s ease;
+  max-width: 25rem;
+  margin: 0 auto; /* centres inside the stretched shell */
+  padding: var(--space-8) var(--space-6);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
-.form-input::placeholder {
-  color: #a8a49c;
-}
-
-.form-input:focus {
-  outline: none;
-  background-color: #ffffff;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--focus-ring);
-}
-
-.submit-btn {
-  width: 100%;
-  padding: 0.875rem;
-  margin-top: 0.5rem;
-  background-color: var(--accent);
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-}
-
-.submit-btn:hover {
-  background-color: var(--accent-hover);
-}
-
-.submit-btn:active {
-  transform: scale(0.99);
-}
-
-.submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.error-message {
-  padding: 0.75rem;
-  border-radius: 8px;
-  background-color: var(--error-bg);
-  color: var(--error-text);
-  font-size: 0.8125rem;
+.authHeader {
+  margin-bottom: var(--space-6);
   text-align: center;
-  margin: 1rem 0;
+}
+
+.authTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.authSubtitle {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Primary action - the single gradient element on this screen. */
+.submitBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: var(--space-1);
+  padding: 0.75rem var(--space-4);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--gradient-brand);
+  color: #ffffff;
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: box-shadow 0.18s ease-out, transform 0.1s ease-out;
+}
+
+.submitBtn:hover:not(:disabled) {
+  box-shadow: var(--shadow-brand);
+}
+
+.submitBtn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* The violet outline disappears against the gradient - use a light inner ring. */
+.submitBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-purple);
+}
+
+.submitBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }

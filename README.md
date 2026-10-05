@@ -1,8 +1,12 @@
 # Cupos Sitio Web
 
 > 📖 Full project documentation — architecture, data model, hooks, and known issues —
-> lives in **[DOCUMENTATION.md](./DOCUMENTATION.md)**. The text below is the default
-> Astro starter README.
+> lives in **[DOCUMENTATION.md](./DOCUMENTATION.md)**.
+>
+> 🎨 The design system (tokens, components, states, accessibility) is documented in
+> **[DESIGN.md](./DESIGN.md)**.
+>
+> The text below is the default Astro starter README.
 
 ---
 

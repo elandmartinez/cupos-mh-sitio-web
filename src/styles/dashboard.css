@@ -4,14 +4,14 @@
    spacing/sizing for larger viewports. Colors come from theme.css tokens.
    ========================================================================== */
 
-* {
-  box-sizing: border-box;
-}
+/* NOTE: the box-sizing reset, the font stack and the form primitives
+   (.fieldGroup / .label / .input / .textarea) now live in theme.css, which is
+   loaded on every page. See DESIGN.md. */
 
 .pageContainer {
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--color-bone);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   color: var(--color-text);
 }
 
@@ -548,43 +548,8 @@
   gap: 1rem;
 }
 
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.input,
-.textarea {
-  width: 100%;
-  padding: 0.65rem 0.8rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bone-soft);
-  font-size: 0.9375rem;
-  color: var(--color-text);
-  box-sizing: border-box;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.input:focus,
-.textarea:focus {
-  outline: none;
-  background-color: var(--color-surface);
-  border-color: var(--color-purple);
-  box-shadow: 0 0 0 3px var(--color-purple-soft);
-}
-
-.textarea {
-  resize: vertical;
-  min-height: 80px;
-}
+/* .fieldGroup / .label / .input / .textarea / .errorMessage are defined once
+   in theme.css so the login screen and the dashboard cannot drift apart. */
 
 .fileInput {
   width: 100%;
@@ -809,4 +774,137 @@
   .productsGrid {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Interaction states                                                      */
+/* Every control gets a hover, an active and a keyboard-focus affordance.   */
+/* Kept in one place instead of sprinkled across each component, and clear  */
+/* of properties the breakpoints above already own.                        */
+/* ---------------------------------------------------------------------- */
+
+/* On the dark top bar the violet ring is invisible - use a light one. */
+.btnGhost:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-dark), 0 0 0 4px var(--color-bone);
+}
+
+.btnGhost {
+  min-height: 2.25rem;
+}
+
+.btnGhost:active {
+  background-color: rgba(245, 243, 239, 0.22);
+}
+
+/* An inner light ring keeps focus visible on the gradient CTAs. */
+.btnNew:focus-visible,
+.btnPrimary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-purple);
+}
+
+/* Card actions: raise the hit area to a comfortable 36px and add feedback. */
+.btnEdit,
+.btnDelete {
+  min-height: 2.25rem;
+  padding: 0.45rem 0.8rem;
+  transition: background-color 0.15s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.btnEdit:active,
+.btnDelete:active,
+.btnPurchases:active,
+.btnRefresh:active,
+.btnClose:active,
+.imageRemoveBtn:active {
+  transform: scale(0.96);
+}
+
+.btnPurchases {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.btnPurchases:hover {
+  background-color: var(--color-purple-soft-hover);
+}
+
+.btnPurchases:active {
+  background-color: var(--color-purple-soft-active);
+}
+
+/* Text fields inside the payments form sit on the bone surface. */
+.paymentAmountInput {
+  background-color: var(--color-surface);
+}
+
+.btnClose {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+/* WCAG 2.5.8: give the thumbnail remove button a 44px target without
+   changing how it looks. */
+.imageRemoveBtn {
+  position: relative;
+}
+
+.imageRemoveBtn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translate(-50%, -50%);
+}
+
+/* Cards read as actionable: raise and warm the border on hover/focus. */
+.productCard {
+  transition: box-shadow 0.18s ease-out, border-color 0.18s ease-out;
+}
+
+.productCard:hover,
+.productCard:focus-within {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-accent);
+}
+
+/* Status regions centre their spinner + copy and cap the measure. */
+.statusMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.statusMessage p {
+  margin: 0;
+  max-width: var(--measure);
+}
+
+.emptyStateTitle {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.emptyStateBody {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.emptyStateAction {
+  margin-top: var(--space-2);
+}
+
+/* Dialogs: don't let a scroll gesture leak out to the page behind. */
+.modalOverlay {
+  overflow-y: auto;
+}
+
+.formCard {
+  overscroll-behavior: contain;
 }

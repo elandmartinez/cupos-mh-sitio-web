@@ -6,6 +6,7 @@ import { useAuth } from '../context/authContext';
 import PurchasesModal from './purchasesModal';
 import ConfirmModal from './confirmModal';
 import ProductImage from './productImage';
+import Modal from './modal';
 import { formatCurrency } from '../helpers/currency';
 import monsterHighLogo from "../../public/monster-high-logo-color.png";
 
@@ -168,9 +169,17 @@ export default function Dashboard() {
   return (
     <div className="pageContainer">
       <header className="topBar">
-        <img src={monsterHighLogo.src} alt="Monster High" className="topBarLogo" />
-        <span className="userEmail">{user?.email}</span>
-        <button onClick={signOut} className="btnGhost">
+        <img
+          src={monsterHighLogo.src}
+          alt="Monster High"
+          className="topBarLogo"
+          width="300"
+          height="203"
+        />
+        <span className="userEmail" title={user?.email ?? undefined}>
+          {user?.email}
+        </span>
+        <button type="button" onClick={signOut} className="btnGhost">
           Cerrar sesión
         </button>
       </header>
@@ -184,25 +193,57 @@ export default function Dashboard() {
 
           <div className="pageHeaderActions">
             <button
+              type="button"
               onClick={fetchProducts}
               className="btnRefresh"
               aria-label="Refrescar productos"
               title="Refrescar"
             >
-              ⟳
+              <span aria-hidden="true">⟳</span>
             </button>
-            <button onClick={handleOpenNewForm} className="btnNew">
-              <span className="btnNewIcon">+</span> Nuevo producto
+            <button
+              type="button"
+              onClick={handleOpenNewForm}
+              className="btnNew"
+              aria-haspopup="dialog"
+            >
+              <span className="btnNewIcon" aria-hidden="true">
+                +
+              </span>{' '}
+              Nuevo producto
             </button>
           </div>
         </div>
 
-        {error && <div className="errorAlert">{error}</div>}
+        {error && (
+          <div className="errorAlert" role="alert">
+            {error}
+          </div>
+        )}
 
         {loading ? (
-          <div className="statusMessage">Cargando productos...</div>
+          <div className="statusMessage" role="status" aria-live="polite">
+            <span className="spinner" aria-hidden="true" />
+            <p>Cargando productos…</p>
+          </div>
         ) : products.length === 0 ? (
-          <div className="statusMessage">No se encontraron productos.</div>
+          <div className="statusMessage">
+            <h2 className="emptyStateTitle">Todavía no hay productos</h2>
+            <p className="emptyStateBody">
+              Agrega tu primer cupo para empezar a registrar compras y pagos de clientes.
+            </p>
+            <button
+              type="button"
+              onClick={handleOpenNewForm}
+              className="btnNew emptyStateAction"
+              aria-haspopup="dialog"
+            >
+              <span className="btnNewIcon" aria-hidden="true">
+                +
+              </span>{' '}
+              Nuevo producto
+            </button>
+          </div>
         ) : (
           <div className="productsGrid">
             {products.map((product) => {
@@ -236,14 +277,20 @@ export default function Dashboard() {
 
                   <div className="actionRow">
                     <button
+                      type="button"
                       onClick={() => handleEditClick(product)}
                       className="btnEdit"
+                      aria-haspopup="dialog"
+                      aria-label={`Editar ${product.name ?? 'producto'}`}
                     >
                       Editar
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleRequestDeleteProduct(product)}
                       className="btnDelete"
+                      aria-haspopup="dialog"
+                      aria-label={`Eliminar ${product.name ?? 'producto'}`}
                     >
                       Eliminar
                     </button>
@@ -254,8 +301,10 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => handleOpenPurchases(product)}
                   className="btnPurchases"
+                  aria-haspopup="dialog"
                 >
-                  🛍️ Compras{productPurchases.length > 0 ? ` (${productPurchases.length})` : ''}
+                  <span aria-hidden="true">🛍️</span> Compras
+                  {productPurchases.length > 0 ? ` (${productPurchases.length})` : ''}
                 </button>
               </div>
               );
@@ -265,12 +314,11 @@ export default function Dashboard() {
       </main>
 
       {showForm && (
-        <div className="modalOverlay" onClick={closeForm}>
-          <div className="formCard" onClick={(e) => e.stopPropagation()}>
-            <div className="formCardHeader">
-              <h2 className="formTitle">
-                {isEditing ? 'Editar producto' : 'Agregar nuevo producto'}
-              </h2>
+        <Modal labelledBy="productFormTitle" onClose={closeForm}>
+          <div className="formCardHeader">
+            <h2 className="formTitle" id="productFormTitle">
+              {isEditing ? 'Editar producto' : 'Agregar nuevo producto'}
+            </h2>
               <button
                 type="button"
                 onClick={closeForm}
@@ -281,113 +329,131 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="form">
-              <div className="fieldGroup">
-                <label className="label">Nombre</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name || ''}
-                  onChange={handleInputChange}
-                  required
-                  className="input"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="form">
+            <div className="fieldGroup">
+              <label className="label" htmlFor="productName">
+                Nombre
+              </label>
+              <input
+                id="productName"
+                type="text"
+                name="name"
+                value={formData.name || ''}
+                onChange={handleInputChange}
+                autoComplete="off"
+                required
+                className="input"
+              />
+            </div>
 
-              <div className="fieldGroup">
-                <label className="label">Descripción</label>
-                <textarea
-                  name="description"
-                  value={formData.description || ''}
-                  onChange={handleInputChange}
-                  className="textarea"
-                />
-              </div>
+            <div className="fieldGroup">
+              <label className="label" htmlFor="productDescription">
+                Descripción
+              </label>
+              <textarea
+                id="productDescription"
+                name="description"
+                value={formData.description || ''}
+                onChange={handleInputChange}
+                className="textarea"
+              />
+            </div>
 
-              <div className="fieldGroup">
-                <label className="label">Valor</label>
-                <input
-                  type="number"
-                  name="value"
-                  value={formData.value ?? ''}
-                  onChange={handleInputChange}
-                  className="input"
-                />
-              </div>
+            <div className="fieldGroup">
+              <label className="label" htmlFor="productValue">
+                Valor
+              </label>
+              <input
+                id="productValue"
+                type="number"
+                name="value"
+                inputMode="numeric"
+                min="0"
+                value={formData.value ?? ''}
+                onChange={handleInputChange}
+                className="input"
+              />
+            </div>
 
-              <div className="fieldGroup">
-                <label className="label">Fecha de lanzamiento</label>
-                <input
-                  type="date"
-                  name="release_date"
-                  value={formData.release_date || ''}
-                  onChange={handleInputChange}
-                  className="input"
-                />
-              </div>
+            <div className="fieldGroup">
+              <label className="label" htmlFor="productReleaseDate">
+                Fecha de lanzamiento
+              </label>
+              <input
+                id="productReleaseDate"
+                type="date"
+                name="release_date"
+                value={formData.release_date || ''}
+                onChange={handleInputChange}
+                className="input"
+              />
+            </div>
 
-              <div className="fieldGroup">
-                <label className="label">Imagen</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelected}
-                  className="fileInput"
-                />
+            <div className="fieldGroup">
+              <label className="label" htmlFor="productImage">
+                Imagen
+              </label>
+              <input
+                id="productImage"
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelected}
+                className="fileInput"
+              />
+              <p className="fieldHint">JPG o PNG. Al guardar se reemplaza la imagen actual.</p>
 
-                {(pendingImage || (isEditing && currentImageVisible)) && (
-                  <div className="imagePreviewGrid">
-                    {isEditing && currentImageVisible && !pendingImage && (
-                      <div className="imagePreviewItem">
-                        <ProductImage
-                          product={isEditing}
-                          imageVersion={imageVersion}
-                          getSignedUrl={getSignedUrl}
-                          onMissing={() => setCurrentImageVisible(false)}
-                        />
-                        <div className="imagePreviewActions">
-                          <button
-                            type="button"
-                            onClick={handleDeleteCurrentImage}
-                            className="imageRemoveBtn"
-                            aria-label="Eliminar imagen"
-                          >
-                            ×
-                          </button>
-                        </div>
+              {(pendingImage || (isEditing && currentImageVisible)) && (
+                <div className="imagePreviewGrid">
+                  {isEditing && currentImageVisible && !pendingImage && (
+                    <div className="imagePreviewItem">
+                      <ProductImage
+                        product={isEditing}
+                        imageVersion={imageVersion}
+                        getSignedUrl={getSignedUrl}
+                        onMissing={() => setCurrentImageVisible(false)}
+                      />
+                      <div className="imagePreviewActions">
+                        <button
+                          type="button"
+                          onClick={handleDeleteCurrentImage}
+                          className="imageRemoveBtn"
+                          aria-label="Eliminar imagen"
+                        >
+                          ×
+                        </button>
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {pendingImage && pendingImagePreview && (
-                      <div className="imagePreviewItem imagePreviewItemPending">
-                        <img src={pendingImagePreview} alt="" />
-                        <div className="imagePreviewActions">
-                          <button
-                            type="button"
-                            onClick={clearPendingImage}
-                            className="imageRemoveBtn"
-                            aria-label="Quitar imagen"
-                          >
-                            ×
-                          </button>
-                        </div>
+                  {pendingImage && pendingImagePreview && (
+                    <div className="imagePreviewItem imagePreviewItemPending">
+                      <img src={pendingImagePreview} alt="" width="200" height="200" />
+                      <div className="imagePreviewActions">
+                        <button
+                          type="button"
+                          onClick={clearPendingImage}
+                          className="imageRemoveBtn"
+                          aria-label="Quitar imagen"
+                        >
+                          ×
+                        </button>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-              <div className="buttonGroup">
-                <button type="submit" className="btnPrimary">
-                  {isEditing ? 'Actualizar' : 'Crear'}
-                </button>
-                <button type="button" onClick={closeForm} className="btnSecondary">
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="buttonGroup">
+              <button type="submit" className="btnPrimary">
+                {isEditing ? 'Actualizar' : 'Crear'}
+              </button>
+              <button type="button" onClick={closeForm} className="btnSecondary">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {purchasesProduct && (

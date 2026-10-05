@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-10-03 · **Covers commit:** `b698b2b`
+> **Status:** work in progress · **Last documented:** 2026-10-04 · **Covers commit:** `b698b2b` + uncommitted design-system pass & deploy audit
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -32,7 +32,8 @@ All user-facing copy is in **Spanish**.
 | Language | **TypeScript** | `astro/tsconfigs/strict`. |
 | Backend / BaaS | **Supabase** | Auth, Postgres (data + trigger logic), Storage (product images). |
 | Deploy target | **Vercel** | via `@astrojs/vercel` adapter (`.vercel/` present). |
-| Styling | **Plain CSS** | Hand-written CSS files + CSS custom properties (no Tailwind). |
+| Styling | **Plain CSS** | Hand-written CSS files + CSS custom properties (no Tailwind). The design system is documented in `DESIGN.md`. |
+| Typography | **Outfit** (Google Fonts) | One family for the whole app, loaded in `Layout.astro` with `display=swap` plus a system fallback stack (degrades gracefully offline). |
 | Runtime | **Node ≥ 22.12.0** | enforced by `engines` in `package.json`. |
 
 > `package.json` still carries the starter name `"smoggy-shell"` — a leftover from
@@ -103,6 +104,7 @@ cupos-sitio-web/
 ├── tsconfig.json           # extends astro/tsconfigs/strict, jsx: react-jsx
 ├── .env                    # PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_KEY (⚠ tracked)
 ├── AGENTS.md               # agent/contributor instructions (CLAUDE.md symlinks to it)
+├── DESIGN.md               # design system: tokens, components, states, a11y (see §10.4)
 ├── public/                 # served as-is at the site root
 │   ├── monster-high-logo.png        # used by loginModal.tsx
 │   ├── monster-high-logo-color.png  # used by dashboard.tsx
@@ -121,7 +123,8 @@ cupos-sitio-web/
     │   ├── dashboard.tsx    # product CRUD + modal orchestration (largest component)
     │   ├── purchasesModal.tsx  # per-product purchases + payments UI
     │   ├── productImage.tsx # renders a product image via a signed URL
-    │   ├── confirmModal.tsx # generic confirm dialog
+    │   ├── confirmModal.tsx # destructive-action confirm dialog (built on modal.tsx)
+    │   ├── modal.tsx        # shared dialog shell: role=dialog, Escape, focus trap, scroll lock
     │   └── Welcome.astro    # Astro starter leftover, not routed/imported anywhere
     ├── context/
     │   └── authContext.tsx  # AuthProvider + useAuth() (Supabase session)
@@ -135,9 +138,9 @@ cupos-sitio-web/
     ├── lib/
     │   └── supabase.ts      # canonical supabase client (env-guarded)
     ├── styles/
-    │   ├── theme.css        # design tokens (colors, radii, shadows)
-    │   ├── dashboard.css    # dashboard + shared modal/card classes
-    │   └── loginModal.css   # login screen styles
+    │   ├── theme.css        # design tokens + globals + shared form primitives
+    │   ├── dashboard.css    # dashboard layout + interaction states
+    │   └── loginModal.css   # login layout only (tokens come from theme.css)
     └── assets/
         ├── astro.svg        # only referenced by the unused Welcome.astro
         └── background.svg   # only referenced by the unused Welcome.astro
@@ -351,13 +354,14 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 
 | Component | File | Responsibility |
 | :-- | :-- | :-- |
-| `LoginModal` | `loginModal.tsx` | Email/password form calling `supabase.auth.signInWithPassword()`; shows the error message on failure; on success redirects to `/dashboard`. Renders the Monster High logo + "Gestión de cupos" header. Loaded with `client:load`. |
+| `LoginModal` | `loginModal.tsx` | Email/password form calling `supabase.auth.signInWithPassword()`; shows the error in a `role="alert"` region on failure; on success redirects to `/dashboard`. Renders the Monster High logo, a `h1` wordmark ("Gestión de cupos") and labelled, correctly-typed fields (`type="email"`, `autoComplete="username"`, `spellCheck={false}`). Submits through the brand-gradient `.submitBtn` with an inline `.spinner` while pending. Loaded with `client:load`. |
 | `DashboardApp` | `dashboardApp.tsx` | Thin composition: `<AuthProvider><AuthGuard><Dashboard/></AuthGuard></AuthProvider>`. Loaded with `client:only="react"`. |
-| `AuthGuard` | `authGuard.tsx` | Reads `{ user, loading }` from `useAuth()`. Shows "Verificando sesión..." while loading, redirects to `/` when there is no user, otherwise renders children. Contains a leftover `console.log`. |
-| `Dashboard` | `dashboard.tsx` | The main screen. Top bar (logo, `user.email`, "Cerrar sesión"), product grid with refresh + "Nuevo producto", a modal product form (name / description / value / release date / image with live preview), and it orchestrates `ConfirmModal` for deletions and `PurchasesModal` for purchases. Renames the stored image when a product's name changes and bumps `imageVersion` after any image change to defeat browser caching. |
-| `PurchasesModal` | `purchasesModal.tsx` | Everything about one product's clients: list with a paid/agreed progress bar and a "Pagado"/"Pendiente" badge, create/edit purchase form, and an expandable payments section (add payment with optional "Cargo extra", delete payment). Uses `usePurchasePayments` and pushes trigger-refreshed totals back up via `applyPurchaseUpdate`. |
-| `ProductImage` | `productImage.tsx` | Fetches a signed URL for a product and renders `<img>`; renders nothing while loading and calls `onMissing` when there is no image. Re-fetches only when `product.id`, `product.name` or `imageVersion` change. |
-| `ConfirmModal` | `confirmModal.tsx` | Generic confirmation dialog (`title`, `message`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`). Used for product deletion. |
+| `AuthGuard` | `authGuard.tsx` | Reads `{ user, loading }` from `useAuth()`. Shows an `aria-live="polite"` spinner + "Verificando sesión…" while loading, redirects to `/` when there is no user, otherwise renders children. |
+| `Dashboard` | `dashboard.tsx` | The main screen. Top bar (logo, `user.email`, "Cerrar sesión"), product grid with refresh + "Nuevo producto", a modal product form (name / description / value / release date / image with live preview) rendered through `Modal`, and it orchestrates `ConfirmModal` for deletions and `PurchasesModal` for purchases. Renames the stored image when a product's name changes and bumps `imageVersion` after any image change to defeat browser caching. Loading/empty/error states are explicit; empty state offers the primary action. |
+| `PurchasesModal` | `purchasesModal.tsx` | Everything about one product's clients: list with a paid/agreed progress bar and a "Pagado"/"Pendiente" badge, create/edit purchase form, and an expandable payments section (add payment with optional "Cargo extra", delete payment). Purchase **and** payment deletion are confirmed through `ConfirmModal`. Uses `usePurchasePayments` and pushes trigger-refreshed totals back up via `applyPurchaseUpdate`. |
+| `ProductImage` | `productImage.tsx` | Fetches a signed URL for a product and renders `<img>` with explicit `width`/`height` (avoids layout shift) plus `loading="lazy"`; renders nothing while loading and calls `onMissing` when there is no image. Re-fetches only when `product.id`, `product.name` or `imageVersion` change. |
+| `Modal` | `modal.tsx` | The shared dialog shell. `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, Escape to close, backdrop click to close, focus moved in on open and restored to the trigger on close, Tab trapped (only the topmost dialog reacts, so nested confirms work), and a background scroll lock. |
+| `ConfirmModal` | `confirmModal.tsx` | Destructive-action confirmation built on `Modal` (`title`, `message`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`). Cancel is rendered first so the safe choice sits under the thumb, and the consequence sentence is wired up via `aria-describedby`. |
 | `Welcome` | `Welcome.astro` | **Unused.** Astro starter-kit landing page; not imported by any route. Its only `<style>` block is scoped to itself. |
 
 ### 10.3 Helpers
@@ -371,31 +375,63 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 
 | File | Purpose |
 | :-- | :-- |
-| `src/styles/theme.css` | Design tokens as CSS custom properties (colors such as `--color-bone`, radii, shadows). Imported once by `Layout.astro` so every page inherits them. |
-| `src/styles/dashboard.css` | Dashboard layout + the shared class names used across modals/cards: `pageContainer`, `topBar`, `modalOverlay`, `formCard`, `btnPrimary`/`btnSecondary`/`btnDanger`/`btnEdit`/`btnDelete`, `statusMessage`, `imagePreview*`, `payments*`, etc. Imported by `dashboard.astro`. |
-| `src/styles/loginModal.css` | Login screen (`auth-wrapper`, `auth-card`, `form-*`, `submit-btn`). Imported by `index.astro`. |
+| `src/styles/theme.css` | **Single source of truth** for the design system: color, type scale, spacing, elevation and motion tokens, plus global primitives (`box-sizing`, `body` typography, `:focus-visible`, `.skipLink`, `.spinner`, `prefers-reduced-motion`) and the **shared form primitives** (`.fieldGroup`, `.label`, `.input`, `.textarea`, `.fieldHint`, `.errorMessage`). Imported once by `Layout.astro`. Token rationale lives in `DESIGN.md`. |
+| `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`, `modalOverlay`, `formCard`, `btnNew`/`btnPrimary`/`btnSecondary`/`btnDanger`/`btnEdit`/`btnDelete`/`btnGhost`/`btnClose`, `statusMessage`, `emptyState*`, `imagePreview*`, `payments*`. Ends with a single "Interaction states" block (hover/active/focus) so states are not scattered per component. Imported by `dashboard.astro`. |
+| `src/styles/loginModal.css` | Login screen layout only: `authShell`, `authHero`, `authLogo`, `authEyebrow`, `authWordmark`, `authCard`, `authHeader`, `authTitle`, `authSubtitle`, `authForm`, `submitBtn`. It defines **no palette of its own** — colors and type come from `theme.css`. Imported by `index.astro`. |
 
 There is no CSS framework and no `@apply`/utility layer — components reference the
-shared class names above.
+shared class names above. Tokens live in `theme.css`; page stylesheets own layout.
 
 ## 11. Build & deployment
 
 ```sh
-npm run build      # → dist/  (verified working: 2 static pages, ~1.3 s)
+npm run build      # → dist/  (verified: 2 static pages, ~1.2 s)
 npm run preview    # preview the built output
 ```
 
-- The build uses the **`@astrojs/vercel`** adapter. As of the last documented
-  commit there are no dynamic/SSR routes, so the build reports
-  `output: "static"` and emits plain HTML (`/index.html` and
-  `/dashboard/index.html`) into `dist/`, then copies them to
-  `.vercel/output/static`.
-- `.vercel/` (local project link) is git-ignored.
-- **`dist/` is not currently git-ignored** — add it to `.gitignore` if you do not
-  want build output showing up as untracked (see [§14](#14-known-issues--tech-debt)).
-- When deploying to Vercel, set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_KEY` as
-  environment variables in the Vercel project (Environment Variables → Production/
-  Preview/Development). They are `PUBLIC_` values and end up in the client bundle.
+The target is a **Vercel static deployment**: static files on the CDN, no functions,
+no server. A build at the last documented commit produced `.vercel/output/` using the
+**Build Output API v3**:
+
+| Path | Contents |
+| :-- | :-- |
+| `.vercel/output/static/` | `index.html`, `dashboard/index.html`, `favicon.*`, both logos, the stray PDF, and hashed `_astro/*` CSS/JS bundles. |
+| `.vercel/output/config.json` | `handle: filesystem` → immutable `cache-control` for `/_astro/*` → a `404` fallback. No route targets a function. |
+| `.vercel/output/functions/` | **Does not exist.** This is the proof that no Serverless/Edge function is created. |
+| `.vercel/output/server/` | Empty directory emitted by the adapter; nothing is shipped from it. |
+
+`@astrojs/vercel` is configured but **unnecessary for static output** — a plain
+`astro build` would deploy identically. It is kept so that adding SSR later does not
+require re-plumbing, and it is the thing that makes `.vercel/output` (not `dist/`) the
+artifact Vercel consumes. `.vercel/` is git-ignored; see
+[§14](#14-known-issues--tech-debt) for the `dist/`/`.astro/` churn.
+
+### What keeps it static
+
+All of the following are true today. Any one of them breaking turns the deploy into
+something that consumes compute:
+
+- `output` is unset, so Astro's default `'static'` applies.
+- Both routes are static; all interactivity is inside `client:*` islands, so nothing
+  is rendered at request time.
+- No `src/middleware.ts`, no `src/pages/api/*`, no `prerender = false`, no Server
+  Actions.
+- No `astro:assets` usage, so the adapter adds no image-optimization route.
+- The build never calls Supabase (the app is a client-side SPA), so it is
+  deterministic and can run offline.
+
+### Deploying
+
+No `vercel.json` is needed: Vercel's Astro preset runs `npm run build` and reads
+`.vercel/output`. `engines.node` is `>=22.12.0`, satisfied by Vercel's Node 22 image
+(local: v22.20.0). Checklist for a deploy:
+
+- [ ] `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_KEY` set on the Vercel project for
+      **Production and Preview**. `PUBLIC_*` values are inlined at build time, so
+      they cannot be added after a build.
+- [ ] `npm run build` green, and `.vercel/output/functions/` still absent.
+- [ ] **RLS verified** on all three tables and the storage bucket — a static SPA has
+      no server to enforce authorization ([§14](#14-known-issues--tech-debt)).
 
 ## 12. Developer & AI tooling
 
@@ -404,13 +440,31 @@ The repo carries configuration for several AI coding assistants, all committed i
 
 | Path | What it is |
 | :-- | :-- |
-| `AGENTS.md` | Contributing/agent guidance (dev server in background mode, Astro doc links). `CLAUDE.md` is a **symlink** to it. |
-| `.agents/skills/` | Vendored agent "skills" for Supabase usage — `supabase` and `supabase-postgres-best-practices`, mirrored under `.claude/skills/`. |
-| `skills-lock.json` | Lockfile for the above (source `supabase/agent-skills`, with content hashes). |
+| `AGENTS.md` | Contributing/agent guidance: project reference, the non-negotiable **shipping constraint** (static-only frame, see above), design system, dev server in background mode, screenshot workflow, Astro doc links. `CLAUDE.md` is a **symlink** to it. |
+| `DESIGN.md` | The design contract for this repo: tokens, type scale, component stylings, states, layout, do's/don'ts and a pre-flight checklist. |
+| `.agents/skills/` | Vendored agent skills — Supabase (`supabase`, `supabase-postgres-best-practices`) plus design (`web-design-guidelines` from `vercel-labs/agent-skills`, `redesign-existing-projects` from `Leonxlnx/taste-skill`), mirrored under `.claude/skills/`. |
+| `skills-lock.json` | Lockfile for the above (sources + content hashes; see §14 for the two entries without a hash). |
 | `.cursor/rules/codegraph.mdc` | Cursor rule describing when/how to use the CodeGraph MCP tools (`alwaysApply: true`). |
 | `.codegraph/` | CodeGraph index for this repo (`config.json` + `.gitignore` are committed). |
 | `.vscode/extensions.json` | Recommends `saoudrizwan.claude-dev` (Cline). |
 | `.claude/`, `.agents/` | Skill files consumed by Claude-based agents. |
+
+### Design tooling
+
+Of the five resources in the shared "Claude Code plugins" set, three were adopted for
+the design-system pass and two were deliberately not:
+
+| Resource | Status |
+| :-- | :-- |
+| Taste Skill → `redesign-skill` | ✅ Vendored as `.agents/skills/redesign-existing-projects`. Supplied the audit-first protocol: scan → diagnose → fix, in a fixed priority order. |
+| Vercel Web Design Guidelines | ✅ Vendored as `.agents/skills/web-design-guidelines`. It fetches the canonical rule list at review time and reports findings as `file:line`. |
+| Awesome DESIGN.md | ✅ Adopted as a *convention*: `DESIGN.md` (how it should look) sits alongside `AGENTS.md` (how to build). |
+| Playwright CLI | ➖ Not installed. Chrome is already present, so UI work is verified with headless screenshots instead (see `AGENTS.md`). |
+| Image to Code | ➖ Not used. It requires generating design images first; there are no mockups for this app and no image-generation tool in this environment. |
+
+The pass followed the redesign skill's priority order: font swap → color cleanup →
+hover/active states → layout & spacing → loading/empty/error states → typography
+polish.
 
 ### CodeGraph MCP
 
@@ -447,19 +501,29 @@ codegraph serve --mcp --path "$PWD"
 
 | Check | Result |
 | :-- | :-- |
-| `npm run build` | ✅ passes — 2 static pages (`/index.html`, `/dashboard/index.html`), ~1.3 s. |
+| `npm run build` | ✅ passes — 2 static pages (`/index.html`, `/dashboard/index.html`), ~1 s. |
 | Dev server | `npm run dev` → `http://localhost:4321` (or `astro dev --background`). |
 | Types | No `astro check`/`tsc` script; strict mode is on but not wired into CI. |
 | Tests | ❌ none. |
 | Lint / format | ❌ no ESLint/Prettier config. |
 | CodeGraph index | ✅ built (`.codegraph/`), MCP handshake verified. |
+| Visual check | ✅ Screenshots taken with headless Chrome at 320 / 390 / 768 / 1280 px. Login verified directly; the dashboard's CSS was verified with a throwaway static harness (it needs Supabase credentials to render authed). Command in `AGENTS.md`. |
+| Design system | Tokens in `src/styles/theme.css`, contract in `DESIGN.md`. |
 
 ## 14. Known issues & tech debt
 
 Ordered roughly by how much they matter:
 
-1. **`.env` is tracked by git.** See [§4](#4-environment-variables) — untrack it and
-   confirm only the *publishable* key is present.
+1. **`.env` is tracked by git** and holds `PUBLIC_SUPABASE_URL` +
+   `PUBLIC_SUPABASE_KEY` — a *publishable* key, not a `service_role`/secret key
+   (verified: no secret key anywhere in the repo). Since `PUBLIC_*` values are
+   inlined into the client bundle regardless, this is not a leak; but it means
+   **RLS is the only thing protecting the data**, and that the Vercel build
+   currently only works *by accident*, because the file is committed. Untrack it and
+   set the values on the Vercel project instead.
+   A *missing* env var then fails silently: `src/lib/supabase.ts` throws, but
+   `useProducts.ts` builds a client with `undefined` and the UI just breaks at
+   runtime with a confusing error. Every env var needs a loud guard.
 2. **Two Supabase client instances.**
    `src/lib/supabase.ts` creates the canonical client, but
    `src/hooks/useProducts.ts` creates another and re-exports it, and
@@ -485,11 +549,13 @@ Ordered roughly by how much they matter:
    duplicating session data in `localStorage`.
 6. **Payment edit is unreachable.** `usePurchasePayments().updatePayment` exists but
    no UI calls it; payments can only be added or deleted.
-7. **Inconsistent delete confirmation.** Only product deletion uses `ConfirmModal`;
-   deleting a purchase or a payment happens immediately on click.
+7. **Delete confirmation is consistent for data, not for images.** Purchases and
+   payments now go through `ConfirmModal` (like products). The image-remove button
+   in the product modal still deletes immediately — the image is re-uploadable, so
+   this is low-severity, but an undo would be better.
 8. **Dead code:** `src/components/Welcome.astro`, `src/assets/astro.svg`,
    `src/assets/background.svg` (starters) and `public/arroyo_heydi_-_mileage.pdf`
-   are unused. A leftover `console.log` remains in `authGuard.tsx`.
+   are unused. (The leftover `console.log` in `authGuard.tsx` has been removed.)
 9. **Errors often not surfaced.** Each hook stores an `error` string, but the UI
    mostly only renders `useProducts().error`; failures from images, purchases or
    payments are silent.
@@ -497,6 +563,25 @@ Ordered roughly by how much they matter:
     strict TypeScript is on but `catch (err: any)` weakens it in the hooks.
 11. **Housekeeping:** `package.json` still says `"name": "smoggy-shell"` with no
     `description`/`license`.
+12. **Vendored design skills have no pinned hash.** `web-design-guidelines` and
+    `redesign-existing-projects` were added to `skills-lock.json` with their source
+    and skill path but **without** a `computedHash` — the algorithm behind the
+    Supabase entries isn't reproducible from the file contents (it is not a plain
+    `sha256` of `SKILL.md`), and inventing a value would be worse than omitting it.
+    A skills CLI may therefore treat them as unpinned.
+13. **The display font is remote.** `Layout.astro` loads Outfit from Google Fonts,
+    which adds a third-party request and network dependency for the intended look;
+    the system fallback stack is what renders offline.
+14. **Two colour sources remain possible.** `loginModal.css` no longer defines its own
+    palette, but nothing *enforces* that — a future edit could reintroduce local
+    tokens. Worth a lint rule if the CSS grows.
+15. **The 404 route points at a file that does not exist.** The adapter writes
+    `{"src":"^/.*$","dest":"/404.html","status":404}` into `.vercel/output/config.json`,
+    but there is no `src/pages/404.astro`, so no `/404.html` is emitted and unknown
+    URLs land on Vercel's generic error page. One small file makes it intentional.
+16. **`allowScripts` in `package.json` is inert here.** npm 10.9.3 (installed locally
+    and bundled with Vercel's Node 22 image) does not read that field, so it is
+    ignored on both sides; it does not affect the deploy either way.
 
 ## 15. Git history
 
@@ -528,16 +613,25 @@ Roughly in priority order:
 4. **Quality gates:** add `astro check` (e.g. an `npm run check` script), plus
    ESLint + Prettier, and a first test setup (`vitest` fits Astro/React well) —
    the pure `formatCurrency` and `getProductImagePath` helpers are easy wins.
-5. **UX consistency:** reuse `ConfirmModal` for purchase/payment deletion; surface
-   hook `error` values in the UI; wire up (or delete) `updatePayment`.
-6. **Cleanup:** delete `Welcome.astro` / starter assets / the stray PDF, drop the
-   debug `console.log` and the `localStorage` write in `loginModal.tsx`, and fix
-   `package.json` metadata.
+5. **UX consistency:** ✅ purchase/payment deletion now confirms through
+   `ConfirmModal`. Still open: surface hook `error` values beyond
+   `useProducts().error`, and wire up (or delete) `updatePayment`.
+6. **Cleanup:** ✅ the debug `console.log` is gone. Still open: delete
+   `Welcome.astro` / starter assets / the stray PDF, drop the
+   `localStorage` write in `loginModal.tsx`, and fix `package.json` metadata.
 7. **Extend the docs:** record the actual Supabase schema (SQL migrations) and add a
    screenshot/GIF of the dashboard so this file stays the single source of truth.
+8. **Design-system follow-through:** the login screen and the dashboard now share
+   tokens, but their field markup is still written twice. Consider extracting the
+   remaining duplicated form markup the same way `Modal` was extracted.
+9. **Production readiness:** add `src/pages/404.astro` (§14.15), add loud guards for
+   every env var the code reads (§14.1), and set the Supabase vars on the Vercel
+   project before the first deploy — then run the [§11](#11-build--deployment)
+   checklist.
 
 ---
 
-*Generated by documenting the codebase at commit `b698b2b`. If you change the
-architecture, update §6–§10 and bump the "Last documented" line at the top.*
+*Generated by documenting the codebase at commit `b698b2b`, then extended with the
+design-system pass (see `DESIGN.md`). If you change the architecture, update §6–§10
+and bump the "Last documented" line at the top.*
 

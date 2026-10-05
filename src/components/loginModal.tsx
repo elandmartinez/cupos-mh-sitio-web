@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import monsterHighLogo from "../../public/monster-high-logo.png";
+import monsterHighLogo from '../../public/monster-high-logo.png';
 
 export default function LoginModal() {
   const [email, setEmail] = useState('');
@@ -29,31 +29,46 @@ export default function LoginModal() {
   };
 
   return (
-    <div className="auth-wrapper">
+    <div className="authShell">
+      <header className="authHero">
+        <img
+          src={monsterHighLogo.src}
+          alt="Monster High"
+          className="authLogo"
+          width="860"
+          height="213"
+        />
+        <p className="authEyebrow">Y más.</p>
+        <h1 className="authWordmark">Gestión de cupos</h1>
+      </header>
 
-      <div className="auth-logo-wrapper">
-        <img src={monsterHighLogo.src} alt="Logo de Monster High" className="logo" />
-        <h2 className="logo-subtitle">Y mas.</h2>
-        <h2 className="logo-text">GESTION DE CUPOS</h2>
-      </div>
-
-      <div className="auth-card">
-        <div className="auth-header">
-          <h2 className="auth-title">Bienvenida de nuevo</h2>
-          <p className="auth-subtitle">Ingresa tus datos para acceder a tu cuenta</p>
+      <section className="authCard" aria-labelledby="authTitle">
+        <div className="authHeader">
+          <h2 id="authTitle" className="authTitle">
+            Bienvenida de nuevo
+          </h2>
+          <p className="authSubtitle">Ingresa tus datos para acceder a tu cuenta</p>
         </div>
 
-        {errorMsg && <div className="error-message">{errorMsg}</div>}
+        {errorMsg && (
+          <p className="errorMessage" role="alert">
+            {errorMsg}
+          </p>
+        )}
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label className="form-label" htmlFor="email">
-              Correo electrónico o usuario
+        <form onSubmit={handleSubmit} className="authForm">
+          <div className="fieldGroup">
+            <label className="label" htmlFor="email">
+              Correo electrónico
             </label>
             <input
               id="email"
-              type="text"
-              className="form-input"
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="username"
+              spellCheck={false}
+              className="input"
               placeholder="nombre@ejemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -61,14 +76,16 @@ export default function LoginModal() {
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">
+          <div className="fieldGroup">
+            <label className="label" htmlFor="password">
               Contraseña
             </label>
             <input
               id="password"
+              name="password"
               type="password"
-              className="form-input"
+              autoComplete="current-password"
+              className="input"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -76,11 +93,18 @@ export default function LoginModal() {
             />
           </div>
 
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+          <button type="submit" className="submitBtn" disabled={loading}>
+            {loading ? (
+              <>
+                <span className="spinner" aria-hidden="true" />
+                <span>Iniciando sesión…</span>
+              </>
+            ) : (
+              'Iniciar sesión'
+            )}
           </button>
         </form>
-      </div>
+      </section>
     </div>
   );
 }

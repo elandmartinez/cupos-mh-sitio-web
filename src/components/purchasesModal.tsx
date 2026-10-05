@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { usePurchasePayments } from '../hooks/usePurchasePayments';
+import ConfirmModal from './confirmModal';
+import Modal from './modal';
 import { formatCurrency } from '../helpers/currency';
 
 import type { Product } from '../hooks/useProducts';
@@ -55,6 +57,10 @@ export default function PurchasesModal({
   const [expandedPurchaseId, setExpandedPurchaseId] = useState<number | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentIsExtraFee, setPaymentIsExtraFee] = useState(false);
+  // Deleting a purchase or a payment destroys records, so both are confirmed
+  // first (never deleted immediately on click).
+  const [purchasePendingDelete, setPurchasePendingDelete] = useState<ClientPurchase | null>(null);
+  const [paymentPendingDelete, setPaymentPendingDelete] = useState<PurchasePayment | null>(null);
 
   const handlePurchaseInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -124,11 +130,27 @@ export default function PurchasesModal({
     if (updatedPurchase) applyPurchaseUpdate(updatedPurchase);
   };
 
+  const handleConfirmDeletePayment = async () => {
+    if (!paymentPendingDelete) return;
+    const payment = paymentPendingDelete;
+    setPaymentPendingDelete(null);
+    await handleDeletePayment(payment);
+  };
+
+  const handleConfirmDeletePurchase = async () => {
+    if (!purchasePendingDelete) return;
+    const purchase = purchasePendingDelete;
+    setPurchasePendingDelete(null);
+    await deletePurchase(purchase);
+  };
+
   return (
-    <div className="modalOverlay" onClick={onClose}>
-      <div className="formCard purchasesCard" onClick={(e) => e.stopPropagation()}>
+    <>
+      <Modal labelledBy="purchasesTitle" onClose={onClose} cardClassName="purchasesCard">
         <div className="formCardHeader">
-          <h2 className="formTitle">Compras de {product.name}</h2>
+          <h2 className="formTitle" id="purchasesTitle">
+            Compras de {product.name}
+          </h2>
           <button type="button" onClick={onClose} className="btnClose" aria-label="Cerrar">
             ×
           </button>
@@ -141,33 +163,47 @@ export default function PurchasesModal({
         {showPurchaseForm && (
           <form onSubmit={handlePurchaseSubmit} className="form purchaseForm">
             <div className="fieldGroup">
-              <label className="label">Nombre del cliente</label>
+              <label className="label" htmlFor="purchaseClientName">
+                Nombre del cliente
+              </label>
               <input
+                id="purchaseClientName"
                 type="text"
                 name="client_name"
                 value={purchaseForm.client_name}
                 onChange={handlePurchaseInputChange}
+                autoComplete="off"
                 required
                 className="input"
               />
             </div>
 
             <div className="fieldGroup">
-              <label className="label">Teléfono</label>
+              <label className="label" htmlFor="purchaseClientPhone">
+                Teléfono
+              </label>
               <input
-                type="text"
+                id="purchaseClientPhone"
+                type="tel"
                 name="client_phone_number"
+                inputMode="tel"
                 value={purchaseForm.client_phone_number}
                 onChange={handlePurchaseInputChange}
+                autoComplete="off"
                 className="input"
               />
             </div>
 
             <div className="fieldGroup">
-              <label className="label">Tarifa acordada</label>
+              <label className="label" htmlFor="purchaseAgreedFees">
+                Tarifa acordada
+              </label>
               <input
+                id="purchaseAgreedFees"
                 type="number"
                 name="agreed_fees"
+                inputMode="numeric"
+                min="0"
                 value={purchaseForm.agreed_fees}
                 onChange={handlePurchaseInputChange}
                 className="input"
@@ -239,8 +275,10 @@ export default function PurchasesModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => deletePurchase(purchase)}
+                      onClick={() => setPurchasePendingDelete(purchase)}
                       className="btnDelete"
+                      aria-haspopup="dialog"
+                      aria-label={`Eliminar la compra de ${purchase.client_name}`}
                     >
                       Eliminar
                     </button>
@@ -262,7 +300,11 @@ export default function PurchasesModal({
                       >
                         <input
                           type="number"
+                          name="amount"
+                          inputMode="numeric"
+                          min="1"
                           placeholder="Monto"
+                          aria-label="Monto del pago"
                           value={paymentAmount || ''}
                           onChange={(e) =>
                             setPaymentAmount(e.target.value ? parseInt(e.target.value, 10) : 0)
@@ -295,7 +337,7 @@ export default function PurchasesModal({
                               </span>
                               <button
                                 type="button"
-                                onClick={() => handleDeletePayment(payment)}
+                                onClick={() => setPaymentPendingDelete(payment)}
                                 className="imageRemoveBtn"
                                 aria-label="Eliminar pago"
                               >
@@ -312,7 +354,27 @@ export default function PurchasesModal({
             })
           )}
         </div>
-      </div>
-    </div>
+      </Modal>
+
+      {purchasePendingDelete && (
+        <ConfirmModal
+          title="Eliminar compra"
+          message={`¿Eliminar la compra de "${purchasePendingDelete.client_name}"? Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          onConfirm={handleConfirmDeletePurchase}
+          onCancel={() => setPurchasePendingDelete(null)}
+        />
+      )}
+
+      {paymentPendingDelete && (
+        <ConfirmModal
+          title="Eliminar pago"
+          message={`¿Eliminar el pago de ${formatCurrency(paymentPendingDelete.amount)}? Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          onConfirm={handleConfirmDeletePayment}
+          onCancel={() => setPaymentPendingDelete(null)}
+        />
+      )}
+    </>
   );
 }
