@@ -7,7 +7,7 @@ implementation of the tokens below — when the two disagree, the CSS wins.
 Adapted from the Stitch `DESIGN.md` convention (see the `awesome-design-md`
 reference in `.agents/skills/`).
 
-**Last reviewed:** 2026-10-03
+**Last reviewed:** 2026-10-04
 
 ---
 
@@ -124,6 +124,28 @@ always visible above the field (13px, weight 500) and wired with `htmlFor`/`id`
 `--radius-md`, `--shadow-sm`. Hover raises to `--shadow-md` and warms the border
 to the accent, signalling the whole card is actionable.
 
+**Sections / disclosure** (`.collapsibleSection`, `.collapsibleTrigger`) — how the
+dashboard groups its top-level content ("Mis productos", "Mis ventas"). A section
+is **not** a card: the header is a hairline-ruled row sitting directly on the
+cream background, so the cards or rows inside stay the only surface on screen
+(see "don't nest cards inside cards"). The whole row is the button — full-width,
+`min-height` 44px, `aria-expanded` + `aria-controls` — with the title (17px/600)
+left, an optional muted 12px `meta` summary right, and a muted `▲`/`▼` chevron as
+the affordance. Hover washes it to `--color-bone-soft`, active to
+`--color-purple-soft`, and `:focus-visible` is an **inset** 2px `--color-purple`
+ring (`outline-offset: -2px`) because an offset ring on an edge-to-edge row gets
+clipped. Collapsing hides the panel with the `hidden` attribute — it stays
+mounted so `aria-controls` always resolves, and the chevron swaps glyph rather
+than animating.
+
+**Ledger rows** (`.saleRow`) — the read-only "Mis ventas" list is rows, not cards:
+hairline separators between entries (none after the last), a 12px gutter between
+the client block and the money block, no elevation, no hover. Client name is
+15px/600 ink over a 12px muted meta line; the money block is a right-aligned
+column — `pagado` in `--color-fuchsia` with `de acordado` muted behind it, all in
+tabular figures, with the status badge beneath. It has to read as a ledger, so
+the numbers never move when the column changes.
+
 **Progress** (`.purchaseProgressBar`) — 8px track in `--color-bone`, fill in
 `--gradient-brand`, accompanied by a `$paid / $agreed` label. Color alone never
 carries payment status: the `Pagado` / `Pendiente` badge does.
@@ -203,6 +225,12 @@ Mobile-first; every rule below the breakpoints targets a phone.
 Touch targets ≥ 44×44px always. `viewport-fit=cover` is set and
 `safe-area-inset-*` is honoured on the top bar and bottom sheets.
 
+The dashboard's sections are full-width at every breakpoint; only their *content*
+reflows (1 → 2 → 3 grid columns), and inside a section a sale row wraps its money
+block under the client name rather than shrinking it. In the page header,
+`.pageHeaderActions` centres its button against the taller primary CTA so the row
+does not look ragged at 480px and up.
+
 ## 9. Agent prompt guide
 
 **Quick reference**
@@ -243,7 +271,10 @@ font       Outfit 400/500/600/700
 - [ ] Icon-only buttons have `aria-label`.
 - [ ] Modals: `role="dialog"` + `aria-modal` + `aria-labelledby` + Escape +
       focus trap + scroll lock.
-- [ ] Money uses `formatCurrency` with tabular figures.
+- [ ] Money uses `formatCurrency` and dates `formatDate`, with tabular figures on
+      the numbers.
+- [ ] Disclosures use `aria-expanded`/`aria-controls` and hide with `hidden`,
+      never by unmounting.
 - [ ] Copy: Spanish, sentence case, `…` (not `...`) for pending states.
 - [ ] Empty/loading/error states exist for every async view.
 - [ ] `prefers-reduced-motion` honoured (motion is decorative only).

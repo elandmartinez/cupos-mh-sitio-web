@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { useProductImages } from '../hooks/useProductImages';
 import { useClientPurchases } from '../hooks/useClientPurchases';
@@ -7,10 +7,13 @@ import PurchasesModal from './purchasesModal';
 import ConfirmModal from './confirmModal';
 import ProductImage from './productImage';
 import Modal from './modal';
+import CollapsibleSection from './collapsibleSection';
+import SalesSection from './salesSection';
 import { formatCurrency } from '../helpers/currency';
 import monsterHighLogo from "../../public/monster-high-logo-color.png";
 
 import type { Product, CreateProductInput } from "../hooks/useProducts"
+import type { CreateClientPurchaseInput } from "../hooks/useClientPurchases"
 
 const emptyFormData: CreateProductInput = {
   name: '',
@@ -24,7 +27,11 @@ export default function Dashboard() {
   const { uploadProductImage, renameProductImage, deleteProductImage, getSignedUrl } = useProductImages();
   const {
     purchasesByProduct,
+    allPurchases,
+    loading: purchasesLoading,
+    error: purchasesError,
     fetchPurchasesForProducts,
+    fetchAllPurchases,
     addPurchase,
     updatePurchase,
     deletePurchase,
@@ -50,6 +57,48 @@ export default function Dashboard() {
       fetchPurchasesForProducts(products.map((product) => product.id));
     }
   }, [products, fetchPurchasesForProducts]);
+
+  // "Mis ventas" spans every product, so it is read once on mount — and again
+  // from the refresh button, since a deleted product's purchases cascade away
+  // in the database rather than through the hook.
+  useEffect(() => {
+    fetchAllPurchases();
+  }, [fetchAllPurchases]);
+
+  const handleRefresh = () => {
+    // Re-fetching the products re-runs the effect above, so the per-product
+    // purchase counts come along for free.
+    fetchProducts();
+    fetchAllPurchases();
+  };
+
+  const handleAddPurchase = async (input: CreateClientPurchaseInput) => {
+    const result = await addPurchase(input);
+    // An insert carries no joined product, so re-read the list to show the
+    // product the new sale belongs to.
+    if (result.data) await fetchAllPurchases();
+    return result;
+  };
+
+  // Section header summaries: what is still owed, and how big the catalogue is.
+  const salesMeta = useMemo(() => {
+    if (allPurchases.length === 0) return undefined;
+
+    const pending = allPurchases.filter((purchase) => !purchase.is_fully_paid);
+    if (pending.length === 0) return 'Todo pagado';
+
+    const owed = pending.reduce(
+      (total, purchase) =>
+        total + Math.max(0, (purchase.agreed_fees ?? 0) - (purchase.amount_paid_so_far ?? 0)),
+      0
+    );
+
+    return `${pending.length} pendiente${pending.length === 1 ? '' : 's'} · ${formatCurrency(owed)} por cobrar`;
+  }, [allPurchases]);
+
+  const productsMeta = loading
+    ? undefined
+    : `${products.length} producto${products.length === 1 ? '' : 's'}`;
 
   const bumpImageVersion = () => setImageVersion((v) => v + 1);
 
@@ -142,6 +191,9 @@ export default function Dashboard() {
   const handleDeleteProduct = async (product: Product) => {
     await deleteProductImage(product);
     await deleteProduct(product.id);
+    // The product's purchases cascade away in the database, so the sales list
+    // has to be re-read rather than patched locally.
+    await fetchAllPurchases();
   };
 
   const handleRequestDeleteProduct = (product: Product) => {
@@ -187,16 +239,16 @@ export default function Dashboard() {
       <main className="mainContent">
         <div className="pageHeader">
           <div className="pageHeaderText">
-            <h1 className="title">Productos</h1>
-            <p className="subtitle">Gestiona tu catálogo de cupos</p>
+            <h1 className="title">Panel de gestión</h1>
+            <p className="subtitle">Tu catálogo, las compras de tus clientes y sus pagos</p>
           </div>
 
           <div className="pageHeaderActions">
             <button
               type="button"
-              onClick={fetchProducts}
+              onClick={handleRefresh}
               className="btnRefresh"
-              aria-label="Refrescar productos"
+              aria-label="Refrescar productos y ventas"
               title="Refrescar"
             >
               <span aria-hidden="true">⟳</span>
@@ -215,102 +267,114 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {error && (
-          <div className="errorAlert" role="alert">
-            {error}
-          </div>
-        )}
+        <div className="dashboardSections">
+          <CollapsibleSection title="Mis productos" meta={productsMeta}>
+            {error && (
+              <div className="errorAlert" role="alert">
+                {error}
+              </div>
+            )}
 
-        {loading ? (
-          <div className="statusMessage" role="status" aria-live="polite">
-            <span className="spinner" aria-hidden="true" />
-            <p>Cargando productos…</p>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="statusMessage">
-            <h2 className="emptyStateTitle">Todavía no hay productos</h2>
-            <p className="emptyStateBody">
-              Agrega tu primer cupo para empezar a registrar compras y pagos de clientes.
-            </p>
-            <button
-              type="button"
-              onClick={handleOpenNewForm}
-              className="btnNew emptyStateAction"
-              aria-haspopup="dialog"
-            >
-              <span className="btnNewIcon" aria-hidden="true">
-                +
-              </span>{' '}
-              Nuevo producto
-            </button>
-          </div>
-        ) : (
-          <div className="productsGrid">
-            {products.map((product) => {
-              const productPurchases = purchasesByProduct[product.id] || [];
-              return (
-              <div key={product.id} className="productCard">
-                <ProductImage
-                  product={product}
-                  imageVersion={imageVersion}
-                  getSignedUrl={getSignedUrl}
-                  alt={product.name || 'Producto'}
-                  className="productImage"
-                />
-                <div>
-                  <div className="productHeader">
-                    <h3 className="productName">{product.name}</h3>
-                    <span className="badgeId">ID: {product.id}</span>
-                  </div>
-                  <p className="productDescription">{product.description}</p>
-                </div>
-
-                <div className="productFooter">
-                  <div>
-                    <div className="metaRelease">
-                      Lanzamiento: {product.release_date || 'N/D'}
-                    </div>
-                    <div className="metaValue">
-                      Valor: {formatCurrency(product.value)}
-                    </div>
-                  </div>
-
-                  <div className="actionRow">
-                    <button
-                      type="button"
-                      onClick={() => handleEditClick(product)}
-                      className="btnEdit"
-                      aria-haspopup="dialog"
-                      aria-label={`Editar ${product.name ?? 'producto'}`}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRequestDeleteProduct(product)}
-                      className="btnDelete"
-                      aria-haspopup="dialog"
-                      aria-label={`Eliminar ${product.name ?? 'producto'}`}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-
+            {loading ? (
+              <div className="statusMessage" role="status" aria-live="polite">
+                <span className="spinner" aria-hidden="true" />
+                <p>Cargando productos…</p>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="statusMessage">
+                <h3 className="emptyStateTitle">Todavía no hay productos</h3>
+                <p className="emptyStateBody">
+                  Agrega tu primer cupo para empezar a registrar compras y pagos de clientes.
+                </p>
                 <button
                   type="button"
-                  onClick={() => handleOpenPurchases(product)}
-                  className="btnPurchases"
+                  onClick={handleOpenNewForm}
+                  className="btnNew emptyStateAction"
                   aria-haspopup="dialog"
                 >
-                  <span aria-hidden="true">🛍️</span> Compras
-                  {productPurchases.length > 0 ? ` (${productPurchases.length})` : ''}
+                  <span className="btnNewIcon" aria-hidden="true">
+                    +
+                  </span>{' '}
+                  Nuevo producto
                 </button>
               </div>
-              );
-            })}
-          </div>
-        )}
+            ) : (
+              <div className="productsGrid">
+              {products.map((product) => {
+                const productPurchases = purchasesByProduct[product.id] || [];
+                return (
+                  <div key={product.id} className="productCard">
+                    <ProductImage
+                      product={product}
+                      imageVersion={imageVersion}
+                      getSignedUrl={getSignedUrl}
+                      alt={product.name || 'Producto'}
+                      className="productImage"
+                    />
+                    <div>
+                      <div className="productHeader">
+                        <h3 className="productName">{product.name}</h3>
+                        <span className="badgeId">ID: {product.id}</span>
+                      </div>
+                      <p className="productDescription">{product.description}</p>
+                    </div>
+
+                    <div className="productFooter">
+                      <div>
+                        <div className="metaRelease">
+                          Lanzamiento: {product.release_date || 'N/D'}
+                        </div>
+                        <div className="metaValue">
+                          Valor: {formatCurrency(product.value)}
+                        </div>
+                      </div>
+
+                      <div className="actionRow">
+                        <button
+                          type="button"
+                          onClick={() => handleEditClick(product)}
+                          className="btnEdit"
+                          aria-haspopup="dialog"
+                          aria-label={`Editar ${product.name ?? 'producto'}`}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRequestDeleteProduct(product)}
+                          className="btnDelete"
+                          aria-haspopup="dialog"
+                          aria-label={`Eliminar ${product.name ?? 'producto'}`}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPurchases(product)}
+                      className="btnPurchases"
+                      aria-haspopup="dialog"
+                    >
+                      <span aria-hidden="true">🛍️</span> Compras
+                      {productPurchases.length > 0 ? ` (${productPurchases.length})` : ''}
+                    </button>
+                  </div>
+                );
+              })}
+              </div>
+            )}
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Mis ventas" meta={salesMeta}>
+            <SalesSection
+              purchases={allPurchases}
+              loading={purchasesLoading}
+              error={purchasesError}
+            />
+          </CollapsibleSection>
+        </div>
       </main>
 
       {showForm && (
@@ -461,7 +525,7 @@ export default function Dashboard() {
           product={purchasesProduct}
           purchases={purchasesByProduct[purchasesProduct.id] || []}
           onClose={handleClosePurchases}
-          addPurchase={addPurchase}
+          addPurchase={handleAddPurchase}
           updatePurchase={updatePurchase}
           deletePurchase={deletePurchase}
           applyPurchaseUpdate={applyPurchaseUpdate}

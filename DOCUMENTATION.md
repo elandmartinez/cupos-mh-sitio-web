@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-10-04 · **Covers commit:** `b698b2b` + uncommitted design-system pass & deploy audit
+> **Status:** work in progress · **Last documented:** 2026-10-04 · **Covers commit:** `f36b6a1` + the repository-layer & dashboard-sections refactor committed on top of it
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -104,7 +104,7 @@ cupos-sitio-web/
 ├── tsconfig.json           # extends astro/tsconfigs/strict, jsx: react-jsx
 ├── .env                    # PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_KEY (⚠ tracked)
 ├── AGENTS.md               # agent/contributor instructions (CLAUDE.md symlinks to it)
-├── DESIGN.md               # design system: tokens, components, states, a11y (see §10.4)
+├── DESIGN.md               # design system: tokens, components, states, a11y (see §10.5)
 ├── public/                 # served as-is at the site root
 │   ├── monster-high-logo.png        # used by loginModal.tsx
 │   ├── monster-high-logo-color.png  # used by dashboard.tsx
@@ -120,7 +120,9 @@ cupos-sitio-web/
     │   ├── loginModal.tsx   # email/password sign-in form
     │   ├── dashboardApp.tsx # composes AuthProvider → AuthGuard → Dashboard
     │   ├── authGuard.tsx    # client-side redirect gate
-    │   ├── dashboard.tsx    # product CRUD + modal orchestration (largest component)
+    │   ├── dashboard.tsx    # top bar + both collapsible sections + product CRUD/modals
+    │   ├── collapsibleSection.tsx # reusable disclosure: heading button + kept-mounted panel
+    │   ├── salesSection.tsx # read-only "Mis ventas": every purchase, product joined
     │   ├── purchasesModal.tsx  # per-product purchases + payments UI
     │   ├── productImage.tsx # renders a product image via a signed URL
     │   ├── confirmModal.tsx # destructive-action confirm dialog (built on modal.tsx)
@@ -128,13 +130,21 @@ cupos-sitio-web/
     │   └── Welcome.astro    # Astro starter leftover, not routed/imported anywhere
     ├── context/
     │   └── authContext.tsx  # AuthProvider + useAuth() (Supabase session)
-    ├── hooks/               # data-access hooks (browser → supabase-js)
-    │   ├── useProducts.ts          # products CRUD (+ exports a supabase client)
+    ├── repositories/        # the ONLY layer that talks to Supabase (see §10.1)
+    │   ├── types.ts                    # RepoResult<T> contract + repoSuccess/repoFailure/nowIso
+    │   ├── productsRepository.ts       # table `products` (+ the `Product` type)
+    │   ├── clientsPurchasesRepository.ts  # table `clients_purchases` (+ product embed)
+    │   ├── purchasesPaymentsRepository.ts # table `purchases_payments`
+    │   ├── productImagesRepository.ts  # bucket `products-images`: paths, upload, signed URL
+    │   └── authRepository.ts           # supabase.auth (session, sign-in, sign-out)
+    ├── hooks/               # thin React state over the repositories
+    │   ├── useProducts.ts          # products CRUD
     │   ├── useProductImages.ts     # storage upload/rename/delete/signed-url
-    │   ├── useClientPurchases.ts   # purchases CRUD + cache merge
+    │   ├── useClientPurchases.ts   # purchases CRUD + per-product & all-sales caches
     │   └── usePurchasePayments.ts  # payments CRUD + parent re-read
     ├── helpers/
-    │   └── currency.ts      # formatCurrency() — es-CO, no decimals
+    │   ├── currency.ts      # formatCurrency() — es-CO, no decimals
+    │   └── date.ts          # formatDate() — short es-CO label, local-midnight safe
     ├── lib/
     │   └── supabase.ts      # canonical supabase client (env-guarded)
     ├── styles/
@@ -154,8 +164,9 @@ cupos-sitio-web/
 | `/dashboard` | `src/pages/dashboard.astro` | static shell + `client:only="react"` island | `DashboardApp`. |
 
 Both pages are wrapped in `Layout.astro`, which sets `<title>`, viewport, favicons
-and the shared background color token. The Astro dev toolbar is disabled in
-`astro.config.mjs`.
+and the shared background color token. Each route supplies its own title —
+`Iniciar sesión · Gestión de cupos` for `/`, `Panel de gestión · Cupos` for
+`/dashboard`. The Astro dev toolbar is disabled in `astro.config.mjs`.
 
 Because there is no `src/middleware.ts`, **there is no server-side route
 protection** — `/dashboard` returns the same static shell to everyone. Access
@@ -186,20 +197,31 @@ Browser
                                      ├─ useProducts()          → table `products`
                                      ├─ useProductImages()     → bucket `products-images`
                                      ├─ useClientPurchases()   → table `clients_purchases`
+                                     ├─ CollapsibleSection "Mis productos" → product grid
+                                     ├─ CollapsibleSection "Mis ventas"    → SalesSection
+                                     │    (read-only rows built from `allPurchases`)
                                      └─ PurchasesModal
                                           └─ usePurchasePayments() → table `purchases_payments`
+
+  every hook above ──► src/repositories/*Repository (RepoResult<T>) ──► supabase-js
 ```
 
 Key characteristics:
 
-- **Supabase client.** The canonical instance lives in `src/lib/supabase.ts`.
-  `src/hooks/useProducts.ts` *also* creates its own client and re-exports it as
-  `supabase`, and `src/context/authContext.tsx` imports its client from
-  `../hooks/useProducts` (not from `lib/`). These are separate `GoTrueClient`
-  instances pointing at the same project (see [§14](#14-known-issues--tech-debt)).
-- **Hook-per-table.** Each table has one hook that owns fetching, caching in React
-  state, and the create/update/delete calls, returning `{ data, error }` rather
-  than throwing.
+- **One door to Supabase.** `src/lib/supabase.ts` creates the *only* client
+  instance, and the only files that import it are the ones in
+  `src/repositories/` — no hook, context or component builds a client of its own.
+  (This replaced an earlier setup where `useProducts.ts` created a second
+  `GoTrueClient` and `authContext.tsx` imported it from there.)
+- **Repository per table, hook per cache.** Each table (plus the storage bucket
+  and `supabase.auth`) has one repository in `src/repositories/` that owns the
+  Supabase calls and answers with a `RepoResult<T>` — it never throws. Above it
+  sits one hook in `src/hooks/` that owns the React state (local merges after a
+  write) plus the `loading`/`error` flags.
+- **Two shapes of the same purchases.** `useClientPurchases` holds both
+  `purchasesByProduct` (per-product, for the Compras modal) and `allPurchases`
+  (every purchase with its product embedded, for "Mis ventas"), the latter read
+  with `clientsPurchasesRepository.findManyWithProduct()`.
 - **Derived totals live in the database.** `clients_purchases.amount_paid_so_far`
   and `is_fully_paid` are maintained by a **Postgres trigger** on
   `purchases_payments`. After every payment mutation the client re-reads the parent
@@ -282,26 +304,67 @@ deletes payments manually when a purchase is removed.
 
 ## 10. Code reference
 
-### 10.1 Hooks (data access)
+### 10.1 Repositories (data access) — `src/repositories/`
 
-All hooks live in `src/hooks/`, run in the browser, and each returns `{ data, error }`
-(or `{ error }`) instead of throwing, while also keeping an `error` string in state
-for the UI to render.
+`src/repositories/` is the **only** layer that talks to Supabase, and every
+function in it resolves to a `RepoResult<T>` and **never throws**:
+
+| Shape | Meaning |
+| :-- | :-- |
+| `{ ok: true, data: T, error: null }` | Success — `data` is non-null and shaped like the table row. |
+| `{ ok: false, data: null, error: string }` | Failure — `error` is a message that is safe to render. |
+
+`types.ts` owns that contract plus its helpers: `repoSuccess(data)`,
+`repoFailure(error, fallbackMessage)` (the message is extracted through
+`toErrorMessage()`) and `nowIso()` — `updated_at` is client-maintained, so every
+write stamps it explicitly.
+
+| Repository | Surface | API |
+| :-- | :-- | :-- |
+| `productsRepository` | table `products` | `Product`, `Create/Update/PatchProductInput`, `find`, `findMany`, `create`, `update`, `updatePartial`, `updateMany`, `delete`, `deleteMany`. |
+| `clientsPurchasesRepository` | table `clients_purchases` | `ClientPurchase`, `ClientPurchaseWithProduct`, `Create/Update/PatchClientPurchaseInput`, the same verb set, plus `findWithProduct` / `findManyWithProduct`. |
+| `purchasesPaymentsRepository` | table `purchases_payments` | `PurchasePayment`, `Create/Update/PatchPurchasePaymentInput`, plus the same verb set. |
+| `productImagesRepository` | bucket `products-images` | `PRODUCT_IMAGES_BUCKET`, `SIGNED_URL_EXPIRY_SECONDS` (1 h), `sanitizeSegment`, `getPath`, `upload`, `move`, `remove`, `getSignedUrl`. |
+| `authRepository` | `supabase.auth` | `getSession`, `signInWithPassword`, `signOut`, `onAuthStateChange(cb)` → an unsubscribe function. |
+
+Conventions worth knowing:
+
+- `delete` / `deleteMany` are keys bound to internal `remove*` functions, because
+  `delete` is a reserved word and cannot name a declaration.
+- `findMany(options)` accepts `{ productIds?, orderBy? }` and defaults to newest
+  first (`created_at desc`) — the order both dashboard lists render in.
+- `findManyWithProduct()` selects `*, product:products(*)`, letting PostgREST
+  resolve the `clients_purchases.product_id → products.id` foreign key inside a
+  single request. That embed is what "Mis ventas" renders; an insert carries no
+  joined product, so the hook re-reads the list (`fetchAllPurchases`) instead.
+- `create()` seeds `amount_paid_so_far: 0` / `is_fully_paid: false`. From then on
+  those columns belong to a Postgres trigger, and no repository writes them.
+
+### 10.2 Hooks (React state)
+
+All hooks live in `src/hooks/`, run in the browser, and are thin React-state
+wrappers over the repositories in §10.1 — the Supabase calls, and the error
+strings they surface, all come from there.
+
+They return `{ data, error }` (or `{ error }`) instead of throwing, while also
+keeping an `error` string in state for the UI to render.
 
 #### `useProducts()` — `src/hooks/useProducts.ts`
 
-Exports the `Product` type, `CreateProductInput`, `UpdateProductInput`, **and a
-`supabase` client**.
+Re-exports the `Product` type plus `CreateProductInput` / `UpdateProductInput`
+(both defined in `productsRepository.ts`) so components keep importing types from
+the hook that owns the data. **It no longer creates or exports a Supabase
+client** — that used to be a second `GoTrueClient` (§14.2).
 
 | Returns | Description |
 | :-- | :-- |
 | `products` | `Product[]`, sorted `id desc`. |
 | `loading` | `true` during the initial fetch. |
 | `error` | Last error message, or `null`. |
-| `fetchProducts()` | Re-fetch the full list. Wired to the dashboard refresh button. |
-| `addProduct(input)` | `insert` + `.select().single()`; prepends to state. |
-| `updateProduct(id, updates)` | Stamps `updated_at`, replaces the row in state. |
-| `deleteProduct(id)` | Deletes by id, removes from state. |
+| `fetchProducts()` | `productsRepository.findMany()` — re-fetch the full list. Wired to the dashboard refresh button. |
+| `addProduct(input)` | `create()` then prepends to state. |
+| `updateProduct(id, updates)` | `updatePartial()` — stamps `updated_at`; replaces the row in state. |
+| `deleteProduct(id)` | `delete(id)` — removes it from state. |
 
 #### `useProductImages()` — `src/hooks/useProductImages.ts`
 
@@ -318,16 +381,22 @@ helpers `getProductImagePath(product)` and `getProductImageSignedUrl(product, ex
 
 #### `useClientPurchases()` — `src/hooks/useClientPurchases.ts`
 
-Exports `ClientPurchase`, `CreateClientPurchaseInput`, `UpdateClientPurchaseInput`.
-Purchases are cached **keyed by `product_id`** as `purchasesByProduct`.
+Exports `ClientPurchase`, `ClientPurchaseWithProduct`, `CreateClientPurchaseInput`
+and `UpdateClientPurchaseInput`. It keeps **two** caches: `purchasesByProduct`
+(keyed by `product_id`, for the Compras modal) and `allPurchases`
+(`ClientPurchaseWithProduct[]`, for "Mis ventas").
 
 | Returns | Description |
 | :-- | :-- |
-| `fetchPurchasesForProducts(ids)` | One `.in('product_id', ids)` query, re-buckets rows per product. |
-| `addPurchase(input)` | Inserts with `amount_paid_so_far: 0`, `is_fully_paid: false`. |
-| `updatePurchase(purchase, updates)` | Updates client/fee fields only (never the derived totals). |
+| `purchasesByProduct` | `Record<productId, ClientPurchase[]>` — the per-product UI. |
+| `allPurchases` | Every purchase with its product embedded, newest first. |
+| `loading` / `error` | Shared by both fetches; `SalesSection` only shows a spinner when it has no rows yet, so a refresh never blanks the list. |
+| `fetchPurchasesForProducts(ids)` | One `.in('product_id', ids)` query (`findMany`), re-buckets rows per product. |
+| `fetchAllPurchases()` | `findManyWithProduct()` — the whole "Mis ventas" list with each product joined. |
+| `addPurchase(input)` | `create()` (totals seeded at `0` / `false`); prepends to `allPurchases` with `product: null`, so `SalesSection` falls back to `Producto #id` until the list is re-read. |
+| `updatePurchase(purchase, updates)` | Client/fee fields only (never the derived totals). |
 | `deletePurchase(purchase)` | Deletes; payments cascade via FK. |
-| `applyPurchaseUpdate(purchase)` | Merge/replace one purchase in cache — used after payment mutations refresh the trigger-maintained totals. |
+| `applyPurchaseUpdate(purchase)` | Merge/replace one purchase in **both** caches (keeping the joined product in `allPurchases`) — used after payment mutations refresh the trigger-maintained totals. |
 
 #### `usePurchasePayments()` — `src/hooks/usePurchasePayments.ts`
 
@@ -350,33 +419,44 @@ React context exposing `{ session, user, loading, signOut }`. On mount it restor
 the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 `signOut()` calls `supabase.auth.signOut()` then hard-redirects to `/`.
 
-### 10.2 Components
+### 10.3 Components
 
 | Component | File | Responsibility |
 | :-- | :-- | :-- |
 | `LoginModal` | `loginModal.tsx` | Email/password form calling `supabase.auth.signInWithPassword()`; shows the error in a `role="alert"` region on failure; on success redirects to `/dashboard`. Renders the Monster High logo, a `h1` wordmark ("Gestión de cupos") and labelled, correctly-typed fields (`type="email"`, `autoComplete="username"`, `spellCheck={false}`). Submits through the brand-gradient `.submitBtn` with an inline `.spinner` while pending. Loaded with `client:load`. |
 | `DashboardApp` | `dashboardApp.tsx` | Thin composition: `<AuthProvider><AuthGuard><Dashboard/></AuthGuard></AuthProvider>`. Loaded with `client:only="react"`. |
 | `AuthGuard` | `authGuard.tsx` | Reads `{ user, loading }` from `useAuth()`. Shows an `aria-live="polite"` spinner + "Verificando sesión…" while loading, redirects to `/` when there is no user, otherwise renders children. |
-| `Dashboard` | `dashboard.tsx` | The main screen. Top bar (logo, `user.email`, "Cerrar sesión"), product grid with refresh + "Nuevo producto", a modal product form (name / description / value / release date / image with live preview) rendered through `Modal`, and it orchestrates `ConfirmModal` for deletions and `PurchasesModal` for purchases. Renames the stored image when a product's name changes and bumps `imageVersion` after any image change to defeat browser caching. Loading/empty/error states are explicit; empty state offers the primary action. |
+| `Dashboard` | `dashboard.tsx` | The main screen. Top bar (logo, `user.email`, "Cerrar sesión"), then two collapsible sections: **"Mis productos"** (product grid with refresh + "Nuevo producto", a modal product form for name / description / value / release date / image with live preview rendered through `Modal`, and `ConfirmModal` for deletions) and **"Mis ventas"** (`SalesSection`). It also orchestrates `PurchasesModal`. Refreshing re-reads the products *and* every purchase, because a deleted product's purchases cascade away in the database rather than through the hook. Renames the stored image when a product's name changes and bumps `imageVersion` after any image change to defeat browser caching. Section headers carry a one-line summary (`N producto(s)`, `N pendientes · $X por cobrar`, `Todo pagado`). Loading/empty/error states are explicit; the empty state offers the primary action. |
+| `CollapsibleSection` | `collapsibleSection.tsx` | The reusable disclosure both dashboard sections are built on. A heading-styled `<button>` (`aria-expanded` + `aria-controls`, stable `useId` ids) toggles the panel; the panel **stays mounted** and is hidden with the `hidden` attribute, so `aria-controls` always resolves and in-flight state is never thrown away. Optional `meta` string is right-aligned next to the title, with a `▲`/`▼` chevron as the visual affordance. Deliberately **not** a card — the header is a hairline-ruled row on the page background, so the content it wraps stays the only surface on screen. `defaultOpen` is `true`. |
+| `SalesSection` | `salesSection.tsx` | Read-only "Mis ventas": every purchase across every product, as hairline-separated rows rather than cards. Each row is client name over `producto · teléfono · fecha`, with `pagado de acordado` (tabular figures) and a `Pagado` / `Pendiente` badge. Pending rows sort first — the reason to open the list — and the sort is stable, so within each group the newest-first query order survives. Purely presentational: it receives `purchases` / `loading` / `error` and shows a spinner only when it has no rows yet, so a refresh never blanks the list. Editing a sale still happens in its product's Compras modal, where its payments live. |
 | `PurchasesModal` | `purchasesModal.tsx` | Everything about one product's clients: list with a paid/agreed progress bar and a "Pagado"/"Pendiente" badge, create/edit purchase form, and an expandable payments section (add payment with optional "Cargo extra", delete payment). Purchase **and** payment deletion are confirmed through `ConfirmModal`. Uses `usePurchasePayments` and pushes trigger-refreshed totals back up via `applyPurchaseUpdate`. |
 | `ProductImage` | `productImage.tsx` | Fetches a signed URL for a product and renders `<img>` with explicit `width`/`height` (avoids layout shift) plus `loading="lazy"`; renders nothing while loading and calls `onMissing` when there is no image. Re-fetches only when `product.id`, `product.name` or `imageVersion` change. |
 | `Modal` | `modal.tsx` | The shared dialog shell. `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, Escape to close, backdrop click to close, focus moved in on open and restored to the trigger on close, Tab trapped (only the topmost dialog reacts, so nested confirms work), and a background scroll lock. |
 | `ConfirmModal` | `confirmModal.tsx` | Destructive-action confirmation built on `Modal` (`title`, `message`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`). Cancel is rendered first so the safe choice sits under the thumb, and the consequence sentence is wired up via `aria-describedby`. |
 | `Welcome` | `Welcome.astro` | **Unused.** Astro starter-kit landing page; not imported by any route. Its only `<style>` block is scoped to itself. |
 
-### 10.3 Helpers
+### 10.4 Helpers
 
 - **`formatCurrency(value)` — `src/helpers/currency.ts`.** Formats whole-peso
   amounts the Colombian way (`.` thousands separator, no decimals) using
   `Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })`. `null`/`undefined`
   render as `"0"`. Example: `formatCurrency(180000) === "180.000"`.
+- **`formatDate(value)` — `src/helpers/date.ts`.** Short Spanish label via
+  `Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })`
+  → `"4 oct 2026"`. Accepts both shapes Supabase returns: a `date` column
+  (`"2026-10-04"`) and a `timestamptz`. A bare `YYYY-MM-DD` is parsed as *UTC*
+  midnight by `Date`, which would render as the previous day anywhere west of
+  Greenwich (Colombia is UTC-5), so a 10-character value gets an explicit
+  `T00:00:00` appended and is read as local midnight. Returns `null` for missing
+  or unparseable input so callers can drop the line instead of printing
+  `Invalid Date` (used by `SalesSection`).
 
-### 10.4 Styling
+### 10.5 Styling
 
 | File | Purpose |
 | :-- | :-- |
 | `src/styles/theme.css` | **Single source of truth** for the design system: color, type scale, spacing, elevation and motion tokens, plus global primitives (`box-sizing`, `body` typography, `:focus-visible`, `.skipLink`, `.spinner`, `prefers-reduced-motion`) and the **shared form primitives** (`.fieldGroup`, `.label`, `.input`, `.textarea`, `.fieldHint`, `.errorMessage`). Imported once by `Layout.astro`. Token rationale lives in `DESIGN.md`. |
-| `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`, `modalOverlay`, `formCard`, `btnNew`/`btnPrimary`/`btnSecondary`/`btnDanger`/`btnEdit`/`btnDelete`/`btnGhost`/`btnClose`, `statusMessage`, `emptyState*`, `imagePreview*`, `payments*`. Ends with a single "Interaction states" block (hover/active/focus) so states are not scattered per component. Imported by `dashboard.astro`. |
+| `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`, `pageHeader*` (`.pageHeaderActions` centres the refresh button against the taller CTA), `modalOverlay`, `formCard`, `btnNew`/`btnPrimary`/`btnSecondary`/`btnDanger`/`btnEdit`/`btnDelete`/`btnGhost`/`btnRefresh`/`btnClose`, `dashboardSections`, `collapsible*` (section heading, trigger, title, meta, chevron, body), `salesList` with its `sale*` rows, `badgePaid`/`badgePaidDone`/`badgePaidPending`, `statusMessage`, `emptyState*`, `imagePreview*`, `payments*`. Ends with a single "Interaction states" block (hover/active/focus) so states are not scattered per component. Imported by `dashboard.astro`. |
 | `src/styles/loginModal.css` | Login screen layout only: `authShell`, `authHero`, `authLogo`, `authEyebrow`, `authWordmark`, `authCard`, `authHeader`, `authTitle`, `authSubtitle`, `authForm`, `submitBtn`. It defines **no palette of its own** — colors and type come from `theme.css`. Imported by `index.astro`. |
 
 There is no CSS framework and no `@apply`/utility layer — components reference the
@@ -503,11 +583,12 @@ codegraph serve --mcp --path "$PWD"
 | :-- | :-- |
 | `npm run build` | ✅ passes — 2 static pages (`/index.html`, `/dashboard/index.html`), ~1 s. |
 | Dev server | `npm run dev` → `http://localhost:4321` (or `astro dev --background`). |
-| Types | No `astro check`/`tsc` script; strict mode is on but not wired into CI. |
+| Types | No `astro check`/`tsc` npm script, but `npx tsc --noEmit` is clean under `astro/tsconfigs/strict`. |
 | Tests | ❌ none. |
 | Lint / format | ❌ no ESLint/Prettier config. |
 | CodeGraph index | ✅ built (`.codegraph/`), MCP handshake verified. |
-| Visual check | ✅ Screenshots taken with headless Chrome at 320 / 390 / 768 / 1280 px. Login verified directly; the dashboard's CSS was verified with a throwaway static harness (it needs Supabase credentials to render authed). Command in `AGENTS.md`. |
+| Visual check | ✅ Login screenshotted with headless Chrome at 320 / 390 / 768 / 1280 px. The dashboard needs Supabase credentials to render authed, so its two sections were measured through a throwaway static harness driven over the Chrome DevTools Protocol — at both 390 px and 1280 px: no horizontal overflow, all three section triggers identical (358×44.5 / 960×44.5), no title/meta/chevron overlap, sale rows with a 12 px gutter, and `.pageHeaderActions` centres its buttons (refresh and CTA share one midline: `cy=104.4` at 390 px, `cy=55.6` at 1280 px, against 44.0 px and 46.5 px tall controls). The harness was deleted afterwards; the screenshot command in `AGENTS.md` still applies. |
+| Static output | ✅ `.vercel/output/static/` written, `.vercel/output/functions/` absent. |
 | Design system | Tokens in `src/styles/theme.css`, contract in `DESIGN.md`. |
 
 ## 14. Known issues & tech debt
@@ -521,16 +602,17 @@ Ordered roughly by how much they matter:
    **RLS is the only thing protecting the data**, and that the Vercel build
    currently only works *by accident*, because the file is committed. Untrack it and
    set the values on the Vercel project instead.
-   A *missing* env var then fails silently: `src/lib/supabase.ts` throws, but
-   `useProducts.ts` builds a client with `undefined` and the UI just breaks at
-   runtime with a confusing error. Every env var needs a loud guard.
-2. **Two Supabase client instances.**
-   `src/lib/supabase.ts` creates the canonical client, but
-   `src/hooks/useProducts.ts` creates another and re-exports it, and
-   `src/context/authContext.tsx` imports *that* one from `../hooks/useProducts`.
-   Multiple `GoTrueClient`s on the same storage key can produce
-   "Multiple GoTrueClient instances" warnings and split session state.
-   Consolidate everything onto `src/lib/supabase.ts`.
+   Guarding is still blunt: `src/lib/supabase.ts` throws at module load, so a
+   missing value takes out the whole island with an uncaught error and a blank
+   page instead of a readable message. Every env var needs a loud *and legible*
+   guard.
+2. **"Mis ventas" reads the whole table.** `fetchAllPurchases()` pulls every row
+   of `clients_purchases` with its product embedded — on mount and on every
+   refresh (`handleRefresh` re-reads it alongside the products). There is no
+   `limit`, no range and no pagination, and the list renders one row per purchase.
+   Fine at this scale, not forever: add a limit or paginate before the table gets
+   real. (The old duplicate-`GoTrueClient` issue is gone — `src/lib/supabase.ts`
+   is now the only client instance.)
 3. **Generated artifacts are not ignored.** `.gitignore` only lists `.vercel` and
    `node_modules`. `.astro/` is *tracked* and rewritten by every dev/build run
    (churn), and `dist/` is untracked. Suggested:
@@ -543,10 +625,11 @@ Ordered roughly by how much they matter:
    security boundary is **Row Level Security** — make sure RLS is enabled and
    correct on `products`, `clients_purchases` and `purchases_payments` (and on the
    `products-images` bucket).
-5. **Stale `localStorage` write on login.** `loginModal.tsx` does
-   `localStorage.setItem('userData', JSON.stringify(data))`, but nothing reads it —
-   the app relies on the Supabase session instead. Remove it (or use it), to avoid
-   duplicating session data in `localStorage`.
+5. **"Mis ventas" is read-only.** The list is where the outstanding work is
+   visible, but none of it is actionable: to fix a client name, change a fee or
+   register a payment you have to find that product in "Mis productos" and open
+   its Compras modal. A row action (or a link that opens the right modal) would
+   remove the hunt.
 6. **Payment edit is unreachable.** `usePurchasePayments().updatePayment` exists but
    no UI calls it; payments can only be added or deleted.
 7. **Delete confirmation is consistent for data, not for images.** Purchases and
@@ -556,11 +639,13 @@ Ordered roughly by how much they matter:
 8. **Dead code:** `src/components/Welcome.astro`, `src/assets/astro.svg`,
    `src/assets/background.svg` (starters) and `public/arroyo_heydi_-_mileage.pdf`
    are unused. (The leftover `console.log` in `authGuard.tsx` has been removed.)
-9. **Errors often not surfaced.** Each hook stores an `error` string, but the UI
-   mostly only renders `useProducts().error`; failures from images, purchases or
-   payments are silent.
-10. **No quality gates.** No tests, no linter/formatter, and no `astro check` script;
-    strict TypeScript is on but `catch (err: any)` weakens it in the hooks.
+9. **Errors are only partly surfaced.** Each hook stores an `error` string, and the
+   dashboard now renders both the product error and the purchases error (in its
+   own section). Image and payment failures are still silent — `PurchasesModal`
+   never receives an `error`, even though every mutation returns one.
+10. **No quality gates.** No tests, no linter/formatter, no `astro check` script.
+    Strict TypeScript is on and `npx tsc --noEmit` is clean, but nothing enforces
+    it in CI.
 11. **Housekeeping:** `package.json` still says `"name": "smoggy-shell"` with no
     `description`/`license`.
 12. **Vendored design skills have no pinned hash.** `web-design-guidelines` and
@@ -607,18 +692,22 @@ Roughly in priority order:
 1. **Security pass:** untrack `.env`; enable/verify **RLS** on all three tables and
    the storage bucket; decide whether `/dashboard` needs server-side protection
    (middleware) instead of a client redirect.
-2. **Consolidate the Supabase client** onto `src/lib/supabase.ts` and delete the
-   duplicate export from `useProducts.ts` / the odd import in `authContext.tsx`.
+2. ✅ **Consolidated.** `src/lib/supabase.ts` is now the only client instance and
+   nothing but `src/repositories/` imports it. The next step along that line is
+   generated database types (`supabase gen types`) so the row interfaces in §10.1
+   stop being hand-written.
 3. **Stop artifact churn:** ignore `.astro/` and `dist/`, and untrack `.astro/`.
 4. **Quality gates:** add `astro check` (e.g. an `npm run check` script), plus
    ESLint + Prettier, and a first test setup (`vitest` fits Astro/React well) —
-   the pure `formatCurrency` and `getProductImagePath` helpers are easy wins.
+   the pure helpers (`formatCurrency`, `formatDate`, `sanitizeSegment`,
+   `getProductImagePath`) and the `RepoResult` contract are easy wins.
 5. **UX consistency:** ✅ purchase/payment deletion now confirms through
-   `ConfirmModal`. Still open: surface hook `error` values beyond
-   `useProducts().error`, and wire up (or delete) `updatePayment`.
-6. **Cleanup:** ✅ the debug `console.log` is gone. Still open: delete
-   `Welcome.astro` / starter assets / the stray PDF, drop the
-   `localStorage` write in `loginModal.tsx`, and fix `package.json` metadata.
+   `ConfirmModal`, and both dashboard sections render their own `errorAlert`.
+   Still open: image and payment failures are swallowed, `updatePayment` is
+   unwired, and the sales list has no actions of its own.
+6. **Cleanup:** ✅ the debug `console.log` and the stray `localStorage` write are
+   gone. Still open: delete `Welcome.astro` / starter assets / the stray PDF, and
+   fix `package.json` metadata.
 7. **Extend the docs:** record the actual Supabase schema (SQL migrations) and add a
    screenshot/GIF of the dashboard so this file stays the single source of truth.
 8. **Design-system follow-through:** the login screen and the dashboard now share

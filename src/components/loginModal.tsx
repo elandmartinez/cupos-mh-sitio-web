@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { authRepository } from '../repositories/authRepository';
 import monsterHighLogo from '../../public/monster-high-logo.png';
 
 export default function LoginModal() {
@@ -13,19 +13,17 @@ export default function LoginModal() {
     setLoading(true);
     setErrorMsg(null);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // The session is persisted by Supabase itself (and read back through
+    // AuthProvider) — the old localStorage copy was never read by anything.
+    const result = await authRepository.signInWithPassword(email, password);
 
-    localStorage.setItem('userData', JSON.stringify(data));
-
-    if (error) {
-      setErrorMsg(error.message);
+    if (!result.ok) {
+      setErrorMsg(result.error);
       setLoading(false);
-    } else {
-      window.location.href = '/dashboard';
+      return;
     }
+
+    window.location.href = '/dashboard';
   };
 
   return (

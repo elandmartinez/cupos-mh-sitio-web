@@ -1,23 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { productsRepository } from '../repositories/productsRepository';
+import type {
+  CreateProductInput,
+  PatchProductInput,
+  Product,
+} from '../repositories/productsRepository';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// The row/input shapes are defined next to the table they belong to
+// (repositories/productsRepository.ts) and re-exported here so components keep
+// importing the types from the hook that owns the data.
+export type { CreateProductInput, Product };
 
-export interface Product {
-  id: number;
-  created_at: string;
-  updated_at: string | null;
-  name: string | null;
-  description: string | null;
-  value: number | null; // smallint in Postgres
-  release_date: string | null;
-}
+/** Only the editable columns are written, so a partial object is accepted. */
+export type UpdateProductInput = PatchProductInput;
 
-export type CreateProductInput = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
-export type UpdateProductInput = Partial<CreateProductInput>;
-
+/**
+ * The `products` table: the catalogue list plus create/update/delete.
+ *
+ * Every Supabase call lives in `productsRepository`; this hook only owns the
+ * React state (local merges after a write) and the loading/error flags.
+ */
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -25,82 +27,61 @@ export function useProducts() {
 
   // FETCH ALL PRODUCTS
   const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const { data, error: fetchError } = await supabase
-        .from('products')
-        .select('*')
-        .order('id', { ascending: false });
+    setLoading(true);
+    setError(null);
 
-      if (fetchError) throw fetchError;
-      setProducts(data || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch products.');
-    } finally {
+    const result = await productsRepository.findMany();
+
+    if (!result.ok) {
+      setError(result.error);
       setLoading(false);
+      return;
     }
+
+    setProducts(result.data);
+    setLoading(false);
   }, []);
 
   // CREATE PRODUCT
   const addProduct = async (newProduct: CreateProductInput) => {
-    try {
-      setError(null);
-      const { data, error: insertError } = await supabase
-        .from('products')
-        .insert([newProduct])
-        .select()
-        .single();
+    setError(null);
+    const result = await productsRepository.create(newProduct);
 
-      if (insertError) throw insertError;
-      if (data) {
-        setProducts((prev) => [data, ...prev]);
-      }
-      return { data, error: null };
-    } catch (err: any) {
-      setError(err.message || 'Failed to create product.');
-      return { data: null, error: err.message };
+    if (!result.ok) {
+      setError(result.error);
+      return { data: null, error: result.error };
     }
+
+    setProducts((prev) => [result.data, ...prev]);
+    return { data: result.data, error: null };
   };
 
   // UPDATE PRODUCT
   const updateProduct = async (id: number, updates: UpdateProductInput) => {
-    try {
-      setError(null);
-      const { data, error: updateError } = await supabase
-        .from('products')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single();
+    setError(null);
+    const result = await productsRepository.updatePartial(id, updates);
 
-      if (updateError) throw updateError;
-      if (data) {
-        setProducts((prev) => prev.map((item) => (item.id === id ? data : item)));
-      }
-      return { data, error: null };
-    } catch (err: any) {
-      setError(err.message || 'Failed to update product.');
-      return { data: null, error: err.message };
+    if (!result.ok) {
+      setError(result.error);
+      return { data: null, error: result.error };
     }
+
+    setProducts((prev) => prev.map((item) => (item.id === id ? result.data : item)));
+    return { data: result.data, error: null };
   };
 
   // DELETE PRODUCT
   const deleteProduct = async (id: number) => {
-    try {
-      setError(null);
-      const { error: deleteError } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
+    setError(null);
+    const result = await productsRepository.delete(id);
 
-      if (deleteError) throw deleteError;
-      setProducts((prev) => prev.filter((item) => item.id !== id));
-      return { error: null };
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete product.');
-      return { error: err.message };
+    if (!result.ok) {
+      setError(result.error);
+      return { error: result.error };
     }
+
+    setProducts((prev) => prev.filter((item) => item.id !== id));
+    return { error: null };
   };
 
   useEffect(() => {

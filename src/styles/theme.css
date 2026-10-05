@@ -137,7 +137,9 @@ button {
 /* Numbers meant to be compared should line up in a column. */
 .metaValue,
 .purchaseProgressLabel,
-.paymentItem {
+.paymentItem,
+.saleMoney,
+.collapsibleMeta {
   font-variant-numeric: tabular-nums;
 }
 

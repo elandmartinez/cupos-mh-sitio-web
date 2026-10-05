@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../hooks/useProducts'; // Import your supabase client instance
+import { authRepository } from '../repositories/authRepository';
 
 interface AuthContextType {
   session: Session | null;
@@ -23,27 +23,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Restore persistent session on initial mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    authRepository.getSession().then((result) => {
+      if (!result.ok) console.error('Error restoring session:', result.error);
+
+      const session = result.ok ? result.data.session : null;
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
-    }).catch((error) => {
-      console.error('Error restoring session:', error);
       setLoading(false);
     });
 
     // Listen for auth changes (login, logout, token refreshes)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    return authRepository.onAuthStateChange((session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await authRepository.signOut();
     window.location.href = '/';
   };
 

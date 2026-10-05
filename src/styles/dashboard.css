@@ -100,6 +100,9 @@
 
 .pageHeaderActions {
   display: flex;
+  /* The refresh button is 44px and the CTA is ~46px tall, so without this the
+     two sit top-aligned and the refresh button reads a couple of pixels high. */
+  align-items: center;
   gap: 0.625rem;
 }
 
@@ -908,3 +911,158 @@
 .formCard {
   overscroll-behavior: contain;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Collapsible sections — "Mis productos" / "Mis ventas"                    */
+/* A section is a heading row on the page background, NOT a card: the       */
+/* product cards and the sales rows stay the only surfaces on screen.       */
+/* ---------------------------------------------------------------------- */
+
+.dashboardSections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.collapsibleHeading {
+  margin: 0;
+}
+
+/* The whole header row is the control, and it lines up with the content
+   below it (no horizontal padding of its own). */
+.collapsibleTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-3) 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-dark);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.collapsibleTitle {
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.collapsibleMeta {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.collapsibleChevron {
+  flex-shrink: 0;
+  font-size: var(--text-2xs);
+  color: var(--color-text-muted);
+}
+
+.collapsibleBody {
+  padding-top: var(--space-4);
+}
+
+/* Kept in the DOM so `aria-controls` resolves; `hidden` takes it out of the
+   layout (a class-level `display` would otherwise override the UA rule). */
+.collapsibleBody[hidden] {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Sales list — every purchase across all products ("Mis ventas")           */
+/* ---------------------------------------------------------------------- */
+
+.salesList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Wraps so the amount drops under the client name on narrow screens. */
+.saleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.saleRow:first-child {
+  padding-top: 0;
+}
+
+.saleRow:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.saleMain {
+  flex: 1 1 11rem;
+  min-width: 0;
+}
+
+.saleClientName {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.saleMeta {
+  margin-top: 0.15rem;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.saleSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  margin-left: auto;
+  text-align: right;
+}
+
+/* Money wears the emphasis colour; what is still owed stays quiet. */
+.saleMoney {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-fuchsia);
+}
+
+.saleMoneyTotal {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Interaction states for the disclosure headers                            */
+/* ---------------------------------------------------------------------- */
+
+.collapsibleTrigger:hover {
+  background-color: var(--color-bone-soft);
+}
+
+.collapsibleTrigger:active {
+  background-color: var(--color-purple-soft);
+}
+
+/* An inset ring: the row is edge-to-edge, so an offset outline gets clipped. */
+.collapsibleTrigger:focus-visible {
+  outline: 2px solid var(--color-purple);
+  outline-offset: -2px;
+}
+
+.collapsibleTrigger:active .collapsibleChevron {
+  transform: translateY(1px);
+}
+
