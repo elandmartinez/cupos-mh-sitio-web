@@ -118,7 +118,8 @@ only — never for UI copy.
 
 **Buttons** (`theme.css`) — shared base: inline-flex, `--radius-md`, `min-height`
 2.5rem (40px, the `md` default), 14px/500, transitioning background,
-border-color and color. Sizes are **sm 32 / md 40 / lg 48**. Every variant has
+border-color and color. Sizes are **sm 32 / md 40 / lg 48** (the two ends are
+the `.btnSm` / `.btnLg` modifiers; `md` is the base class). Every variant has
 hover, active, `:focus-visible` and disabled. **One primary per screen; never
 use a button for navigation.**
 
@@ -148,7 +149,11 @@ validating never shifts the layout. Use the right `type`/`inputmode`/
 **Cards** (`.card` + the app's `.productCard` / `.purchaseCard`) — white, 1px
 hairline border, `--radius-lg`, 24px padding. **Border-first: no shadow at
 rest.** Hover may warm the border to the accent, signalling the whole card is
-actionable.
+actionable. A card can be made foldable with `.collapsibleCard`: the header row
+becomes the toggle (same `aria-expanded`/`aria-controls` contract as a section)
+and the body hides with the `hidden` attribute, so it is the *card* counterpart
+to `.collapsibleSection` — reach for it when the disclosure should read as a
+surface (a thing in a list), not a page-level heading row.
 
 **Sections / disclosure** (`.collapsibleSection`, `.collapsibleTrigger`) — how the
 dashboard groups its top-level content ("Mis productos", "Mis ventas"). A section
@@ -202,6 +207,10 @@ they center as cards.
   centered modals, 2-col forms), `1024px` (3-col grid). Don't add ad-hoc ones.
 - Respect `env(safe-area-inset-*)` on the sticky top bar and bottom sheets.
 - Prefer flex/grid over JS measurement for layout.
+- Scrollbars are hidden globally (`theme.css`, the `*` scrollbar rules) while
+  scrolling still works by wheel, touch, keyboard and script. Don't reintroduce
+  visible scroll tracks; if a container scrolls, make that affordance obvious
+  through layout (a fade, a partial card) rather than a scrollbar.
 
 ## 6. Depth & elevation
 
@@ -230,6 +239,8 @@ containers) · `--radius-full` (pills).
 - Show money with `formatCurrency()` (`Intl.NumberFormat('es-CO')`, no symbol)
   plus tabular figures.
 - Write state copy in Spanish, sentence case, ending in `…` while pending.
+- Keep scrollbars hidden (scroll behaviour stays intact) — the global rules in
+  `theme.css` do this; don't add visible track styling back.
 
 **Don't**
 

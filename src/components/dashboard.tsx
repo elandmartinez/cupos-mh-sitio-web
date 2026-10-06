@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { useProductImages } from '../hooks/useProductImages';
 import { useClientPurchases } from '../hooks/useClientPurchases';
+import { usePresent } from '../hooks/usePresent';
 import { useAuth } from '../context/authContext';
 import PurchasesModal from './purchasesModal';
 import ConfirmModal from './confirmModal';
@@ -41,7 +42,9 @@ export default function Dashboard() {
   const { user, signOut } = useAuth();
 
   const [isEditing, setIsEditing] = useState<Product | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  // The three dialogs on this screen each own a presence window rather than a
+  // boolean, so they stay mounted long enough to animate out (see usePresent).
+  const formDialog = usePresent();
   const [formData, setFormData] = useState<CreateProductInput>(emptyFormData);
   const [pendingImage, setPendingImage] = useState<File | null>(null);
   const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
@@ -49,8 +52,8 @@ export default function Dashboard() {
   // Bumped after any upload/rename/delete so <img> tags re-fetch instead of
   // showing a browser-cached copy of a since-replaced/removed image.
   const [imageVersion, setImageVersion] = useState(0);
-  const [purchasesProduct, setPurchasesProduct] = useState<Product | null>(null);
-  const [productPendingDelete, setProductPendingDelete] = useState<Product | null>(null);
+  const purchasesDialog = usePresent<Product>();
+  const deleteProductDialog = usePresent<Product>();
 
   // Keep purchase counts in sync with the product list
   useEffect(() => {
@@ -65,6 +68,20 @@ export default function Dashboard() {
   useEffect(() => {
     fetchAllPurchases();
   }, [fetchAllPurchases]);
+
+  // Drop the product form's fields once its dialog has actually gone. Doing it
+  // in `closeForm` instead would empty the form while it is still on screen,
+  // halfway through animating out.
+  useEffect(() => {
+    if (formDialog.isPresent) return;
+    setIsEditing(null);
+    setFormData(emptyFormData);
+    setPendingImagePreview((url) => {
+      if (url) URL.revokeObjectURL(url);
+      return null;
+    });
+    setPendingImage(null);
+  }, [formDialog.isPresent]);
 
   const handleRefresh = () => {
     // Re-fetching the products re-runs the effect above, so the per-product
@@ -144,7 +161,7 @@ export default function Dashboard() {
     setIsEditing(null);
     setFormData(emptyFormData);
     clearPendingImage();
-    setShowForm(true);
+    formDialog.open();
   };
 
   const handleEditClick = (product: Product) => {
@@ -157,15 +174,12 @@ export default function Dashboard() {
     });
     clearPendingImage();
     setCurrentImageVisible(true);
-    setShowForm(true);
+    formDialog.open();
   };
 
-  const closeForm = () => {
-    setShowForm(false);
-    setIsEditing(null);
-    setFormData(emptyFormData);
-    clearPendingImage();
-  };
+  // Starting the exit is all this does now — the fields are cleared by the
+  // effect above, once the dialog has gone.
+  const closeForm = () => formDialog.close();
 
   const clearPendingImage = () => {
     setPendingImagePreview((prev) => {
@@ -201,27 +215,24 @@ export default function Dashboard() {
     await fetchAllPurchases();
   };
 
-  const handleRequestDeleteProduct = (product: Product) => {
-    setProductPendingDelete(product);
-  };
+  const handleRequestDeleteProduct = (product: Product) => deleteProductDialog.open(product);
 
-  const handleCancelDeleteProduct = () => {
-    setProductPendingDelete(null);
-  };
+  const handleCancelDeleteProduct = () => deleteProductDialog.close();
 
   const handleConfirmDeleteProduct = async () => {
-    if (!productPendingDelete) return;
-    await handleDeleteProduct(productPendingDelete);
-    setProductPendingDelete(null);
+    const product = deleteProductDialog.value;
+    if (!product) return;
+    deleteProductDialog.close();
+    await handleDeleteProduct(product);
   };
 
-  const handleOpenPurchases = (product: Product) => {
-    setPurchasesProduct(product);
-  };
+  const handleOpenPurchases = (product: Product) => purchasesDialog.open(product);
 
-  const handleClosePurchases = () => {
-    setPurchasesProduct(null);
-  };
+  const handleClosePurchases = () => purchasesDialog.close();
+
+  // Bound to consts so the narrowing survives into the JSX below.
+  const productForPurchases = purchasesDialog.value;
+  const productToDelete = deleteProductDialog.value;
 
   return (
     <div className="pageContainer">
@@ -385,8 +396,12 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {showForm && (
-        <Modal labelledBy="productFormTitle" onClose={closeForm}>
+      {formDialog.isPresent && (
+        <Modal
+          labelledBy="productFormTitle"
+          onClose={closeForm}
+          closing={formDialog.isClosing}
+        >
           <div className="formCardHeader">
             <h2 id="productFormTitle">
               {isEditing ? 'Editar producto' : 'Nuevo producto'}
@@ -528,11 +543,12 @@ export default function Dashboard() {
         </Modal>
       )}
 
-      {purchasesProduct && (
+      {productForPurchases && (
         <PurchasesModal
-          product={purchasesProduct}
-          purchases={purchasesByProduct[purchasesProduct.id] || []}
+          product={productForPurchases}
+          purchases={purchasesByProduct[productForPurchases.id] || []}
           onClose={handleClosePurchases}
+          closing={purchasesDialog.isClosing}
           addPurchase={handleAddPurchase}
           updatePurchase={updatePurchase}
           deletePurchase={deletePurchase}
@@ -540,14 +556,15 @@ export default function Dashboard() {
         />
       )}
 
-      {productPendingDelete && (
+      {productToDelete && (
         <ConfirmModal
           title="¿Eliminar producto?"
-          message={`Se eliminará "${productPendingDelete.name}" junto con sus compras y sus pagos. No se puede deshacer.`}
+          message={`Se eliminará "${productToDelete.name}" junto con sus compras y sus pagos. No se puede deshacer.`}
           confirmLabel="Eliminar producto"
           cancelLabel="Cancelar"
           onConfirm={handleConfirmDeleteProduct}
           onCancel={handleCancelDeleteProduct}
+          closing={deleteProductDialog.isClosing}
         />
       )}
     </div>

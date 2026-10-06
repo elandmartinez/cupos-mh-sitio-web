@@ -9,6 +9,12 @@ interface ModalProps {
   onClose: () => void;
   /** Extra card class, e.g. "purchasesCard" / "confirmCard". */
   cardClassName?: string;
+  /**
+   * Set while the dialog is playing its exit animation, so the overlay and the
+   * card can run `--closing` and fade out before React unmounts them. Comes
+   * from `usePresent`; leave unset for a dialog that never animates out.
+   */
+  closing?: boolean;
   /** "alertdialog" for destructive confirmations, "dialog" (default) otherwise. */
   role?: 'dialog' | 'alertdialog';
   children: ReactNode;
@@ -32,6 +38,7 @@ export default function Modal({
   describedBy,
   onClose,
   cardClassName,
+  closing = false,
   role = 'dialog',
   children,
 }: ModalProps) {
@@ -63,8 +70,11 @@ export default function Modal({
     (first ?? card).focus();
   }, []);
 
-  // Escape closes; Tab is trapped inside the dialog.
+  // Escape closes; Tab is trapped inside the dialog. While the dialog is
+  // animating out it is already inert, so it stops answering keys.
   useEffect(() => {
+    if (closing) return;
+
     const handleKeyDown = (event: KeyboardEvent) => {
       const card = cardRef.current;
       if (!card) return;
@@ -102,10 +112,13 @@ export default function Modal({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, closing]);
 
   return (
-    <div className="modalOverlay" onClick={onClose}>
+    <div
+      className={closing ? 'modalOverlay modalOverlay--closing' : 'modalOverlay'}
+      onClick={onClose}
+    >
       <div
         ref={cardRef}
         className={cardClassName ? `formCard ${cardClassName}` : 'formCard'}

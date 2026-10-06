@@ -9,6 +9,8 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** True while the dialog plays its exit animation (see `usePresent`). */
+  closing?: boolean;
 }
 
 /**
@@ -24,6 +26,7 @@ export default function ConfirmModal({
   cancelLabel = 'Cancelar',
   onConfirm,
   onCancel,
+  closing = false,
 }: ConfirmModalProps) {
   return (
     <Modal
@@ -32,6 +35,7 @@ export default function ConfirmModal({
       role="alertdialog"
       onClose={onCancel}
       cardClassName="confirmCard"
+      closing={closing}
     >
       <div className="formCardHeader">
         <h2 id="confirmTitle">{title}</h2>

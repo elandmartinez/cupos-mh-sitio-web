@@ -31,3 +31,13 @@ If you intend to use the URL of that asset, use /monster-high-logo.png?url.
 01:34:21 [watch] .vercel/output/static/dashboard/index.html
 01:34:27 [watch] .vercel/output/static/index.html
 01:34:27 [watch] .vercel/output/static/dashboard/index.html
+07:31:55 [watch] .vercel/output/static/index.html
+07:31:55 [watch] .vercel/output/static/dashboard/index.html
+07:32:00 [watch] /src/components/loginModal.tsx
+07:32:00 [watch] /src/components/loginModal.tsx
+07:32:00 [watch] /src/components/loginModal.tsx
+07:32:00 [watch] /src/layouts/Layout.astro?astro&type=style&index=0&lang.css
+07:36:30 [watch] /src/components/loginModal.tsx
+07:36:30 [watch] /src/components/loginModal.tsx
+07:36:30 [watch] /src/components/loginModal.tsx
+07:36:30 [watch] /src/layouts/Layout.astro?astro&type=style&index=0&lang.css

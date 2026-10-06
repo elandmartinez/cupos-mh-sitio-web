@@ -110,10 +110,16 @@
   --page-padding-wide: var(--space-24);
   --content-width: 64rem;
 
-  /* --- Motion ---------------------------------------------------------- */
-  --duration-fast: 120ms;
-  --duration-base: 180ms;
-  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* --- Motion ----------------------------------------------------------
+     Enters are slower than exits: a surface should arrive deliberately and
+     leave promptly. `--duration-base` is also the one number the JS in
+     src/hooks/usePresent.ts has to agree with (nothing reads a CSS variable
+     from JavaScript), so change the two together. */
+  --duration-fast: 120ms; /* hover / press feedback */
+  --duration-base: 180ms; /* exits, and the standard enter */
+  --duration-slow: 280ms; /* enters that carry weight — modals, sheets */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1); /* decelerate — arriving */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1); /* accelerate — leaving */
 }
 
 /* ---------------------------------------------------------------------- */
@@ -124,6 +130,22 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+/* Hide scrollbars everywhere while keeping scroll behaviour.
+   Overflowing containers still scroll (wheel, touch, keyboard, programmatic);
+   only the browser's track/thumb chrome is removed, so surfaces stay clean.
+   Firefox uses scrollbar-width; legacy Edge/IE uses -ms-overflow-style; the
+   ::-webkit-scrollbar rules cover Chromium and Safari. */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 body {
@@ -226,6 +248,24 @@ h3 {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Rows, chips and thumbnails that mount into a list rise into place instead of
+   blinking on. React only mounts the new item (the rest keep their nodes), so
+   the animation plays exactly once per arrival. */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-4));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.riseIn {
+  animation: riseIn var(--duration-base) var(--ease-standard);
 }
 
 /* Motion in this app is decorative only — honour the user's preference. */
@@ -351,7 +391,18 @@ h3 {
   cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard),
-    color var(--duration-fast) var(--ease-standard);
+    color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+/* Every variant dips a hairline on press: enough to feel mechanical, too
+   small to shift a row's layout. */
+.btnPrimary:active:not(:disabled),
+.btnSecondary:active:not(:disabled),
+.btnGhost:active:not(:disabled),
+.btnDanger:active:not(:disabled),
+.btnIcon:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 /* Icon-only: square and label-free, so it always needs an aria-label. */
@@ -443,16 +494,120 @@ h3 {
   color: var(--color-danger-text);
 }
 
+/* Size scale (sm 32 / md 40 / lg 48). md is the base class default, so it
+   needs no modifier — only the two extremes do. */
+.btnSm {
+  min-height: 2rem;
+  padding: 0 var(--space-12);
+}
+
+.btnLg {
+  min-height: 3rem;
+  padding: 0 var(--space-24);
+}
+
 /* ---------------------------------------------------------------------- */
 /* Surfaces and feedback primitives                                       */
 /* ---------------------------------------------------------------------- */
 
-/* Card — a border, never a shadow. Radius 12px, padding 24px. */
+/* Card — a border, never a shadow. Radius 12px, padding 24px.
+   `overflow: hidden` keeps children (a bleeding image, a full-bleed header
+   row) inside the rounded corner instead of squaring it off. */
 .card {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-24);
+  overflow: hidden;
+}
+
+/* Collapsible card — a `.card` whose body folds behind its header button.
+   The card counterpart to `.collapsibleSection` (see dashboard.css). */
+.collapsibleCard {
+  padding: 0;
+}
+
+.collapsibleCardHeader {
+  display: flex;
+  align-items: stretch;
+}
+
+/* The whole header row is the control, so the target is never just the text. */
+.collapsibleCardTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex: 1;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: var(--space-12) var(--space-16);
+  background: none;
+  border: none;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.collapsibleCardTitle {
+  min-width: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: var(--tracking-heading);
+}
+
+.collapsibleCardMeta {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.collapsibleCardChevron {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.collapsibleCardActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding-right: var(--space-16);
+}
+
+/* The fold panel. It carries no padding of its own: `useCollapsiblePanel`
+   animates its height, and bottom padding would survive a `height: 0` and
+   leave a sliver of the body behind. The padding belongs to the inner
+   wrapper, which the measurements are taken from. */
+.collapsibleCardBody {
+  overflow: hidden;
+}
+
+.collapsibleCardBodyInner {
+  padding: 0 var(--space-16) var(--space-16);
+}
+
+/* Kept in the DOM so `aria-controls` resolves; `hidden` takes it out of the
+   layout (a class-level `display` would otherwise override the UA rule). A
+   collapsed panel *rests* `hidden` — it only leaves that state to animate. */
+.collapsibleCardBody[hidden] {
+  display: none;
+}
+
+.collapsibleCardTrigger:hover {
+  background-color: var(--color-surface-sunken);
+}
+
+.collapsibleCardTrigger:active {
+  background-color: var(--color-border);
+}
+
+/* An inset ring: the row is edge-to-edge, so an offset outline gets clipped. */
+.collapsibleCardTrigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 /* Badge — status, counts and labels only. Never clickable, never navigation. */
@@ -507,6 +662,7 @@ h3 {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
+  animation: riseIn var(--duration-base) var(--ease-standard);
 }
 
 .banner--danger {
@@ -531,6 +687,7 @@ h3 {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   text-align: center;
+  animation: riseIn var(--duration-base) var(--ease-standard);
 }
 
 /* Inside an existing surface (card, modal) the empty state drops its frame. */
@@ -576,6 +733,7 @@ h3 {
   border-radius: var(--radius-lg);
   color: var(--color-text-muted);
   text-align: center;
+  animation: riseIn var(--duration-base) var(--ease-standard);
 }
 
 .statusMessage p {

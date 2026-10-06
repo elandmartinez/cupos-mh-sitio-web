@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { useCollapsiblePanel } from '../hooks/useCollapsiblePanel';
 import type { ReactNode } from 'react';
 
 interface CollapsibleSectionProps {
@@ -30,6 +31,7 @@ export default function CollapsibleSection({
   // Stable ids so the button can own the heading and the panel it controls.
   const titleId = useId();
   const panelId = useId();
+  const { ref: panelRef, hidden } = useCollapsiblePanel(open);
 
   return (
     <section className="collapsibleSection" aria-labelledby={titleId}>
@@ -51,9 +53,10 @@ export default function CollapsibleSection({
         </button>
       </h2>
 
-      {/* Stay mounted so `aria-controls` always resolves; `hidden` hides it. */}
-      <div className="collapsibleBody" id={panelId} hidden={!open}>
-        {children}
+      {/* Stays mounted so `aria-controls` always resolves. Collapsed it *rests*
+          `hidden`; `useCollapsiblePanel` lifts it only to play the fold. */}
+      <div className="collapsibleBody" id={panelId} ref={panelRef} hidden={hidden}>
+        <div className="collapsibleBodyInner">{children}</div>
       </div>
     </section>
   );

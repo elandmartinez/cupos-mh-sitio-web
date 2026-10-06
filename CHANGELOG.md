@@ -5,6 +5,37 @@ today and `DESIGN.md` for how it looks; this file records the reasoning behind t
 that produced them. Newest entry first.
 
 ---
+## 2026-10-05 — General UI components: `Button`, `CollapsibleCard`, and an "Agregar compra" modal
+
+**Commit:** *(pending)*
+
+**Why:** a client purchase could only be created through a small inline form bolted onto
+the top of the Compras modal, and every purchase card re-implemented its own expand/collapse
+and its own button classes by hand. Two reusable primitives (`Button`, `CollapsibleCard`)
+give the dashboard something to build on, and moving "add a purchase" into one modal retires
+that second, ad-hoc form.
+
+**Code**
+
+| Change | Detail |
+| :-- | :-- |
+| **New** `src/components/button.tsx` | General `Button`: `variant` (`primary`/`secondary`/`ghost`/`ghost-danger`/`danger`/`icon`), `size` (`sm`/`md`/`lg`), a decorative `icon`, and `loading` (spinner + `aria-busy` + disabled). Renders a native `<button>` (never an anchor) and passes every other prop through. |
+| **New** `src/components/collapsibleCard.tsx` | General foldable **card** — the card counterpart to `CollapsibleSection`. `aria-expanded`/`aria-controls`, body kept mounted and hidden with `hidden`; controlled (`open` + `onToggle`) or uncontrolled (`defaultOpen`). |
+| **New** `src/components/addPurchaseModal.tsx` | The single "add / edit client purchase" dialog, wired to `useClientPurchases` (`addPurchase` / `updatePurchase` passed in as props). |
+| `purchasesModal.tsx` | The inline purchase form and its "Nueva compra" CTA are **gone**; adding or editing a purchase opens `AddPurchaseModal`. Each purchase now renders as a `CollapsibleCard` (name over phone + badge in the header; progress, actions and payments in the body). |
+| `theme.css` | Added `.btnSm` / `.btnLg` and the `.collapsibleCard*` component set. |
+| `dashboard.css` | `.purchaseCard` is now only a surface modifier on `.collapsibleCard`; added `.purchaseTitleBlock`; removed the now-dead `.purchaseHeader` / `.purchaseExpandBtn` / `.purchaseForm` rules. |
+
+**Docs:** `DESIGN.md` §4 (button sizes, collapsible card); `DOCUMENTATION.md` §6 tree and
+§10.3 / §10.5 component + stylesheet tables.
+
+**No deploy-shape change:** the build stays static (`output: "static"`, no
+`.vercel/output/functions/`), `tsc --noEmit` is clean, and no dependency was added.
+Verified with headless screenshots at desktop and mobile widths.
+
+---
+
+
 
 ## 2026-10-05 — Design-system migration: prune dead CSS, fix the heading, reconcile the docs
 

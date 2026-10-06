@@ -192,30 +192,24 @@
   margin-bottom: var(--space-16);
 }
 
-.purchaseForm {
-  margin-bottom: var(--space-24);
-  padding-bottom: var(--space-24);
-  border-bottom: 1px solid var(--color-border);
-}
-
 .purchasesList {
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
 }
 
-.purchaseCard {
+/* Purchases reuse the generic `.collapsibleCard` (theme.css); only the surface
+   differs — a subtle fill so each purchase reads as a nested record inside the
+   modal's card. The compound selector beats `.card` regardless of file order. */
+.card.purchaseCard {
   background-color: var(--color-surface-subtle);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-16);
 }
 
-.purchaseHeader {
+/* Name over phone inside the card's header title. */
+.purchaseTitleBlock {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-8);
+  flex-direction: column;
+  min-width: 0;
 }
 
 .purchaseClientName {
@@ -259,24 +253,16 @@
   margin-top: var(--space-12);
 }
 
-.purchaseExpandBtn {
-  margin-left: auto;
-}
-
 .paymentsSection {
   margin-top: var(--space-16);
   padding-top: var(--space-16);
   border-top: 1px solid var(--color-border);
 }
 
-.purchaseForm,
 .paymentForm {
   display: flex;
   flex-direction: column;
   gap: var(--field-gap);
-}
-
-.paymentForm {
   margin-bottom: var(--space-16);
 }
 
@@ -326,12 +312,17 @@
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
+  /* Mounted only when a payment is registered, so this plays exactly once. */
+  animation: riseIn var(--duration-base) var(--ease-standard);
 }
 
 /* ---------------------------------------------------------------------- */
 /* Dialogs — bottom sheet on mobile, centered card from 640px up          */
 /* ---------------------------------------------------------------------- */
 
+/* Arriving, the backdrop fades and the sheet rises. Both are deliberately
+   unhurried (`--duration-slow` on the sheet) — a dialog that materialises reads
+   as intentional, one that pops reads as a glitch. */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -341,7 +332,7 @@
   justify-content: center;
   overflow-y: auto;
   background-color: var(--overlay-backdrop);
-  animation: fadeIn var(--duration-fast) var(--ease-standard);
+  animation: fadeIn var(--duration-base) var(--ease-standard);
 }
 
 .formCard {
@@ -355,7 +346,21 @@
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: var(--space-24) var(--space-24) max(var(--space-24), env(safe-area-inset-bottom));
   box-shadow: var(--shadow-elevated);
-  animation: slideUp var(--duration-base) var(--ease-standard);
+  animation: slideUp var(--duration-slow) var(--ease-standard);
+}
+
+/* Leaving mirrors arriving, but faster: motion never delays the user. `Modal`
+   adds the `--closing` class while React still has the dialog mounted (see
+   src/hooks/usePresent.ts) — that window is the only reason an exit can play
+   at all, since an unmounted node cannot animate. */
+.modalOverlay--closing {
+  animation: fadeOut var(--duration-base) var(--ease-exit) forwards;
+  /* On its way out — a click must not land on the dialog again. */
+  pointer-events: none;
+}
+
+.modalOverlay--closing .formCard {
+  animation: slideDown var(--duration-base) var(--ease-exit) forwards;
 }
 
 .formCardHeader {
@@ -413,6 +418,28 @@
   }
 }
 
+/* The two exits. `forwards` holds the final frame for the moment between the
+   animation ending and React unmounting the dialog, so nothing flashes back. */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(var(--space-16));
+    opacity: 0;
+  }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Product image field — drop area, previews, remove chips                */
 /* ---------------------------------------------------------------------- */
@@ -442,6 +469,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-surface-subtle);
+  /* A thumbnail only mounts when it is chosen, so this plays on arrival. */
+  animation: riseIn var(--duration-base) var(--ease-standard);
 }
 
 .imagePreviewItem img {
@@ -518,18 +547,23 @@
 .collapsibleHeading {
   margin: 0;
 }
-/* The whole header row is the control, and it lines up with the content
-   below it (no horizontal padding of its own). */
+/* The whole header row is the control. It bleeds 12px either side so the title
+   still lines up with the cards below, while the row itself reads as a
+   tappable surface — padded, rounded, washed on hover — instead of bare text
+   on a line. `--page-padding` is 16px at its narrowest, so the bleed never
+   reaches the viewport edge. */
 .collapsibleTrigger {
   display: flex;
   align-items: center;
   gap: var(--space-8);
-  width: 100%;
+  width: calc(100% + 2 * var(--space-12));
   min-height: 2.75rem;
-  padding: var(--space-12) 0;
+  margin: 0 calc(-1 * var(--space-12));
+  padding: var(--space-12);
   background: none;
   border: none;
   border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   color: var(--color-text);
   text-align: left;
   cursor: pointer;
@@ -556,7 +590,13 @@
   color: var(--color-text-muted);
 }
 
+/* The fold panel for a section. Like `.collapsibleCardBody` it carries no
+   padding of its own — `useCollapsiblePanel` animates its height. */
 .collapsibleBody {
+  overflow: hidden;
+}
+
+.collapsibleBodyInner {
   padding-top: var(--space-16);
 }
 

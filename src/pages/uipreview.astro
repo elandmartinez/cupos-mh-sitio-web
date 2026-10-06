@@ -1,0 +1,224 @@
+---
+// TEMPORARY visual harness — not for shipping. Renders the real design-system
+// classes with sample data so the padding/radius/motion work can be eyeballed
+// against DESIGN.md at 390px and 1280px. Delete before committing.
+import Layout from '../layouts/Layout.astro';
+import CollapsibleSection from '../components/collapsibleSection';
+import CollapsibleCard from '../components/collapsibleCard';
+import EmptyState from '../components/emptyState';
+import Button from '../components/button';
+import monsterHighLogo from '../../public/monster-high-logo-color.png';
+import '../styles/dashboard.css';
+---
+
+<Layout title="UI preview · Cupos">
+  <div class="pageContainer">
+    <header class="topBar">
+      <img src={monsterHighLogo.src} alt="Monster High" class="topBarLogo" width="300" height="203" />
+      <span class="userEmail">alguien@ejemplo.com</span>
+      <button type="button" class="btnGhost">Cerrar sesión</button>
+    </header>
+
+    <main id="main" class="mainContent">
+      <div class="pageHeader">
+        <div class="pageHeaderText">
+          <h1 class="title">Panel de gestión</h1>
+          <p class="textMuted">Tu catálogo, las compras de tus clientes y sus pagos.</p>
+        </div>
+        <div class="pageHeaderActions">
+          <button type="button" class="btnIcon btnRefresh" aria-label="Refrescar">
+            <span aria-hidden="true">⟳</span>
+          </button>
+          <button type="button" class="btnPrimary" aria-haspopup="dialog">
+            <span aria-hidden="true">+</span> Nuevo producto
+          </button>
+        </div>
+      </div>
+
+      <div class="banner banner--danger dashboardBanner" role="alert">
+        <p>No se pudieron cargar los productos.</p>
+        <button type="button" class="btnSecondary">Reintentar</button>
+      </div>
+
+      <div class="dashboardSections">
+        <CollapsibleSection title="Mis productos" meta="2 productos">
+          <div class="productsGrid">
+            <div class="card productCard">
+              <div class="productImage" style="background: #efe9f9;"></div>
+              <div>
+                <div class="productHeader">
+                  <h3 class="productName">Cupo limitado — Clawdeen</h3>
+                  <span class="badge badge--primary">ID: 12</span>
+                </div>
+                <p class="productDescription">Cupo reservado con anticipo.</p>
+              </div>
+              <div class="productFooter">
+                <div>
+                  <div class="metaRelease">Lanzamiento: 2026-11-01</div>
+                  <div class="metaValue tabular">Valor: 120.000</div>
+                </div>
+                <div class="actionRow">
+                  <button type="button" class="btnSecondary btnCardAction">Editar</button>
+                  <button type="button" class="btnGhost btnGhost--danger">Eliminar</button>
+                </div>
+              </div>
+              <button type="button" class="btnSecondary btnPurchases">
+                <span aria-hidden="true">🛍️</span> Compras (1)
+              </button>
+            </div>
+
+            <div class="card productCard">
+              <div class="productImage" style="background: #e4d9f5;"></div>
+              <div>
+                <div class="productHeader">
+                  <h3 class="productName">Cupo — Draculaura</h3>
+                  <span class="badge badge--primary">ID: 13</span>
+                </div>
+                <p class="productDescription">Entrega en noviembre.</p>
+              </div>
+              <div class="productFooter">
+                <div>
+                  <div class="metaRelease">Lanzamiento: N/D</div>
+                  <div class="metaValue tabular">Valor: 95.000</div>
+                </div>
+                <div class="actionRow">
+                  <button type="button" class="btnSecondary btnCardAction">Editar</button>
+                  <button type="button" class="btnGhost btnGhost--danger">Eliminar</button>
+                </div>
+              </div>
+              <button type="button" class="btnSecondary btnPurchases">
+                <span aria-hidden="true">🛍️</span> Compras
+              </button>
+            </div>
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Mis ventas" meta="1 pendiente · 60.000 por cobrar">
+          <ul class="salesList">
+            <li class="saleRow">
+              <div class="saleMain">
+                <div class="saleClientName">Ana Gómez</div>
+                <div class="saleMeta">Cupo limitado — Clawdeen · 12 nov</div>
+              </div>
+              <div class="saleSide">
+                <div class="saleMoney">60.000 <span class="saleMoneyTotal">de 120.000</span></div>
+                <span class="badge badge--warning">Pendiente</span>
+              </div>
+            </li>
+          </ul>
+        </CollapsibleSection>
+
+        <section class="collapsibleSection">
+          <h2 class="collapsibleHeading">
+            <button type="button" class="collapsibleTrigger" aria-expanded="true">
+              <span class="collapsibleTitle">Compras (modal abierto)</span>
+              <span class="collapsibleMeta">2 compras</span>
+              <span class="collapsibleChevron" aria-hidden="true">▲</span>
+            </button>
+          </h2>
+          <div class="collapsibleBody">
+            <div class="collapsibleBodyInner">
+              <div class="formCard purchasesCard">
+                <div class="formCardHeader">
+                  <h2 id="previewTitle">Compras de Cupo limitado — Clawdeen</h2>
+                  <Button variant="icon" className="btnClose" aria-label="Cerrar">×</Button>
+                </div>
+
+                <Button variant="primary" className="purchasesNewBtn" icon="+" aria-haspopup="dialog">
+                  Agregar compra
+                </Button>
+
+                <div class="purchasesList">
+                  <CollapsibleCard
+                    className="purchaseCard"
+                    open={true}
+                    title={
+                      <span class="purchaseTitleBlock">
+                        <span class="purchaseClientName">Ana Gómez</span>
+                        <span class="purchaseClientPhone">300 123 4567</span>
+                      </span>
+                    }
+                    meta={<span class="badge badge--warning">Pendiente</span>}
+                   
+                  >
+                    <div class="purchaseProgress">
+                      <div class="purchaseProgressBar">
+                        <div class="purchaseProgressFill" style="width: 50%" />
+                      </div>
+                      <div class="purchaseProgressLabel">60.000 / 120.000</div>
+                    </div>
+
+                    <div class="purchaseActionRow">
+                      <Button variant="secondary">Editar</Button>
+                      <Button variant="ghost-danger" aria-haspopup="dialog">Eliminar</Button>
+                    </div>
+
+                    <div class="paymentsSection">
+                      <form class="paymentForm">
+                        <div class="fieldGroup">
+                          <label class="label" for="previewAmount">Monto del pago</label>
+                          <input id="previewAmount" type="number" class="input" value="60000" />
+                          <p class="fieldHint">Se descuenta del saldo pendiente.</p>
+                        </div>
+                        <div class="paymentFormRow">
+                          <label class="paymentExtraFeeLabel">
+                            <input type="checkbox" /> Cargo extra
+                          </label>
+                          <Button variant="primary" type="submit" className="paymentSubmitBtn">
+                            Agregar pago
+                          </Button>
+                        </div>
+                      </form>
+
+                      <ul class="paymentsList">
+                        <li class="paymentItem">
+                          <span>60.000</span>
+                          <Button variant="icon" className="rowRemoveBtn" aria-label="Eliminar pago">×</Button>
+                        </li>
+                      </ul>
+                    </div>
+                  </CollapsibleCard>
+
+                  <CollapsibleCard
+                    className="purchaseCard"
+                    title={
+                      <span class="purchaseTitleBlock">
+                        <span class="purchaseClientName">Luisa Pérez</span>
+                        <span class="purchaseClientPhone">310 987 6543</span>
+                      </span>
+                    }
+                    meta={<span class="badge badge--success">Pagado</span>}
+                    defaultOpen={false}
+                   
+                  >
+                    <div class="purchaseProgress">
+                      <div class="purchaseProgressBar">
+                        <div class="purchaseProgressFill" style="width: 100%" />
+                      </div>
+                      <div class="purchaseProgressLabel">120.000 / 120.000</div>
+                    </div>
+                  </CollapsibleCard>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <CollapsibleSection title="Estados">
+          <div class="statusMessage" role="status" aria-live="polite">
+            <span class="spinner" aria-hidden="true" />
+            <p>Cargando productos…</p>
+          </div>
+          <div style="margin-top: 16px;">
+            <EmptyState
+              art="products"
+              title="Todavía no hay productos"
+              body="Publica tu primer cupo para poder registrar las compras de tus clientes y el avance de sus pagos."
+             
+            />
+          </div>
+        </CollapsibleSection>
+      </div>
+    </main>
+  </div>
+</Layout>
