@@ -105,16 +105,46 @@
   gap: var(--space-16);
 }
 
-.productCard {
+/* The whole card is the control — tapping it opens the product-detail modal —
+   so the card itself is a real <button> and every action lives in that dialog.
+   Only the button chrome is reset here; `.card` keeps painting the surface.
+
+   The compound selector is for the same reason as `.card.purchaseCard` below:
+   it beats `.card` whatever order the two stylesheets land in. The tighter
+   12px padding is what makes the card read as small on a phone — the image
+   bleed below is measured from it, so change the two together. */
+.card.productCard {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  /* `align-items` has to be stated: the UA stylesheet gives buttons their own
+     value, which would shrink-wrap (and centre) the text rows. */
+  align-items: stretch;
+  gap: var(--space-12);
+  padding: var(--space-12);
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+/* The border warming to the accent is the card's only hover cue. It is what
+   says the surface itself is the control, without a second "ver más" link. */
+.card.productCard:hover {
+  border-color: var(--color-primary);
+}
+
+/* Pressed deepens that same border — the house `:active` is a colour step, and
+   a `translateY` here would shift the whole grid cell. */
+.card.productCard:active {
+  border-color: var(--color-primary-active);
 }
 
 /* Bleeds to the card's edges, so the top corners match its radius. */
 .productImage {
-  width: calc(100% + 2 * var(--space-24));
-  margin: calc(-1 * var(--space-24)) calc(-1 * var(--space-24)) var(--space-16);
+  width: calc(100% + 2 * var(--space-12));
+  margin: calc(-1 * var(--space-12)) calc(-1 * var(--space-12)) 0;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
@@ -134,49 +164,98 @@
   color: var(--color-text);
 }
 
-.productDescription {
-  margin-top: var(--space-8);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.productFooter {
+/* Value + purchase count: what is worth knowing before opening the card. */
+.productCardMeta {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  align-items: flex-end;
-  gap: var(--space-12);
-  margin-top: var(--space-16);
-  padding-top: var(--space-12);
-  border-top: 1px solid var(--color-border);
+  gap: var(--space-8);
 }
 
-.metaRelease {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
-.metaValue {
-  margin-top: var(--space-4);
-  font-size: var(--text-base);
+.productValue {
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
-.actionRow,
-.purchaseActionRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
+.productPurchases {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
-.btnCardAction {
-  flex: none;
-}
+/* ---------------------------------------------------------------------- */
+/* Product detail modal — what a product card opens                       */
+/* ---------------------------------------------------------------------- */
 
-.btnPurchases {
+/* The image leads, then the data as a label/value ledger: the same two
+   columns for every entry, so the values line up without a table. */
+.productDetailImage {
+  display: block;
   width: 100%;
-  margin-top: var(--space-12);
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.productDetailList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  margin: var(--space-16) 0 0;
+}
+
+.productDetailEntry {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-16);
+}
+
+.productDetailLabel {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.productDetailValue {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* A description is prose, not a value: its own stacked row, regular weight. */
+.productDetailEntry--stacked {
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.productDetailEntry--stacked .productDetailValue {
+  text-align: left;
+  font-weight: 400;
+  line-height: var(--leading-body);
+}
+
+.productDetailActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  margin-top: var(--space-24);
+}
+
+/* "Compras" takes a full-width row; "Editar" and "Eliminar" share the row
+   under it — the arrangement the card itself used to carry. */
+.productDetailPrimary {
+  width: 100%;
+}
+
+/* `.buttonGroup`'s own top padding would double up with the gap above it. */
+.productDetailButtonRow {
+  padding-top: 0;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -249,7 +328,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The Cancel + Save row of a purchase's inline add/edit form. */
 .purchaseActionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
   margin-top: var(--space-12);
 }
 

@@ -92,20 +92,10 @@ npm run build        # ✅ 2 static pages (/index.html, /dashboard/index.html), 
 ## 6. Environment state when this note was written
 
 - Background dev server: **stopped**. CDP Chrome on 9222: **killed**.
-- `/tmp/cdp-shot.mjs` — throwaway screenshot/measure helper
-  (`node /tmp/cdp-shot.mjs <url> <width> <height> <out.png> [evalFile.js]`);
-  survives until reboot, recreate if needed.
-
-To resume visual work:
-
-```bash
-npx astro dev --background                     # http://localhost:4321
-google-chrome --headless=new --disable-gpu --no-sandbox \
-  --remote-debugging-port=9222 about:blank &   # only needed for CDP measuring
-```
+- To resume visual work: read the source. No browser is simulated (see `AGENTS.md`).
 
 Note: `/dashboard` sits behind Supabase auth, so its product grid only renders with real
-credentials — the measurements above came from a static harness that has now been deleted.
+credentials — reason about it from `dashboard.tsx` and the stylesheets.
 
 ## 7. What remains (all optional)
 

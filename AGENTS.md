@@ -71,12 +71,12 @@ Reusable skills in `.agents/skills/`:
 
 Reusable subagents in `.cursor/agents/` — **delegate; don't serialise.** They run in
 isolated contexts, so independent checks fan out in parallel and their noisy output
-(build logs, DOM dumps, screenshots) stays out of the main conversation:
+(build logs, DOM dumps) stays out of the main conversation:
 
 - `gate-verifier` — re-runs `tsc`, `build` and the static-artifact/hermetic checks on the
   current tree, returns PASS/FAIL with raw evidence. Read-only; run it before committing.
-- `ui-verifier` — headless-Chrome screenshots plus real DOM geometry at 390/1280 px,
-  checked against `DESIGN.md`. Run after touching components, styles or layouts.
+- `ui-verifier` — reviews component, style and layout changes against `DESIGN.md` by
+  reading the source; no browser simulation. Run after touching any of them.
 - `docs-sync` — audits `DOCUMENTATION.md` / `DESIGN.md` / `CHANGELOG.md` against the code
   and fixes the drift (routes, data model, hooks, tech debt, §15 history, date stamp).
 - `data-layer-reviewer` — reviews repositories/hooks/auth against the Supabase skills.
@@ -84,18 +84,14 @@ isolated contexts, so independent checks fan out in parallel and their noisy out
 
 ### Verifying UI changes
 
-Chrome is installed and works headless. Take a real screenshot and look at it
-instead of assuming the result:
+Do not simulate a browser: no headless Chrome, no screenshots, no CDP, no dev
+server, no throwaway harness. Verify UI/UX from the source instead — trace visual
+values to their token in `src/styles/theme.css`, check the interaction contracts
+(ARIA, focus, `hidden` resting state, `prefers-reduced-motion`) in the JSX/CSS, and
+run `npx tsc --noEmit` + `npm run build`.
 
-```bash
-npm run dev
-google-chrome --headless=new --disable-gpu --no-sandbox --hide-scrollbars \
-  --window-size=390,1400 --screenshot=/tmp/ui-390.png http://localhost:4321/
-```
-
-The dashboard sits behind Supabase auth, so `/dashboard` needs real credentials
-(or a static harness) before its product grid will render.
-
+`/dashboard` sits behind Supabase auth, so reason about it from `dashboard.tsx` and
+the stylesheets rather than standing up credentials or a fixture.
 
 ## Development
 

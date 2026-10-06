@@ -5,6 +5,7 @@ import { useClientPurchases } from '../hooks/useClientPurchases';
 import { usePresent } from '../hooks/usePresent';
 import { useAuth } from '../context/authContext';
 import PurchasesModal from './purchasesModal';
+import ProductDetailModal from './productDetailModal';
 import ConfirmModal from './confirmModal';
 import ProductImage from './productImage';
 import Modal from './modal';
@@ -54,6 +55,9 @@ export default function Dashboard() {
   const [imageVersion, setImageVersion] = useState(0);
   const purchasesDialog = usePresent<Product>();
   const deleteProductDialog = usePresent<Product>();
+  // Tapping a product card opens this. The cards carry no controls of their
+  // own, so this dialog is also where "Compras", "Editar" and "Eliminar" live.
+  const detailDialog = usePresent<Product>();
 
   // Keep purchase counts in sync with the product list
   useEffect(() => {
@@ -223,6 +227,9 @@ export default function Dashboard() {
     const product = deleteProductDialog.value;
     if (!product) return;
     deleteProductDialog.close();
+    // The confirm is opened from the product's detail dialog, which is now
+    // showing something that no longer exists.
+    if (detailDialog.value?.id === product.id) detailDialog.close();
     await handleDeleteProduct(product);
   };
 
@@ -230,9 +237,23 @@ export default function Dashboard() {
 
   const handleClosePurchases = () => purchasesDialog.close();
 
+  const handleOpenDetails = (product: Product) => detailDialog.open(product);
+
+  const handleCloseDetails = () => detailDialog.close();
+
   // Bound to consts so the narrowing survives into the JSX below.
   const productForPurchases = purchasesDialog.value;
   const productToDelete = deleteProductDialog.value;
+
+  // The detail dialog reads the catalogue instead of its own snapshot, so an
+  // edit saved from inside it is visible the moment the form closes. The
+  // `usePresent` value is the fallback: it is what keeps the dialog on screen
+  // through its exit even when the product it was showing has just been deleted.
+  const detailProductId = detailDialog.value?.id ?? null;
+  const detailProduct =
+    detailProductId === null
+      ? null
+      : products.find((product) => product.id === detailProductId) ?? detailDialog.value;
 
   return (
     <div className="pageContainer">
@@ -320,65 +341,38 @@ export default function Dashboard() {
               <div className="productsGrid">
               {products.map((product) => {
                 const productPurchases = purchasesByProduct[product.id] || [];
+                // The card carries no controls: it is one tap target that opens
+                // the product's dialog, which is where every action lives. It
+                // is a real <button>, so everything inside it stays phrasing
+                // content — hence spans, not an <h3>.
                 return (
-                  <div key={product.id} className="card productCard">
+                  <button
+                    type="button"
+                    key={product.id}
+                    className="card productCard"
+                    onClick={() => handleOpenDetails(product)}
+                    aria-haspopup="dialog"
+                  >
                     <ProductImage
                       product={product}
                       imageVersion={imageVersion}
                       getSignedUrl={getSignedUrl}
-                      alt={product.name || 'Producto'}
                       className="productImage"
                     />
-                    <div>
-                      <div className="productHeader">
-                        <h3 className="productName">{product.name}</h3>
-                        <span className="badge badge--primary">ID: {product.id}</span>
-                      </div>
-                      <p className="productDescription">{product.description}</p>
-                    </div>
 
-                    <div className="productFooter">
-                      <div>
-                        <div className="metaRelease">
-                          Lanzamiento: {product.release_date || 'N/D'}
-                        </div>
-                        <div className="metaValue tabular">
-                          Valor: {formatCurrency(product.value)}
-                        </div>
-                      </div>
+                    <span className="productHeader">
+                      <span className="productName">{product.name}</span>
+                      <span className="badge badge--primary">ID: {product.id}</span>
+                    </span>
 
-                      <div className="actionRow">
-                        <button
-                          type="button"
-                          onClick={() => handleEditClick(product)}
-                          className="btnSecondary btnCardAction"
-                          aria-haspopup="dialog"
-                          aria-label={`Editar ${product.name ?? 'producto'}`}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRequestDeleteProduct(product)}
-                          className="btnGhost btnGhost--danger btnCardAction"
-                          aria-haspopup="dialog"
-                          aria-label={`Eliminar ${product.name ?? 'producto'}`}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOpenPurchases(product)}
-                      className="btnSecondary btnPurchases"
-                      aria-haspopup="dialog"
-                    >
-                      <span aria-hidden="true">🛍️</span> Compras
-                      {productPurchases.length > 0 ? ` (${productPurchases.length})` : ''}
-                    </button>
-                  </div>
+                    <span className="productCardMeta">
+                      <span className="productValue">{formatCurrency(product.value)}</span>
+                      <span className="productPurchases">
+                        {productPurchases.length} compra
+                        {productPurchases.length === 1 ? '' : 's'}
+                      </span>
+                    </span>
+                  </button>
                 );
               })}
               </div>
@@ -395,6 +389,24 @@ export default function Dashboard() {
           </CollapsibleSection>
         </div>
       </main>
+
+      {/* The detail dialog is rendered first so the dialogs its own actions open
+          (the form, the purchases list, the delete confirm) come later in the
+          document and are therefore the ones answering Escape and Tab — the
+          same nesting `PurchasesModal` uses for its add/edit form. */}
+      {detailProduct && (
+        <ProductDetailModal
+          product={detailProduct}
+          purchaseCount={(purchasesByProduct[detailProduct.id] || []).length}
+          imageVersion={imageVersion}
+          getSignedUrl={getSignedUrl}
+          onClose={handleCloseDetails}
+          closing={detailDialog.isClosing}
+          onEdit={handleEditClick}
+          onDelete={handleRequestDeleteProduct}
+          onOpenPurchases={handleOpenPurchases}
+        />
+      )}
 
       {formDialog.isPresent && (
         <Modal

@@ -5,6 +5,75 @@ today and `DESIGN.md` for how it looks; this file records the reasoning behind t
 that produced them. Newest entry first.
 
 ---
+## 2026-10-05 — Product cards become one tap target; a product dialog replaces their buttons
+
+**Why:** every product card carried three buttons ("Editar", "Eliminar",
+"Compras") plus a description, a release date and a duplicate of its own ID. On a
+phone that is a wall of chrome before you can even read the catalogue, and it read
+as a panel of controls rather than a grid of things. The card's job is to be
+scan-able and tappable; the actions belong in a surface that has room to explain
+them.
+
+**Code**
+
+| Change | Detail |
+| :-- | :-- |
+| **New** `src/components/productDetailModal.tsx` | What a card opens: the image, a `<dl>` label/value ledger (ID badge, description, release date, value, purchase count), then "Compras (N)" full-width over a row holding "Editar" and "Eliminar". Presentational and action-only — the parent passes the product, the count, `imageVersion`/`getSignedUrl`, the `closing` flag and the three callbacks. |
+| `dashboard.tsx` | The card is now a `<button className="card productCard">` — no controls inside, so its children are spans (a `<button>` may not contain a `<div>`/`<h3>`/another control) and the image drops to `alt=""` (decorative: the name is right beside it). It shows image, name, ID badge, value and purchase count; tapping it opens the detail dialog. Added `detailDialog` via `usePresent<Product>` plus `handleOpenDetails` / `handleCloseDetails`, and rendered the dialog *before* the form, purchases and confirm dialogs so the ones it opens sit later in the document and therefore win Escape/Tab. The dialog resolves its product from the live `products` array (falling back to the held snapshot) so an edit saved from the form is visible behind it; `handleConfirmDeleteProduct` now also closes the detail dialog, which would otherwise be left showing a deleted product. |
+| `dashboard.css` | `.card.productCard` (compound, so it beats `.card` regardless of load order — the same trick as `.card.purchaseCard`) is now the button surface: `align-items: stretch`, `--space-12` padding/gap, `width: 100%`, left-aligned `--text-sm`, and explicit element resets (`font`, `color`, `cursor`) since the class is on a button. Its `:active` deepens the border instead of shifting the grid cell with a `translateY`. The image bleed was recalculated to that tighter padding. New `productCardMeta`/`productValue`/`productPurchases` and the `productDetail*` set (image, ledger, stacked description row, actions, full-width primary + button row). **Deleted** the now-dead card action CSS: `.productDescription`, `.productFooter`, `.metaRelease`, `.metaValue`, `.actionRow`, `.btnCardAction`, `.btnPurchases`. |
+
+**Docs:** `DESIGN.md` §4 (the product card as a button, how the dialogs stack and
+which one owns the keyboard, the product dialog as a read view with an action
+list, and the dashboard's layout-only button-class list); `DOCUMENTATION.md` §6
+tree, §10.3 / §10.5.
+
+**No deploy-shape change:** no dependency, no route and no build-time work was
+added — the dialog is client-side inside the island that already exists. `npx tsc
+--noEmit` is clean and `npm run build` still emits `dist/` + `.vercel/output/static`
+with **no** `.vercel/output/functions/`. Verified by reading the source against the
+`theme.css` tokens (no browser simulation) and by inspecting the built CSS to
+confirm the compound selector lands as intended.
+
+
+## 2026-10-05 — Motion: dialogs animate out, disclosures fold
+
+**Commit:** `9ea91d7` (the code landed together with the components pass below)
+
+**Why:** two things surfaced while reviewing the dashboard. A stray global
+`* { padding: 1rem }` rule in `dashboard.css` was padding *every* element in the
+app, which is why cards and rows looked either cramped or oddly airy depending on
+how deep they sat — the fix was to delete the rule, not to patch each symptom.
+And nothing on screen could animate *out*: React unmounts a dialog the instant its
+flag flips, so every modal and every collapse snapped shut, while everything else
+had crept towards a house style of timed transitions. Both are now expressed as
+one motion contract.
+
+**Code**
+
+| Change | Detail |
+| :-- | :-- |
+| `theme.css` | **Removed the stray global spacing hack** from `dashboard.css` (the `*` rule). Added `--duration-slow` (280ms) and `--ease-exit` (`cubic-bezier(0.4,0,1,1)`) so arriving and leaving can differ: enters decelerate, exits accelerate. Button press feedback, `.card { overflow: hidden }` (so a rounded card clips its own children), the `riseIn` entrance utility applied to banners / empty states / status messages, and a padded, rounded `.collapsibleTrigger`. |
+| `dashboard.css` | `fadeOut` / `slideDown` keyframes + `.modalOverlay--closing`, held with `forwards` so nothing flashes back in the gap before React unmounts. Split `.collapsibleBody` into the panel + `.collapsibleBodyInner`, so the fold can reach a true `height: 0` without leaving the padding behind. `riseIn` on payment rows and image previews. |
+| **New** `src/hooks/usePresent.ts` | The presence window that makes exits possible: `open(value?)` / `close()` plus `isPresent` / `isClosing` / `value`. The payload is held for the **whole** exit, so a closing dialog never re-renders with different content (the "Editar compra" → "Agregar compra" flash). `EXIT_MS` 180ms matches `--duration-base` by hand — nothing can read a custom property from JS. Reduced motion skips the timer. |
+| **New** `src/hooks/useCollapsiblePanel.ts` | The disclosure fold. A collapsed panel *rests* `hidden` (so `aria-controls` resolves and screen readers see a normal hidden region); the hook lifts the attribute only long enough to animate the measured height to `0` through the Web Animations API, because `height: auto` cannot be transitioned. 200ms in / 160ms out. |
+| `modal.tsx`, `confirmModal.tsx`, `addPurchaseModal.tsx`, `purchasesModal.tsx`, `dashboard.tsx` | A `closing` prop threaded from the hooks down through all six dialogs; the overlay carries `.modalOverlay--closing` and stops answering Escape/Tab while it animates out. |
+| `collapsibleCard.tsx`, `collapsibleSection.tsx` | Both disclosures now fold via `useCollapsiblePanel` instead of flipping `hidden` immediately. |
+
+**Docs:** `DESIGN.md` §4 (modal enter/exit, the fold) and §6 (renamed to "Depth,
+elevation & motion", with the duration/easing token table); `DOCUMENTATION.md`
+§6 tree, §10.2 (the two UI-only hooks), §10.3 / §10.5, and §13.
+
+**No deploy-shape change:** no dependency was added, the build stays static
+(`.vercel/output/functions/` absent), and the motion is pure client-side
+CSS + Web Animations inside already-hydrated islands. `npx tsc --noEmit` is clean.
+Verified over the Chrome DevTools Protocol against a temporary fixture: a dialog
+reaches full opacity by ~280ms on open and is still mid-fade (`opacity 0.80`) at
+90ms on close, unmounting after ~180ms; a collapsed section settles at
+`height: 0` with `hidden: true`. The throwaway preview harness those checks ran
+against is **not** part of the change — it is deleted again after use, and a
+leftover one was removed from the tree as well.
+
+---
 ## 2026-10-05 — General UI components: `Button`, `CollapsibleCard`, and an "Agregar compra" modal
 
 **Commit:** *(pending)*
@@ -85,7 +154,7 @@ run in parallel, each in its own context.
 | Agent | Job |
 | :-- | :-- |
 | `gate-verifier` | `npx tsc --noEmit` + `npm run build` + the static-artifact shape check (no `functions/`, no function route in `config.json`) + the static-only source checks → PASS/FAIL with raw evidence. Read-only. |
-| `ui-verifier` | Headless-Chrome screenshots plus real DOM geometry at 390/1280 px against `DESIGN.md` (44 px targets, focus ring, token contrast, disclosure ARIA, reduced motion). |
+| `ui-verifier` | Reviews components/styles/layouts against `DESIGN.md` by reading the source (44 px targets, focus ring, token contrast, disclosure ARIA, reduced motion). No browser simulation. |
 | `docs-sync` | Audits `DOCUMENTATION.md` / `DESIGN.md` / `CHANGELOG.md` against the code and fixes the drift (routes, data model, hooks, §14 items, §15 history, date stamp). |
 | `data-layer-reviewer` | Repositories/hooks/auth against the vendored Supabase skills: one client, `RepoResult<T>` never throws, loading/error states, N+1, cascades, RLS. |
 | `commit-steward` | Stages explicit paths (never `git add -A`, so `dist/` stays out) and writes the Conventional Commit, carrying the `GIT_PAGER=cat` / `-F` workarounds this terminal needs. |

@@ -133,8 +133,8 @@ use a button for navigation.**
 | `.btnIcon` | 2.5rem square, transparent, muted icon — **must** carry `aria-label`. |
 
 The dashboard's own button classes are *layout*, not looks: `.btnRefresh`,
-`.btnClose`, `.btnCardAction`, `.btnPurchases`, `.purchasesNewBtn`,
-`.paymentSubmitBtn`, `.rowRemoveBtn`, `.imageRemoveBtn`.
+`.btnClose`, `.purchasesNewBtn`, `.paymentSubmitBtn`, `.rowRemoveBtn`,
+`.imageRemoveBtn`, `.productDetailPrimary`, `.productDetailButtonRow`.
 
 **Inputs** (`theme.css`) — white fill, 1px `--color-border`, `--radius-md`,
 `min-height` 2.5rem, and **16px** text (not 14px — 16px stops iOS zooming the
@@ -151,9 +151,29 @@ hairline border, `--radius-lg`, 24px padding. **Border-first: no shadow at
 rest.** Hover may warm the border to the accent, signalling the whole card is
 actionable. A card can be made foldable with `.collapsibleCard`: the header row
 becomes the toggle (same `aria-expanded`/`aria-controls` contract as a section)
-and the body hides with the `hidden` attribute, so it is the *card* counterpart
-to `.collapsibleSection` — reach for it when the disclosure should read as a
-surface (a thing in a list), not a page-level heading row.
+and the body folds away and rests `hidden` — same animation and `hidden`
+contract as a section, so it is the *card* counterpart to `.collapsibleSection`
+— reach for it when the disclosure should read as a surface (a thing in a list),
+not a page-level heading row.
+
+**The product card is itself the button** (`.card.productCard`) — it carries no
+controls, just the image and what is worth knowing before opening it: name, ID
+badge, value, purchase count. Tapping anywhere on it opens the product dialog,
+which is where "Compras", "Editar" and "Eliminar" live. Three buttons per card
+multiplied down a phone screen into a wall of chrome; one tap target keeps the
+grid reading as a catalogue of things rather than a panel of controls. Because
+the surface *is* a `<button>`, its padding is `--space-12` (a quarter of the
+`--space-24` a read-only card takes), its content is left-aligned `--text-sm`,
+and everything inside it must stay phrasing content — spans, never a `<div>` or
+an `<h3>`, and never a nested control. The image bleeds past that tighter
+padding (`calc(100% + 2 * var(--space-12))` and a matching negative margin) so it
+still meets the card's own edges. Its element defaults (`font: inherit`,
+`color: inherit`, `text-align: left`, `width: 100%`) are reset explicitly,
+because the card class is applied to the button itself. The image is decorative
+here (`alt=""`, the component default) — the name sits right beside it, so
+naming it again would just make the button announce itself twice. Hover warms the
+border to the accent, pressed deepens it to `--color-primary-active`, and the
+global `:focus-visible` ring is the keyboard cue.
 
 **Sections / disclosure** (`.collapsibleSection`, `.collapsibleTrigger`) — how the
 dashboard groups its top-level content ("Mis productos", "Mis ventas"). A section
@@ -165,9 +185,21 @@ page background, so the cards or rows inside stay the only surface on screen
 right, and a muted `▲`/`▼` chevron as the affordance. Hover washes it to
 `--color-surface-sunken`, active to `--color-border`, and `:focus-visible` is an
 **inset** 2px `--color-primary` ring (`outline-offset: -2px`) because an offset
-ring on an edge-to-edge row gets clipped. Collapsing hides the panel with the
-`hidden` attribute — it stays mounted so `aria-controls` always resolves, and the
-chevron swaps glyph rather than animating.
+ring on an edge-to-edge row gets clipped.
+
+**The fold is animated, and `hidden` is still the resting state.** A collapsed
+panel *rests* `hidden` (unchanged for assistive tech and for `aria-controls`) —
+`useCollapsiblePanel()` lifts the attribute only long enough to play the fold,
+then puts it back. It folds the real measured height down to `0` through the Web
+Animations API (`EXPAND_MS` 200 in, `COLLAPSE_MS` 160 out) rather than a CSS
+transition, because `height: auto` cannot be transitioned, and it holds the
+panel open across the exit so the content never disappears before the animation.
+The padding lives on an inner wrapper (`.collapsibleBodyInner` /
+`.collapsibleCardBodyInner`), so the panel's own height can animate all the way to
+flat without a residual gap. The chevron
+swaps glyph rather than rotating; rotating it would need a second, competing
+motion. There is no `hidden`-flip flash, no collapse without animation, and
+`prefers-reduced-motion` skips straight to the end state.
 
 **Ledger rows** (`.saleRow`) — the read-only "Mis ventas" list is rows, not cards:
 hairline separators between entries (none after the last), a 12px gutter between
@@ -197,6 +229,41 @@ trigger on close, and background scroll is locked. On mobile they present as a
 bottom sheet (`--radius-lg` top corners + safe-area padding); from `640px` up
 they center as cards.
 
+**Modals animate both ways.** A dialog *arrives* (the overlay fades in at
+`--duration-base`; the card rises 24px with `slideUp` at `--duration-slow` —
+weight, so the slower token) and *leaves* faster than it came (`fadeOut` /
+`slideDown` back down 16px, both at `--duration-base` with `--ease-exit`, which
+accelerates out instead of decelerating in). Both exits end on `forwards`, holding
+the last frame across the gap between the animation finishing and React
+unmounting, and the closing overlay drops `pointer-events`, because a click on a
+dialog already on its way out must not land. The exit is a React problem, not a
+CSS one: the moment `{show && <Modal/>}` flips the node is gone and there is
+nothing left to animate. `usePresent()` owns the flag instead — the caller renders
+on `isPresent`, passes `isClosing` down as the `closing` prop, and the value it
+carries survives the whole exit, so a closing dialog never flashes different
+content on the way out ("Editar compra" → "Agregar compra"). The unmount happens
+after the animation, which is also what rebuilds per-open state (form fields,
+lazily loaded payments) from scratch next time.
+
+**Dialogs stack, and the last one opened answers the keyboard.** The product card
+opens `ProductDetailModal`; from *inside* it, "Compras" opens `PurchasesModal`,
+"Editar" opens the shared form and "Eliminar" opens the confirm. Each is a
+separate `<Modal>` later in the document than the one that opened it, so the
+newest is the one trapping Tab and closing on Escape — and closing it returns to
+the dialog underneath, which is still mounted. Nothing is unmounted to make room,
+and no dialog is allowed to own the state of another: the detail dialog reads its
+product out of the live catalogue (falling back to its own snapshot so it can
+finish its exit after the product is deleted), which is why an edit saved from
+the form shows up behind it immediately.
+
+The product dialog is a **read view with an action list**, not a form: the image
+leads, then a two-column label/value ledger (`Fecha de lanzamiento`, `Valor`,
+`Compras`), then the description as the one stacked row — prose, so it drops to
+regular weight and left alignment while the values stay right-aligned and
+tabular. The actions sit under it in the order they matter: "Compras (N)" as the
+full-width primary, with "Editar" and "Eliminar" sharing the row beneath. The one
+toolbar-shaped arrangement on a phone is the one that genuinely needs a toolbar.
+
 ## 5. Layout principles
 
 - Spacing scale: `--space-4` 4px → `--space-64` 64px, in eight stops (4, 8, 12,
@@ -212,7 +279,7 @@ they center as cards.
   visible scroll tracks; if a container scrolls, make that affordance obvious
   through layout (a fade, a partial card) rather than a scrollbar.
 
-## 6. Depth & elevation
+## 6. Depth, elevation & motion
 
 **Border-first.** Surfaces are defined by a 1px hairline, not a shadow: nothing
 in the resting UI floats. There is exactly **one** elevation token, for UI that
@@ -227,6 +294,27 @@ is genuinely above the page.
 Radii: `--radius-sm` 4px (badges, small chips) · `--radius-md` 8px (inputs,
 buttons) · `--radius-lg` 12px (cards, modals) · `--radius-xl` 16px (large
 containers) · `--radius-full` (pills).
+
+**Motion is decorative and asymmetric: things arrive slowly and leave quickly.**
+Arriving is the part the eye needs to follow, so it gets the longer token;
+leaving should get out of the way.
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--duration-fast` | 120ms | Hover, press and focus feedback — anything the pointer drives. |
+| `--duration-base` | 180ms | The default enter, and every **exit**. |
+| `--duration-slow` | 280ms | Enters that carry weight — modals and sheets. |
+| `--ease-standard` | `cubic-bezier(0.2, 0.8, 0.2, 1)` | Decelerate — arriving. |
+| `--ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | Accelerate — leaving. |
+
+Two rules keep it honest. **Motion never moves the thing you are reading** —
+prefer opacity, and keep transforms small (`--space-16`–`--space-24`, 16–24px), so
+nothing reflows while it plays. And **every animation is skippable**: `prefers-reduced-motion: reduce`
+collapses durations to nothing in `theme.css`, and the two JS drivers
+(`usePresent`, `useCollapsiblePanel`) check the same media query and skip their
+timers/animations instead of merely shortening them. `--duration-base` is also
+the one number JS cannot read out of CSS, so `EXIT_MS` in `usePresent.ts` is
+that value written down a second time — **change one, change the other.**
 
 ## 7. Do's and don'ts
 
@@ -300,11 +388,21 @@ font       Outfit 400/500/600/700
   tokens), `role="main"` with `id="main"`, `--content-width` wrapper, and the
   existing `.btnPrimary` as the single primary action. Skip link comes from the
   layout.
+- *"Add an action to a product."* → It goes in `ProductDetailModal`'s action list,
+  not on the card. The card stays a single tap target with no controls (it has to
+  fit a phone), and anything interactive inside a `<button>` is invalid HTML
+  anyway. Stack the actions: the one people came for full-width, the quieter ones
+  sharing the row under it.
 - *"Add a destructive action."* → Route it through `confirmModal.tsx` (or the
   shared `modal.tsx` with `variant="danger"`), danger-soft styling, and include
   a consequence sentence ("Esta acción no se puede deshacer.").
 - *"Polish the loading/empty state."* → `.spinner` + `Cargando…` inside
   `aria-live="polite"`; empty states get a muted 40-word explanation.
+- *"Make this panel/modal appear and disappear."* → Enter with `--duration-base`
+  (or `--duration-slow` for a modal) and `--ease-standard`; leave with
+  `--duration-base` and `--ease-exit`. A surface that unmounts on a boolean needs
+  `usePresent`; a disclosure that folds needs `useCollapsiblePanel`. Never
+  animate `height` with a transition, and never skip the reduced-motion branch.
 
 **Pre-flight checklist** (all must pass before shipping UI work)
 
@@ -313,15 +411,17 @@ font       Outfit 400/500/600/700
 - [ ] No `transition: all`, no bare `outline: none`.
 - [ ] Icon-only buttons have `aria-label`.
 - [ ] Modals: `role="dialog"` + `aria-modal` + `aria-labelledby` + Escape +
-      focus trap + scroll lock.
+      focus trap + scroll lock, and the exit animates (render on `usePresent`'s
+      `isPresent`, pass its `isClosing` down as `closing`) rather than snapping
+      out of the DOM.
 - [ ] Money uses `formatCurrency` and dates `formatDate`, with tabular figures on
       the numbers.
-- [ ] Disclosures use `aria-expanded`/`aria-controls` and hide with `hidden`,
-      never by unmounting.
+- [ ] Disclosures use `aria-expanded`/`aria-controls`, fold through
+      `useCollapsiblePanel`, and rest `hidden` — never unmounted.
 - [ ] Copy: Spanish, sentence case, `…` (not `...`) for pending states.
 - [ ] Empty/loading/error states exist for every async view.
 - [ ] `prefers-reduced-motion` honoured (motion is decorative only).
-- [ ] Verified with a real screenshot at 390px and 1280px wide.
+- [ ] Every value traced to a `theme.css` token (checked by reading the source).
 
 **Reviewing code against this file:** use the `web-design-guidelines` skill in
 `.agents/skills/` (it fetches Vercel's canonical Web Interface Guidelines) and

@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-10-05 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections and UXonFly design-system passes committed on top of it
+> **Status:** work in progress · **Last documented:** 2026-10-05 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks) and product-card / product-detail-dialog passes committed on top of it
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -121,6 +121,7 @@ cupos-sitio-web/
     │   ├── dashboardApp.tsx # composes AuthProvider → AuthGuard → Dashboard
     │   ├── authGuard.tsx    # client-side redirect gate
     │   ├── dashboard.tsx    # top bar + both collapsible sections + product CRUD/modals
+    │   ├── productDetailModal.tsx # what tapping a product card opens: read view + Compras/Editar/Eliminar
     │   ├── button.tsx       # general button: variant/size/icon/loading over theme.css classes
     │   ├── collapsibleCard.tsx # general foldable card (controlled or uncontrolled)
     │   ├── collapsibleSection.tsx # page-level disclosure: heading button + kept-mounted panel
@@ -144,7 +145,9 @@ cupos-sitio-web/
     │   ├── useProducts.ts          # products CRUD
     │   ├── useProductImages.ts     # storage upload/rename/delete/signed-url
     │   ├── useClientPurchases.ts   # purchases CRUD + per-product & all-sales caches
-    │   └── usePurchasePayments.ts  # payments CRUD + parent re-read
+    │   ├── usePurchasePayments.ts  # payments CRUD + parent re-read
+    │   ├── usePresent.ts           # presence window: holds a surface mounted through its exit
+    │   └── useCollapsiblePanel.ts  # WAAPI fold for disclosure panels (rests `hidden`)
     ├── helpers/
     │   ├── currency.ts      # formatCurrency() — es-CO, no decimals
     │   └── date.ts          # formatDate() — short es-CO label, local-midnight safe
@@ -349,6 +352,11 @@ strings they surface, all come from there.
 They return `{ data, error }` (or `{ error }`) instead of throwing, while also
 keeping an `error` string in state for the UI to render.
 
+Two of them — `usePresent()` and `useCollapsiblePanel()` — are **UI-only**: they
+wrap no repository and exist purely to drive motion (presence windows and the
+disclosure fold), so they are documented here alongside the data hooks rather
+than in §10.1.
+
 #### `useProducts()` — `src/hooks/useProducts.ts`
 
 Re-exports the `Product` type plus `CreateProductInput` / `UpdateProductInput`
@@ -413,6 +421,40 @@ Payments are cached keyed by `client_purchase_id` as `paymentsByPurchase`.
 The three mutations each re-read the parent purchase (`fetchParentPurchase`) so the
 caller can sync the trigger-updated totals.
 
+#### `usePresent()` — `src/hooks/usePresent.ts`
+
+UI-only (touches no repository). A **presence window**, so a surface can animate
+*out*: React unmounts the instant a `{show && <Modal/>}` flag flips, leaving
+nothing to animate, so this hook owns the flag instead. `open(value?)` shows the
+surface, `close()` starts the exit, and the payload is only dropped once
+`EXIT_MS` (180ms — the JS twin of `--duration-base`) has passed. Renders on
+`isPresent`, forwards `isClosing` as the surface's `closing` prop.
+
+| Returns | Description |
+| :-- | :-- |
+| `value` | The value passed to `open`, still readable for the **whole** exit — a closing dialog never has to cope with its data vanishing (no title flipping "Editar compra" → "Agregar compra" on the way out). |
+| `isPresent` | Is there a surface to render at all? Stays `true` through the exit. |
+| `isClosing` | `true` only while the exit plays. |
+| `open(value?)` | Show the surface. The payload is optional, and `undefined`/`null` is a legitimate value (create mode). |
+| `close()` | Begin the exit. |
+
+`prefersReducedMotion()` short-circuits the timer to `0`, and the post-exit
+unmount is what rebuilds per-open state (form fields, lazily loaded payments) —
+see `useClientPurchases`' caches for why that matters.
+
+#### `useCollapsiblePanel()` — `src/hooks/useCollapsiblePanel.ts`
+
+UI-only. Drives a disclosure panel's fold for `CollapsibleSection` /
+`CollapsibleCard`. Returns `{ ref, hidden }`: attach `ref` to the panel and
+spread `hidden` onto it.
+
+A collapsed panel *rests* `hidden` — so assistive tech and `aria-controls` see a
+normal hidden region — and the hook lifts the attribute only long enough
+(`EXPAND_MS` 200 / `COLLAPSE_MS` 160) to play the fold through the Web
+Animations API, because `height: auto` cannot be transitioned. Padding lives on
+an inner wrapper (`.collapsibleBodyInner` / `.collapsibleCardBodyInner`) so the
+panel height animates to a true `0`. `prefers-reduced-motion` skips straight to the end state.
+
 #### `AuthProvider` / `useAuth()` — `src/context/authContext.tsx`
 
 React context exposing `{ session, user, loading, signOut }`. On mount it restores
@@ -426,16 +468,17 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 | `LoginModal` | `loginModal.tsx` | Email/password form calling `supabase.auth.signInWithPassword()`; shows the error in a `role="alert"` region on failure; on success redirects to `/dashboard`. Renders the Monster High logo, a `h1` wordmark ("Gestión de cupos") and labelled, correctly-typed fields (`type="email"`, `autoComplete="username"`, `spellCheck={false}`). Submits through the accent `.submitBtn` with an inline `.spinner` while pending. Loaded with `client:load`. |
 | `DashboardApp` | `dashboardApp.tsx` | Thin composition: `<AuthProvider><AuthGuard><Dashboard/></AuthGuard></AuthProvider>`. Loaded with `client:only="react"`. |
 | `AuthGuard` | `authGuard.tsx` | Reads `{ user, loading }` from `useAuth()`. Shows an `aria-live="polite"` spinner + "Verificando sesión…" while loading, redirects to `/` when there is no user, otherwise renders children. |
-| `Dashboard` | `dashboard.tsx` | The main screen. Top bar (logo, `user.email`, "Cerrar sesión"), then two collapsible sections: **"Mis productos"** (product grid with refresh + "Nuevo producto", a modal product form for name / description / value / release date / image with live preview rendered through `Modal`, and `ConfirmModal` for deletions) and **"Mis ventas"** (`SalesSection`). It also orchestrates `PurchasesModal`. Refreshing re-reads the products *and* every purchase, because a deleted product's purchases cascade away in the database rather than through the hook. Renames the stored image when a product's name changes and bumps `imageVersion` after any image change to defeat browser caching. Section headers carry a one-line summary (`N producto(s)`, `N pendientes · $X por cobrar`, `Todo pagado`). Loading/empty/error states are explicit; the empty state offers the primary action. |
-| `CollapsibleSection` | `collapsibleSection.tsx` | The reusable disclosure both dashboard sections are built on. A heading-styled `<button>` (`aria-expanded` + `aria-controls`, stable `useId` ids) toggles the panel; the panel **stays mounted** and is hidden with the `hidden` attribute, so `aria-controls` always resolves and in-flight state is never thrown away. Optional `meta` string is right-aligned next to the title, with a `▲`/`▼` chevron as the visual affordance. Deliberately **not** a card — the header is a hairline-ruled row on the page background, so the content it wraps stays the only surface on screen. `defaultOpen` is `true`. |
-| `CollapsibleCard` | `collapsibleCard.tsx` | The **card** counterpart to `CollapsibleSection`, and the general foldable surface. Renders a `.card` whose header row is the toggle (`aria-expanded` + `aria-controls`, stable `useId`; the body **stays mounted** and hides with `hidden`). Takes `title`, optional `meta`/`actions`, and works uncontrolled (`defaultOpen`) or controlled (`open` + `onToggle`) — the latter when the parent must react to opening (the purchases list lazily fetches payments on expand). Optional `className` adds a layout modifier (e.g. `purchaseCard`). |
+| `Dashboard` | `dashboard.tsx` | The main screen. Top bar (logo, `user.email`, "Cerrar sesión"), then two collapsible sections: **"Mis productos"** (a grid of product cards, refresh + "Nuevo producto", a modal product form for name / description / value / release date / image with live preview rendered through `Modal`, and `ConfirmModal` for deletions) and **"Mis ventas"** (`SalesSection`). **Each product card is a single `<button>`** — image, name, ID badge, value and purchase count, no controls — and opens `ProductDetailModal`, which is where "Compras", "Editar" and "Eliminar" live; the dialog resolves its product out of the live list so an edit saved from the form shows up behind it, and deleting a product closes it. It also orchestrates `PurchasesModal`. Refreshing re-reads the products *and* every purchase, because a deleted product's purchases cascade away in the database rather than through the hook. Renames the stored image when a product's name changes and bumps `imageVersion` after any image change to defeat browser caching. Section headers carry a one-line summary (`N producto(s)`, `N pendientes · $X por cobrar`, `Todo pagado`). Loading/empty/error states are explicit; the empty state offers the primary action. Every dialog it holds (the product form, the delete confirmation, the detail view) goes through `usePresent`, so they animate out instead of unmounting mid-exit. |
+| `CollapsibleSection` | `collapsibleSection.tsx` | The reusable disclosure both dashboard sections are built on. A heading-styled `<button>` (`aria-expanded` + `aria-controls`, stable `useId` ids) toggles the panel; the panel **stays mounted** and *rests* `hidden` (so `aria-controls` always resolves and in-flight state is never thrown away), and `useCollapsiblePanel` lifts the attribute only long enough to fold the height to `0`. Optional `meta` string is right-aligned next to the title, with a `▲`/`▼` chevron as the visual affordance. Deliberately **not** a card — the header is a hairline-ruled row on the page background, so the content it wraps stays the only surface on screen. `defaultOpen` is `true`. |
+| `CollapsibleCard` | `collapsibleCard.tsx` | The **card** counterpart to `CollapsibleSection`, and the general foldable surface. Renders a `.card` whose header row is the toggle (`aria-expanded` + `aria-controls`, stable `useId`; the body **stays mounted**, rests `hidden`, and folds through `useCollapsiblePanel`). Takes `title`, optional `meta`/`actions`, and works uncontrolled (`defaultOpen`) or controlled (`open` + `onToggle`) — the latter when the parent must react to opening (the purchases list lazily fetches payments on expand). Optional `className` adds a layout modifier (e.g. `purchaseCard`). |
 | `Button` | `button.tsx` | The general-purpose button: a native `<button>` (never an anchor) carrying the design-system classes. `variant` → `primary` / `secondary` / `ghost` / `ghost-danger` / `danger` / `icon`; `size` → `sm` / `md` / `lg`; plus `icon` (decorative, `aria-hidden`) and `loading` (swaps in `.spinner`, disables, sets `aria-busy`). Every other `<button>` prop passes straight through. |
 | `SalesSection` | `salesSection.tsx` | Read-only "Mis ventas": every purchase across every product, as hairline-separated rows rather than cards. Each row is client name over `producto · teléfono · fecha`, with `pagado de acordado` (tabular figures) and a `Pagado` / `Pendiente` badge. Pending rows sort first — the reason to open the list — and the sort is stable, so within each group the newest-first query order survives. Purely presentational: it receives `purchases` / `loading` / `error` and shows a spinner only when it has no rows yet, so a refresh never blanks the list. Editing a sale still happens in its product's Compras modal, where its payments live. |
-| `PurchasesModal` | `purchasesModal.tsx` | Everything about one product's clients: each purchase is a `CollapsibleCard` (client name over phone, a paid/agreed progress bar, a "Pagado"/"Pendiente" badge) whose body reveals the payments — an add-payment form with optional "Cargo extra" and the list of payments — fetched lazily on expand via `usePurchasePayments`. Adding or editing a purchase goes through `AddPurchaseModal` (a single entry point; the old inline form is gone), and both purchase **and** payment deletion are confirmed through `ConfirmModal`. Uses `applyPurchaseUpdate` to push trigger-refreshed totals back up. |
-| `AddPurchaseModal` | `addPurchaseModal.tsx` | The one way to add or edit a client purchase. Owns only its form state (`client_name`, `client_phone_number`, `agreed_fees`) and calls the `addPurchase` / `updatePurchase` functions from `useClientPurchases` that the parent passes in (create when `purchase` is omitted, edit when it is set), so the caller's list stays in sync without this component knowing about it. Errors render in a `role="alert"` banner; the submit button shows the shared `.spinner` while saving. |
+| `PurchasesModal` | `purchasesModal.tsx` | Everything about one product's clients: each purchase is a `CollapsibleCard` (client name over phone, a paid/agreed progress bar, a "Pagado"/"Pendiente" badge) whose body reveals the payments — an add-payment form with optional "Cargo extra" and the list of payments — fetched lazily on expand via `usePurchasePayments`. Adding or editing a purchase goes through `AddPurchaseModal` (a single entry point; the old inline form is gone), and both purchase **and** payment deletion are confirmed through `ConfirmModal`. Uses `applyPurchaseUpdate` to push trigger-refreshed totals back up. Every dialog it raises (add/edit purchase, delete purchase, delete payment) is held through `usePresent` and gets its `closing` flag. |
+| `AddPurchaseModal` | `addPurchaseModal.tsx` | The one way to add or edit a client purchase. Owns only its form state (`client_name`, `client_phone_number`, `agreed_fees`) and calls the `addPurchase` / `updatePurchase` functions from `useClientPurchases` that the parent passes in (create when `purchase` is omitted, edit when it is set), so the caller's list stays in sync without this component knowing about it. Errors render in a `role="alert"` banner; the submit button shows the shared `.spinner` while saving. Takes the `closing` flag so it can animate out. |
 | `ProductImage` | `productImage.tsx` | Fetches a signed URL for a product and renders `<img>` with explicit `width`/`height` (avoids layout shift) plus `loading="lazy"`; renders nothing while loading and calls `onMissing` when there is no image. Re-fetches only when `product.id`, `product.name` or `imageVersion` change. |
-| `Modal` | `modal.tsx` | The shared dialog shell. `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, Escape to close, backdrop click to close, focus moved in on open and restored to the trigger on close, Tab trapped (only the topmost dialog reacts, so nested confirms work), and a background scroll lock. |
-| `ConfirmModal` | `confirmModal.tsx` | Destructive-action confirmation built on `Modal` (`title`, `message`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`). Cancel is rendered first so the safe choice sits under the thumb, and the consequence sentence is wired up via `aria-describedby`. |
+| `ProductDetailModal` | `productDetailModal.tsx` | What tapping a product card opens. Built on `Modal`: the image, then a `<dl>` label/value ledger (ID badge, description, release date, value, purchase count) and the three actions — a full-width "Compras (N)" over a row holding "Editar" and "Eliminar". Purely presentational and action-only: it takes the `product`, the `purchaseCount`, the `imageVersion`/`getSignedUrl` pair for `ProductImage`, the `closing` flag, and `onEdit` / `onDelete` / `onOpenPurchases` callbacks. Each callback opens a **further** dialog on top of this one rather than replacing it, so cancelling lands back on the product (the same nesting `PurchasesModal` uses). |
+| `Modal` | `modal.tsx` | The shared dialog shell. `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, Escape to close, backdrop click to close, focus moved in on open and restored to the trigger on close, Tab trapped (only the topmost dialog reacts, so nested confirms work), and a background scroll lock. Takes a `closing` prop from `usePresent`: it adds `.modalOverlay--closing` and stops answering Escape/Tab while the exit plays, so the dialog fades and slides out instead of snapping away. |
+| `ConfirmModal` | `confirmModal.tsx` | Destructive-action confirmation built on `Modal` (`title`, `message`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`, and the `closing` flag passed straight through). Cancel is rendered first so the safe choice sits under the thumb, and the consequence sentence is wired up via `aria-describedby`. |
 
 ### 10.4 Helpers
 
@@ -457,8 +500,8 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 
 | File | Purpose |
 | :-- | :-- |
-| `src/styles/theme.css` | **Single source of truth** for the design system, imported once by `Layout.astro`. Holds the tokens (color, type scale, spacing, elevation, motion), the globals (`box-sizing`, `body` typography, `:focus-visible`, `prefers-reduced-motion`, `.skipLink`, `.spinner`, `.tabular`, `.textMuted`) **and the shared components**: the form primitives (`.fieldGroup`, `.label`, `.input`, `.textarea`, `.fieldHint`, `.fieldError`), the button set (`.btnPrimary`/`.btnSecondary`/`.btnGhost`/`.btnDanger`/`.btnIcon`/`.btnGhost--danger` plus the `.btnSm`/`.btnLg` size modifiers), `.card` and the foldable `.collapsibleCard*` (header, trigger, title, meta, chevron, actions, body), `.badge` + its six modifiers, `.banner`, `.emptyState*` and `.statusMessage`. Token rationale lives in `DESIGN.md`. |
-| `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`/`topBarLogo`/`userEmail`, `mainContent`, `pageHeader*` (`.pageHeaderText .title` steps 24px → 32px at `640px`; `.pageHeaderActions` centres the refresh/close buttons against the taller CTA), `dashboardBanner` (a `.banner` from theme.css), `productsGrid` with the `product*` card parts, the `purchases*` / `payments*` / `payment*` modal internals (`.purchaseCard` is now only a surface modifier on the shared `.collapsibleCard`; `.purchaseTitleBlock` stacks the client name over the phone in the card header), `modalOverlay`, `formCard`/`formCardHeader`/`form`/`confirmMessage`/`confirmCard`/`buttonGroup`, `fileInput`/`imagePreview*`/`imageRemoveBtn`, `dashboardSections`, `collapsible*` (heading, trigger, title, meta, chevron, body), and `salesList` with its `sale*` rows (`saleRow`, `saleMain`, `saleClientName`, `saleMeta`, `saleSide`, `saleMoney`, `saleMoneyTotal`). Layout-only modifiers on the shared buttons (`btnRefresh`, `btnClose`, `btnCardAction`, `btnPurchases`, `purchasesNewBtn`, `paymentSubmitBtn`, `rowRemoveBtn`) also live here. Each interaction state (hover/active/focus) sits next to the class it belongs to. Imported by `dashboard.astro`. |
+| `src/styles/theme.css` | **Single source of truth** for the design system, imported once by `Layout.astro`. Holds the tokens (color, type scale, spacing, elevation, motion), the globals (`box-sizing`, `body` typography, `:focus-visible`, `prefers-reduced-motion`, `.skipLink`, `.spinner`, `.tabular`, `.textMuted`) **and the shared components**: the form primitives (`.fieldGroup`, `.label`, `.input`, `.textarea`, `.fieldHint`, `.fieldError`), the button set (`.btnPrimary`/`.btnSecondary`/`.btnGhost`/`.btnDanger`/`.btnIcon`/`.btnGhost--danger` plus the `.btnSm`/`.btnLg` size modifiers), `.card` and the foldable `.collapsibleCard*` (header, trigger, title, meta, chevron, actions, body), `.badge` + its six modifiers, `.banner`, `.emptyState*` and `.statusMessage`. It also owns **motion**: the `--duration-*` / `--ease-*` tokens, the `riseIn` entrance utility, and the `prefers-reduced-motion` override that collapses every duration to nothing. Token rationale lives in `DESIGN.md`. |
+| `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`/`topBarLogo`/`userEmail`, `mainContent`, `pageHeader*` (`.pageHeaderText .title` steps 24px → 32px at `640px`; `.pageHeaderActions` centres the refresh/close buttons against the taller CTA), `dashboardBanner` (a `.banner` from theme.css), `productsGrid` with the `product*` card parts (`.card.productCard` is the button surface itself — tighter `--space-12` padding, `productHeader`, `productName`, `productCardMeta`, `productValue`, `productPurchases`, and the bleeding `productImage`), the `productDetail*` internals of the product dialog (image, label/value ledger, stacked description row, full-width primary action + button row), the `purchases*` / `payments*` / `payment*` modal internals (`.purchaseCard` is now only a surface modifier on the shared `.collapsibleCard`; `.purchaseTitleBlock` stacks the client name over the phone in the card header), `modalOverlay`, `formCard`/`formCardHeader`/`form`/`confirmMessage`/`confirmCard`/`buttonGroup`, `fileInput`/`imagePreview*`/`imageRemoveBtn`, `dashboardSections`, `collapsible*` (heading, trigger, title, meta, chevron, body, and the `.collapsibleBodyInner` padder that lets the fold reach a true `0`), the dialog animations (`fadeIn` / `slideUp` on open at `--duration-slow`, `fadeOut` / `slideDown` under `.modalOverlay--closing`, held with `forwards` until React unmounts), and `salesList` with its `sale*` rows (`saleRow`, `saleMain`, `saleClientName`, `saleMeta`, `saleSide`, `saleMoney`, `saleMoneyTotal`). Layout-only modifiers on the shared buttons (`btnRefresh`, `btnClose`, `purchasesNewBtn`, `paymentSubmitBtn`, `rowRemoveBtn`, `productDetailPrimary`, `productDetailButtonRow`) also live here. Each interaction state (hover/active/focus) sits next to the class it belongs to. Imported by `dashboard.astro`. |
 | `src/styles/loginModal.css` | Login screen layout only: `authShell`, `authHero`, `authLogo`, `authEyebrow`, `authWordmark`, `authCard`, `authHeader`, `authTitle`, `authSubtitle`, `authForm`, `submitBtn`. It defines **no palette of its own** — colors and type come from `theme.css`. Imported by `index.astro`. |
 
 There is no CSS framework and no `@apply`/utility layer — components reference the
@@ -523,7 +566,7 @@ was added later:
 
 | Path | What it is |
 | :-- | :-- |
-| `AGENTS.md` | Contributing/agent guidance: project reference, the non-negotiable **shipping constraint** (static-only frame, see above), design system, dev server in background mode, screenshot workflow, Astro doc links. `CLAUDE.md` is a **symlink** to it. |
+| `AGENTS.md` | Contributing/agent guidance: project reference, the non-negotiable **shipping constraint** (static-only frame, see above), design system, dev server in background mode, how UI changes are verified, Astro doc links. `CLAUDE.md` is a **symlink** to it. |
 | `DESIGN.md` | The design contract for this repo: tokens, type scale, component stylings, states, layout, do's/don'ts and a pre-flight checklist. |
 | `.agents/skills/` | Vendored agent skills — Supabase (`supabase`, `supabase-postgres-best-practices`) plus design (`web-design-guidelines` from `vercel-labs/agent-skills`, `redesign-existing-projects` from `Leonxlnx/taste-skill`), mirrored under `.claude/skills/`. |
 | `skills-lock.json` | Lockfile for the above (sources + content hashes; see §14 for the two entries without a hash). |
@@ -537,14 +580,14 @@ was added later:
 
 Five project subagents live in `.cursor/agents/`. They exist so independent work runs **in
 parallel** in isolated contexts instead of serially inside one conversation: the main agent
-can edit while `ui-verifier` measures the layout and `docs-sync` checks the prose, and none
+can edit while `ui-verifier` checks the layout against `DESIGN.md` and `docs-sync` checks the prose, and none
 of those three need the others' context. Delegating also keeps large command output (build
 logs, DOM dumps) out of the main context.
 
 | Agent | Delegate to it when | Writes files? |
 | :-- | :-- | :-- |
 | `gate-verifier` | After any code, config, dependency or style change, and before every commit. Runs `npx tsc --noEmit`, `npm run build`, the static-artifact shape check (no `functions/`, no function route in `config.json`) and the static-only source checks, then reports PASS/FAIL with raw evidence. | No — read-only. |
-| `ui-verifier` | After touching `src/components/*.tsx`, `src/styles/*.css`, `src/pages/*.astro` or `src/layouts/*`. Headless-Chrome screenshots plus real DOM geometry at 390 px and 1280 px, checked against `DESIGN.md`: targets ≥ 44 px, visible focus ring, contrast via tokens, disclosure ARIA, reduced motion. | Only throwaway `/tmp` screenshots. |
+| `ui-verifier` | After touching `src/components/*.tsx`, `src/styles/*.css`, `src/pages/*.astro` or `src/layouts/*`. Reviews the change against `DESIGN.md` by **reading the source — it never renders or simulates a browser**: targets ≥ 44 px, visible focus ring, contrast via tokens, disclosure ARIA + resting `hidden`, reduced motion, durations/easings traced to tokens. | No — read-only. |
 | `docs-sync` | After any change to components, hooks, repositories, routes, styles or tech debt, and after every commit. Audits `DOCUMENTATION.md` / `DESIGN.md` / `CHANGELOG.md` against the code and fixes the drift: stale routes, data model, hook rows, §14 items, §15 history, the date stamp. | Yes, docs only. |
 | `data-layer-reviewer` | After touching any repository, hook, query or type. Reviews against the vendored Supabase skills: single client, `RepoResult<T>` never throwing, loading/error states, N+1, cascade assumptions, RLS. | No by default. |
 | `commit-steward` | Once changes are verified. Stages **explicit paths** (never `git add -A`, so `dist/` stays out of history) and writes the Conventional-Commits message, including the git-pager and heredoc workarounds this terminal needs. | Commits; does not author code. |
@@ -563,7 +606,7 @@ the design-system pass and two were deliberately not:
 | Taste Skill → `redesign-skill` | ✅ Vendored as `.agents/skills/redesign-existing-projects`. Supplied the audit-first protocol: scan → diagnose → fix, in a fixed priority order. |
 | Vercel Web Design Guidelines | ✅ Vendored as `.agents/skills/web-design-guidelines`. It fetches the canonical rule list at review time and reports findings as `file:line`. |
 | Awesome DESIGN.md | ✅ Adopted as a *convention*: `DESIGN.md` (how it should look) sits alongside `AGENTS.md` (how to build). |
-| Playwright CLI | ➖ Not installed. Chrome is already present, so UI work is verified with headless screenshots instead (see `AGENTS.md`). |
+| Playwright CLI | ➖ Not installed, and not wanted: UI is verified from the source, not by rendering it. |
 | Image to Code | ➖ Not used. It requires generating design images first; there are no mockups for this app and no image-generation tool in this environment. |
 
 The pass followed the redesign skill's priority order: font swap → color cleanup →
@@ -611,7 +654,8 @@ codegraph serve --mcp --path "$PWD"
 | Tests | ❌ none. |
 | Lint / format | ❌ no ESLint/Prettier config. |
 | CodeGraph index | ✅ built (`.codegraph/`), MCP handshake verified. |
-| Visual check | ✅ Login screenshotted with headless Chrome at 320 / 390 / 768 / 1280 px. The dashboard needs Supabase credentials to render authed, so its two sections were measured through a throwaway static harness driven over the Chrome DevTools Protocol — at both 390 px and 1280 px: no horizontal overflow, all three section triggers identical (358×44.5 / 960×44.5), no title/meta/chevron overlap, sale rows with a 12 px gutter, and `.pageHeaderActions` centres its buttons (refresh and CTA share one midline: `cy=104.4` at 390 px, `cy=55.6` at 1280 px, against 44.0 px and 46.5 px tall controls). The harness was deleted afterwards; the screenshot command in `AGENTS.md` still applies. |
+| Visual check | ✅ By reading the source: values traced to `theme.css` tokens, layout rules read from the stylesheets. No browser is simulated. |
+| Motion check | ✅ By reading the source: durations/easings come from the `--duration-*` / `--ease-*` tokens with `EXIT_MS` in `usePresent.ts` kept in sync with `--duration-base`, and both JS drivers branch on `prefers-reduced-motion`. |
 | Static output | ✅ `.vercel/output/static/` written, `.vercel/output/functions/` absent. |
 | Design system | Tokens in `src/styles/theme.css`, contract in `DESIGN.md`. |
 
@@ -706,14 +750,27 @@ Ordered roughly by how much they matter:
 | `b698b2b` | created set up files for external AI tools |
 | `f36b6a1` | feat: overhaul design system and guidelines |
 | `66f2031` | feat: add collapsible dashboard sections and read-only Mis ventas |
+| `2f2d731` | docs: bring the git history table up to date |
+| `09026ff` | chore: add project subagents for parallel verification |
+| `21231c0` | Refactor code structure for improved readability and maintainability |
+| `390fccf` | Add UXonFly design system documentation for consistent UI guidelines and updated the project to follow them. |
+| `9ea91d7` | feat: add collapsible panel and presence hooks for UI components |
 
 Rows list feature and scaffold commits; documentation-only commits are not tracked
 here.
 
 So the app was built in this order: **Astro scaffold → auth + login → data hooks →
 UI polish (confirm modal, images, currency) → repo hygiene (`node_modules`) → AI
-tooling → design system → dashboard sections + repository layer.** The domain model
+tooling → design system → dashboard sections + repository layer → reusable
+primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`) → motion (a presence
+hook for dialogs, an animated fold for disclosures).** The domain model
 (products → purchases → payments) and the storage layer have existed since `2e0b0c6`.
+
+`9ea91d7` is a single commit that carries **two** passes — the reusable
+primitives (documented in `CHANGELOG.md` under "General UI components") and the
+motion work on top of them. Prefer splitting them in future; one commit that
+changes both the component API and the animation contract is harder to review
+and, worse, to revert.
 
 ## 16. Suggested next steps
 
@@ -739,8 +796,8 @@ Roughly in priority order:
    gone, and the unused Astro starter page (`Welcome.astro`) with its
    `astro.svg`/`background.svg` assets and the stray PDF have been deleted.
    Still open: fix `package.json` metadata (§14.11).
-7. **Extend the docs:** record the actual Supabase schema (SQL migrations) and add a
-   screenshot/GIF of the dashboard so this file stays the single source of truth.
+7. **Extend the docs:** record the actual Supabase schema (SQL migrations) so this
+   file stays the single source of truth.
 8. **Design-system follow-through:** the login screen and the dashboard now share
    tokens, but their field markup is still written twice. Consider extracting the
    remaining duplicated form markup the same way `Modal` was extracted.
