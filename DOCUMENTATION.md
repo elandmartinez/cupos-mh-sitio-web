@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-10-05 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks) and product-card / product-detail-dialog passes committed on top of it
+> **Status:** work in progress · **Last documented:** 2026-10-09 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks) and product-card / product-detail-dialog passes committed on top of it
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -103,8 +103,12 @@ cupos-sitio-web/
 ├── astro.config.mjs        # React integration + Vercel adapter + devToolbar disabled
 ├── tsconfig.json           # extends astro/tsconfigs/strict, jsx: react-jsx
 ├── .env                    # PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_KEY (⚠ tracked)
+├── .env.template           # names of the two PUBLIC_SUPABASE_* vars, no values
 ├── AGENTS.md               # agent/contributor instructions (CLAUDE.md symlinks to it)
 ├── DESIGN.md               # design system: tokens, components, states, a11y (see §10.5)
+├── prompts/                # prompt chain: PROMPT-NN-NAME.md (01 = baseline, 02 = known issues)
+├── kill-criteria.md        # blank business-facing scaffold, to be filled in
+├── .cline/.clinerules      # short Cline rules that defer to AGENTS.md
 ├── public/                 # served as-is at the site root
 │   ├── monster-high-logo.png        # used by loginModal.tsx
 │   ├── monster-high-logo-color.png  # used by dashboard.tsx
@@ -567,6 +571,8 @@ was added later:
 | Path | What it is |
 | :-- | :-- |
 | `AGENTS.md` | Contributing/agent guidance: project reference, the non-negotiable **shipping constraint** (static-only frame, see above), design system, dev server in background mode, how UI changes are verified, Astro doc links. `CLAUDE.md` is a **symlink** to it. |
+| `prompts/` | The prompt chain for planned agent work, named `PROMPT-NN-UPPERCASE-NAME.md`. `PROMPT-01` records the baseline (done); `PROMPT-02` covers the §14 fixes. Scaffolded with the `cc-project-scaffold` skill. |
+| `.cline/.clinerules` | Cline rules, kept deliberately short: they point at `AGENTS.md`, `DOCUMENTATION.md` and `DESIGN.md` and restate only the stack and verification rules. `.cline/skills/cc-project-scaffold` is the scaffold skill (its own git repo). |
 | `DESIGN.md` | The design contract for this repo: tokens, type scale, component stylings, states, layout, do's/don'ts and a pre-flight checklist. |
 | `.agents/skills/` | Vendored agent skills — Supabase (`supabase`, `supabase-postgres-best-practices`) plus design (`web-design-guidelines` from `vercel-labs/agent-skills`, `redesign-existing-projects` from `Leonxlnx/taste-skill`), mirrored under `.claude/skills/`. |
 | `skills-lock.json` | Lockfile for the above (sources + content hashes; see §14 for the two entries without a hash). |

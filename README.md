@@ -1,59 +1,46 @@
 # Cupos Sitio Web
 
-> 📖 Full project documentation — architecture, data model, hooks, and known issues —
-> lives in **[DOCUMENTATION.md](./DOCUMENTATION.md)**.
->
-> 🎨 The design system (tokens, components, states, accessibility) is documented in
-> **[DESIGN.md](./DESIGN.md)**.
->
-> The text below is the default Astro starter README.
+Internal admin web app for managing "cupos" (order slots) for a small reseller business, with a Monster High theme. A signed-in operator manages products, client purchases and payments. The interface is in Spanish.
 
----
+## Stack
 
+- Astro 7 (static output) with React 19 islands
+- TypeScript (strict)
+- Supabase for auth, Postgres and storage
+- Plain CSS with design tokens
+- Deployed to Vercel as a static site
 
-# Astro Starter Kit: Basics
+## Quick start
 
 ```sh
-npm create astro@latest -- --template basics
+cp .env.template .env      # then fill in the two PUBLIC_SUPABASE_* values
+npm install
+npm run dev                # http://localhost:4321
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Requires Node 22.12 or newer.
 
-## 🚀 Project Structure
+| Command           | Action                                  |
+| :---------------- | :-------------------------------------- |
+| `npm run dev`     | Start the dev server                    |
+| `npm run build`   | Build the static site into `./dist`     |
+| `npm run preview` | Serve the built output locally          |
 
-Inside of your Astro project, you'll see the following folders and files:
+## Documentation
 
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
-```
+- [DOCUMENTATION.md](./DOCUMENTATION.md): what the app does, architecture, routes, data model, deployment, known issues.
+- [DESIGN.md](./DESIGN.md): the design system (tokens, components, states, accessibility).
+- [AGENTS.md](./AGENTS.md): working rules for contributors and AI agents (`CLAUDE.md` is a symlink to it).
+- [CHANGELOG.md](./CHANGELOG.md): change history.
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+## Prompts
 
-## 🧞 Commands
+Planned work for AI coding agents lives in `prompts/` as `PROMPT-NN-DESCRIPTIVE-NAME.md`. `PROMPT-01` records the baseline that already exists; `PROMPT-02` fixes the known issues.
 
-All commands are run from the root of the project, from a terminal:
+## Deploy
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+Target: Vercel, static output only. Set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_KEY` on the Vercel project for Production and Preview, since they are inlined at build time. See section 11 of `DOCUMENTATION.md`.
 
-## 👀 Want to learn more?
+## License
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Private.

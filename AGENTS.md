@@ -115,3 +115,28 @@ Consult these guides before working on related tasks:
 - [Adding or managing content](https://docs.astro.build/en/guides/content-collections/)
 - [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
 - [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
+
+
+## Prompt chain
+
+Planned work for agents lives in `./prompts/` with strict naming: `PROMPT-NN-UPPERCASE-NAME.md`
+(two-digit number, sequential, letter suffix for hotfixes such as `02B`).
+
+- `PROMPT-01-INIT-PROJECT.md` — baseline of what already exists (done, do not re-run).
+- `PROMPT-02-FIX-KNOWN-ISSUES.md` — env safety, artifact churn, 404 page, quality gates.
+
+Each prompt has Goal, Stack, What to build, Constraints, Done when and Out of scope. Read the
+latest open prompt before starting planned work, and mark it done when it ships.
+`kill-criteria.md` is a blank scaffold for the business-facing side of the project; fill it in
+before any paid or irreversible commitment.
+
+## Deploy
+
+- **Target**: Vercel, static output only.
+- **Reason**: no server compute needed; Supabase is the backend and the site is a client-side SPA.
+- **Required env vars**: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_KEY` (see `.env.template`).
+- **Setup cheatsheet** (first deploy):
+  1. Import the repo in Vercel; the Astro preset runs `npm run build`.
+  2. Set both env vars for Production and Preview (they are inlined at build time).
+  3. Confirm `.vercel/output/functions/` does not exist after the build.
+  4. Verify RLS on the three tables and the `products-images` bucket.
