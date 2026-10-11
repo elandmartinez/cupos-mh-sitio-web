@@ -1,5 +1,6 @@
 /**
- * Formats a date string as a short Spanish label: `4 oct 2026`.
+ * Formats a date string as a short Spanish label, e.g. `4 de oct de 2026`
+ * (the exact connector wording comes from the runtime's ICU data).
  *
  * Accepts both shapes Supabase hands back — a `date` column (`"2026-10-04"`)
  * and a `timestamptz` (full ISO string). A bare `YYYY-MM-DD` is parsed as *UTC*

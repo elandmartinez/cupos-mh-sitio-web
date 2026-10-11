@@ -1,5 +1,10 @@
 # PROMPT 02: Fix Known Issues
 
+> **Status:** done (2026-10-10). One precondition carried forward: the Vercel project
+> does **not** yet have `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_KEY` set, so **set
+> them (Production + Preview) before the next deploy** — `PUBLIC_*` values are inlined
+> at build time. `DOCUMENTATION.md` §4 / §11 state this loudly.
+
 ## Goal
 
 Close the highest-priority items from `DOCUMENTATION.md` section 14 (known issues) and section 16 (next steps) without changing features or the static deploy shape.

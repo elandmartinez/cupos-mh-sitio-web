@@ -5,6 +5,38 @@ today and `DESIGN.md` for how it looks; this file records the reasoning behind t
 that produced them. Newest entry first.
 
 ---
+## 2026-10-10 — Hardening pass: env guard, untracked artifacts, a real 404, first quality gates
+
+**Why:** `DOCUMENTATION.md` §14 recorded a cluster of safety and hygiene items that
+all had the same shape — the repo worked, but only because of state that lived on one
+machine or in one person's head: `.env` was committed (so the Vercel build only worked
+*by accident*), `.astro/` churn was tracked, the 404 route pointed at a file that did
+not exist, and nothing (`tsc`, tests, `astro check`) was wired up as a gate. This pass
+closes those without adding a feature or changing the deploy shape.
+
+**Code**
+
+| Change | Detail |
+| :-- | :-- |
+| **New** `src/pages/404.astro` | A static "No encontramos esta página" card that reuses the existing `.emptyState` primitive (heading + body + exactly one CTA back to `/`). No island, no React — it emits `404.html`, so the adapter's `{"dest":"/404.html","status":404}` route now lands somewhere intentional. |
+| **New** `vitest.config.ts` + 5 `src/**/*.test.ts` files | 19 unit tests over the pure code: `formatCurrency`, `formatDate` (asserting the TZ-independent day, not the ICU wording), `sanitizeSegment`/`getPath`, `getProductImagePath`, and the `RepoResult` helpers (`repoSuccess`, `repoFailure`, `toErrorMessage`, `nowIso`). Repository/hook tests `vi.mock('../lib/supabase')`, so the suite is hermetic: node env, no env vars, no network. |
+| `src/lib/supabase.ts` | The env guard now **names the missing `PUBLIC_*` variable** and fails in two places: it writes a readable Spanish `role="alert"` banner into `#main` when a document exists (no more blank page on a misconfigured bundle), then throws at module load so the build fails too — the same message either way. |
+| `src/helpers/date.ts` | Docstring corrected to the actual output (`4 de oct de 2026`); the exact connector wording is ICU-provided. No behaviour change. |
+| `.gitignore` | Added `dist/` and `.env` (`.vercel`, `node_modules`, `.astro/`, `.env.local` were already listed). Untracked with `git rm --cached .env` and `git rm -r --cached .astro dist`. |
+| `package.json` | `"name"` is now `cupos-sitio-web` with a `description`; added `check` (`astro check`) and `test` / `test:watch` (`vitest`) scripts; devDeps `@astrojs/check`, `typescript`, `vitest`. |
+
+**Docs:** `DOCUMENTATION.md` §2/§4/§5/§6/§7/§11/§13/§14/§16 + the "Last documented"
+line; `prompts/PROMPT-02-FIX-KNOWN-ISSUES.md` marked done.
+
+**No deploy-shape change:** no route, no `output: 'server'`, no middleware/API route,
+no build-time network call. `npx tsc --noEmit` clean, `npm run check` → 0 errors,
+`npm test` → 19 passing, and `npm run build` emits `dist/` + `.vercel/output/static`
+(3 static pages) with **no** `.vercel/output/functions/`. Deploy precondition
+documented loudly: `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_KEY` must be set on the
+Vercel project (Production + Preview) **before** the first deploy, since `PUBLIC_*`
+values are inlined at build time.
+
+
 ## 2026-10-05 — Product cards become one tap target; a product dialog replaces their buttons
 
 **Why:** every product card carried three buttons ("Editar", "Eliminar",

@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-10-09 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks) and product-card / product-detail-dialog passes committed on top of it
+> **Status:** work in progress · **Last documented:** 2026-10-10 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes and the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts) committed on top of it
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -36,8 +36,8 @@ All user-facing copy is in **Spanish**.
 | Typography | **Outfit** (Google Fonts) | One family for the whole app, loaded in `Layout.astro` with `display=swap` plus a system fallback stack (degrades gracefully offline). |
 | Runtime | **Node ≥ 22.12.0** | enforced by `engines` in `package.json`. |
 
-> `package.json` still carries the starter name `"smoggy-shell"` — a leftover from
-> `npm create astro`. It does not affect anything at runtime.
+> Quality gates are wired: `npx tsc --noEmit`, `npm run check` (`astro check`) and
+> `npm test` (Vitest) all pass — see [§13](#13-current-status--validation).
 
 ## 3. Requirements
 
@@ -57,27 +57,30 @@ PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 PUBLIC_SUPABASE_KEY=<publishable / anon key>
 ```
 
-If either is missing, `src/lib/supabase.ts` throws at module load with a helpful
-message, so a misconfigured build fails fast.
+If either is missing, `src/lib/supabase.ts` **names the missing variable** and fails
+loudly in two places: it writes a readable Spanish `role="alert"` banner into `#main`
+when a document exists (so a misconfigured bundle shows a sentence a human can act on
+instead of a blank page), then throws at module load so the build fails too.
 
-> [!WARNING]
-> **`.env` is currently tracked by git** (it appears in `git ls-files` and in commit
-> history). Only the *publishable/anon* key is in there today, which is safe by
-> design to ship in a browser bundle — **but never put the Supabase `service_role`
-> key here.** If this file ever held a real secret, rotate it and untrack it:
->
-> ```sh
-> git rm --cached .env
-> printf '.env\n' >> .gitignore
-> ```
+> [!IMPORTANT]
+> **`.env` is untracked and must stay that way** (`git rm --cached .env` has been
+> run; it is in `.gitignore`). The file still exists on local disk. Only the
+> *publishable/anon* key belongs in it — **never the Supabase `service_role` key.**
+> Because `PUBLIC_*` values are inlined at **build time**, `PUBLIC_SUPABASE_URL` and
+> `PUBLIC_SUPABASE_KEY` must be set on the **Vercel project** (Production *and*
+> Preview) **before the first deploy**, or the build fails with the guard message
+> above. `.env.template` lists the two names with no values.
 
 ## 5. Getting started
 
 ```sh
 npm install          # install dependencies
 npm run dev          # Astro dev server at http://localhost:4321
-npm run build        # production build into ./dist
+npm run build        # production build into ./dist (+ .vercel/output)
 npm run preview      # serve the built output locally
+npm run check        # astro check (type/diagnostic gate)
+npm test             # vitest run (unit tests)
+npm run test:watch   # vitest in watch mode
 npm run astro -- --help
 ```
 
@@ -91,10 +94,11 @@ astro dev logs             # tail its output
 astro dev stop             # stop it
 ```
 
-A clean `npm run build` currently succeeds and emits two static pages
-(`/index.html` and `/dashboard/index.html`).
+A clean `npm run build` currently succeeds and emits three static pages
+(`/index.html`, `/dashboard/index.html` and `404.html`).
 
-There is **no `test` or `lint` script** — see [§14](#14-known-issues--tech-debt).
+Unit tests live next to the code as `src/**/*.test.ts` and run with `npm test`;
+`vitest.config.ts` at the repo root sets the `node` environment and the include glob.
 
 ## 6. Project structure
 
@@ -104,6 +108,7 @@ cupos-sitio-web/
 ├── tsconfig.json           # extends astro/tsconfigs/strict, jsx: react-jsx
 ├── .env                    # PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_KEY (⚠ tracked)
 ├── .env.template           # names of the two PUBLIC_SUPABASE_* vars, no values
+├── vitest.config.ts         # Vitest config: node env, src/**/*.test.ts
 ├── AGENTS.md               # agent/contributor instructions (CLAUDE.md symlinks to it)
 ├── DESIGN.md               # design system: tokens, components, states, a11y (see §10.5)
 ├── prompts/                # prompt chain: PROMPT-NN-NAME.md (01 = baseline, 02 = known issues)
@@ -113,11 +118,11 @@ cupos-sitio-web/
 │   ├── monster-high-logo.png        # used by loginModal.tsx
 │   ├── monster-high-logo-color.png  # used by dashboard.tsx
 │   ├── favicon.ico / favicon.svg
-│   └── arroyo_heydi_-_mileage.pdf   # unrelated leftover, currently unreferenced
 └── src/
     ├── pages/              # routes (Astro)
     │   ├── index.astro         # "/"          → LoginModal
-    │   └── dashboard.astro     # "/dashboard" → DashboardApp
+    │   ├── dashboard.astro     # "/dashboard" → DashboardApp
+    │   └── 404.astro           # unknown URLs → static "No encontramos esta página"
     ├── layouts/
     │   └── Layout.astro     # <html> shell, imports theme.css
     ├── components/          # React islands (all default exports)
@@ -157,10 +162,11 @@ cupos-sitio-web/
     │   └── date.ts          # formatDate() — short es-CO label, local-midnight safe
     ├── lib/
     │   └── supabase.ts      # canonical supabase client (env-guarded)
-    └── styles/
-        ├── theme.css        # design tokens + globals + shared components
-        ├── dashboard.css    # dashboard layout + interaction states
-        └── loginModal.css   # login layout only (tokens come from theme.css)
+    ├── styles/
+    │   ├── theme.css        # design tokens + globals + shared components
+    │   ├── dashboard.css    # dashboard layout + interaction states
+    │   └── loginModal.css   # login layout only (tokens come from theme.css)
+    └── **/*.test.ts         # colocated Vitest unit tests (helpers + repositories)
 ```
 
 ## 7. Routes
@@ -169,6 +175,7 @@ cupos-sitio-web/
 | :-- | :-- | :-- | :-- |
 | `/` | `src/pages/index.astro` | static shell + `client:load` island | `LoginModal` (sign-in form). |
 | `/dashboard` | `src/pages/dashboard.astro` | static shell + `client:only="react"` island | `DashboardApp`. |
+| `404` (any unknown path) | `src/pages/404.astro` | static, no island | A short Spanish "not found" card reusing the `.emptyState` primitive, with one link back to `/`. Vercel's `config.json` routes unmatched paths here with `status: 404`. |
 
 Both pages are wrapped in `Layout.astro`, which sets `<title>`, viewport, favicons
 and the shared background color token. Each route supplies its own title —
@@ -514,7 +521,7 @@ shared class names above. Tokens live in `theme.css`; page stylesheets own layou
 ## 11. Build & deployment
 
 ```sh
-npm run build      # → dist/  (verified: 2 static pages, ~1.2 s)
+npm run build      # → dist/  (verified: 3 static pages, ~0.9 s)
 npm run preview    # preview the built output
 ```
 
@@ -524,7 +531,7 @@ no server. A build at the last documented commit produced `.vercel/output/` usin
 
 | Path | Contents |
 | :-- | :-- |
-| `.vercel/output/static/` | `index.html`, `dashboard/index.html`, `favicon.*`, both logos, the stray PDF, and hashed `_astro/*` CSS/JS bundles. |
+| `.vercel/output/static/` | `index.html`, `dashboard/index.html`, `404.html`, `favicon.*`, both logos, and hashed `_astro/*` CSS/JS bundles. |
 | `.vercel/output/config.json` | `handle: filesystem` → immutable `cache-control` for `/_astro/*` → a `404` fallback. No route targets a function. |
 | `.vercel/output/functions/` | **Does not exist.** This is the proof that no Serverless/Edge function is created. |
 | `.vercel/output/server/` | Empty directory emitted by the adapter; nothing is shipped from it. |
@@ -532,8 +539,7 @@ no server. A build at the last documented commit produced `.vercel/output/` usin
 `@astrojs/vercel` is configured but **unnecessary for static output** — a plain
 `astro build` would deploy identically. It is kept so that adding SSR later does not
 require re-plumbing, and it is the thing that makes `.vercel/output` (not `dist/`) the
-artifact Vercel consumes. `.vercel/` is git-ignored; see
-[§14](#14-known-issues--tech-debt) for the `dist/`/`.astro/` churn.
+artifact Vercel consumes. `.vercel/`, `dist/` and `.astro/` are git-ignored and untracked.
 
 ### What keeps it static
 
@@ -654,11 +660,11 @@ codegraph serve --mcp --path "$PWD"
 
 | Check | Result |
 | :-- | :-- |
-| `npm run build` | ✅ passes — 2 static pages (`/index.html`, `/dashboard/index.html`), ~1 s. |
+| `npm run build` | ✅ passes — 3 static pages (`/index.html`, `/dashboard/index.html`, `404.html`), ~0.9 s. |
 | Dev server | `npm run dev` → `http://localhost:4321` (or `astro dev --background`). |
-| Types | No `astro check`/`tsc` npm script, but `npx tsc --noEmit` is clean under `astro/tsconfigs/strict`. |
-| Tests | ❌ none. |
-| Lint / format | ❌ no ESLint/Prettier config. |
+| Types | ✅ `npx tsc --noEmit` clean, `npm run check` (`astro check`) → **0 errors** (43 files; 5 hints, all pre-existing deprecations/unused-import). |
+| Tests | ✅ `npm test` (`vitest run`) → **19 passing** across 5 files (`formatCurrency`, `formatDate`, `sanitizeSegment`/`getPath`, `getProductImagePath`, `RepoResult` helpers). Node environment, Supabase mocked, hermetic. |
+| Lint / format | ❌ no ESLint/Prettier config yet (see [§14](#14-known-issues--tech-debt)). |
 | CodeGraph index | ✅ built (`.codegraph/`), MCP handshake verified. |
 | Visual check | ✅ By reading the source: values traced to `theme.css` tokens, layout rules read from the stylesheets. No browser is simulated. |
 | Motion check | ✅ By reading the source: durations/easings come from the `--duration-*` / `--ease-*` tokens with `EXIT_MS` in `usePresent.ts` kept in sync with `--duration-base`, and both JS drivers branch on `prefers-reduced-motion`. |
@@ -669,17 +675,16 @@ codegraph serve --mcp --path "$PWD"
 
 Ordered roughly by how much they matter:
 
-1. **`.env` is tracked by git** and holds `PUBLIC_SUPABASE_URL` +
-   `PUBLIC_SUPABASE_KEY` — a *publishable* key, not a `service_role`/secret key
-   (verified: no secret key anywhere in the repo). Since `PUBLIC_*` values are
-   inlined into the client bundle regardless, this is not a leak; but it means
-   **RLS is the only thing protecting the data**, and that the Vercel build
-   currently only works *by accident*, because the file is committed. Untrack it and
-   set the values on the Vercel project instead.
-   Guarding is still blunt: `src/lib/supabase.ts` throws at module load, so a
-   missing value takes out the whole island with an uncaught error and a blank
-   page instead of a readable message. Every env var needs a loud *and legible*
-   guard.
+1. ✅ **`.env` untracked; guarded env.** `git rm --cached .env` has been run and
+   `.env` is in `.gitignore` (the file stays on local disk). It only ever held
+   `PUBLIC_SUPABASE_URL` + `PUBLIC_SUPABASE_KEY` — a *publishable* key, not a
+   `service_role`/secret key (verified: no secret key anywhere in the repo). Since
+   `PUBLIC_*` values are inlined into the client bundle regardless, this is not a
+   leak; but it means **RLS is the only thing protecting the data**. The guard in
+   `src/lib/supabase.ts` is now loud *and* legible: it names the missing variable,
+   paints a Spanish `role="alert"` banner into `#main` when a document exists, then
+   throws so the build fails too. **Remaining precondition:** set both vars on the
+   Vercel project (Production + Preview) before the first deploy.
 2. **"Mis ventas" reads the whole table.** `fetchAllPurchases()` pulls every row
    of `clients_purchases` with its product embedded — on mount and on every
    refresh (`handleRefresh` re-reads it alongside the products). There is no
@@ -687,13 +692,10 @@ Ordered roughly by how much they matter:
    Fine at this scale, not forever: add a limit or paginate before the table gets
    real. (The old duplicate-`GoTrueClient` issue is gone — `src/lib/supabase.ts`
    is now the only client instance.)
-3. **Generated artifacts are not ignored.** `.gitignore` only lists `.vercel` and
-   `node_modules`. `.astro/` is *tracked* and rewritten by every dev/build run
-   (churn), and `dist/` is untracked. Suggested:
-   ```sh
-   git rm -r --cached .astro dist
-   printf '.astro/\ndist/\n' >> .gitignore
-   ```
+3. ✅ **Generated artifacts are ignored/untracked.** `.gitignore` now lists
+   `.vercel`, `node_modules`, `.astro/`, `dist/`, `.env` and `.env.local`;
+   `git rm -r --cached .astro dist` and `git rm --cached .env` have been run, so the
+   tree no longer churns with build/dev output or carries the env file.
 4. **Auth is client-side only.** No `src/middleware.ts`, so the `/dashboard` HTML
    shell is publicly served and the redirect happens in the browser. The real
    security boundary is **Row Level Security** — make sure RLS is enabled and
@@ -718,11 +720,12 @@ Ordered roughly by how much they matter:
    dashboard now renders both the product error and the purchases error (in its
    own section). Image and payment failures are still silent — `PurchasesModal`
    never receives an `error`, even though every mutation returns one.
-10. **No quality gates.** No tests, no linter/formatter, no `astro check` script.
-    Strict TypeScript is on and `npx tsc --noEmit` is clean, but nothing enforces
-    it in CI.
-11. **Housekeeping:** `package.json` still says `"name": "smoggy-shell"` with no
-    `description`/`license`.
+10. ✅ **Quality gates started.** `npm run check` (`astro check`) and `npm test`
+    (Vitest, 19 tests over the pure helpers and the `RepoResult` contract) exist and
+    pass, alongside `npx tsc --noEmit`. **Still open:** no ESLint/Prettier, and
+    nothing wires these gates into CI yet.
+11. ✅ **Package metadata fixed.** `package.json` now says `"name": "cupos-sitio-web"`
+    with a `description` (still no `license` field).
 12. **Vendored design skills have no pinned hash.** `web-design-guidelines` and
     `redesign-existing-projects` were added to `skills-lock.json` with their source
     and skill path but **without** a `computedHash` — the algorithm behind the
@@ -735,10 +738,10 @@ Ordered roughly by how much they matter:
 14. **Two colour sources remain possible.** `loginModal.css` no longer defines its own
     palette, but nothing *enforces* that — a future edit could reintroduce local
     tokens. Worth a lint rule if the CSS grows.
-15. **The 404 route points at a file that does not exist.** The adapter writes
-    `{"src":"^/.*$","dest":"/404.html","status":404}` into `.vercel/output/config.json`,
-    but there is no `src/pages/404.astro`, so no `/404.html` is emitted and unknown
-    URLs land on Vercel's generic error page. One small file makes it intentional.
+15. ✅ **The 404 route points at a real file.** `src/pages/404.astro` emits
+    `404.html`, so the adapter's
+    `{"src":"^/.*$","dest":"/404.html","status":404}` route now lands on an
+    intentional Spanish "not found" page instead of Vercel's generic error.
 16. **`allowScripts` in `package.json` is inert here.** npm 10.9.3 (installed locally
     and bundled with Vercel's Node 22 image) does not read that field, so it is
     ignored on both sides; it does not affect the deploy either way.
@@ -782,18 +785,21 @@ and, worse, to revert.
 
 Roughly in priority order:
 
-1. **Security pass:** untrack `.env`; enable/verify **RLS** on all three tables and
-   the storage bucket; decide whether `/dashboard` needs server-side protection
+1. **Security pass:** ✅ `.env` untracked. Still to do: enable/verify **RLS** on all
+   three tables and the storage bucket, set the Supabase env vars on the Vercel
+   project, and decide whether `/dashboard` needs server-side protection
    (middleware) instead of a client redirect.
 2. ✅ **Consolidated.** `src/lib/supabase.ts` is now the only client instance and
    nothing but `src/repositories/` imports it. The next step along that line is
    generated database types (`supabase gen types`) so the row interfaces in §10.1
    stop being hand-written.
-3. **Stop artifact churn:** ignore `.astro/` and `dist/`, and untrack `.astro/`.
-4. **Quality gates:** add `astro check` (e.g. an `npm run check` script), plus
-   ESLint + Prettier, and a first test setup (`vitest` fits Astro/React well) —
-   the pure helpers (`formatCurrency`, `formatDate`, `sanitizeSegment`,
-   `getProductImagePath`) and the `RepoResult` contract are easy wins.
+3. ✅ **Artifact churn stopped:** `.astro/`, `dist/` and `.env` are ignored and
+   untracked.
+4. **Quality gates:** ✅ `astro check` via `npm run check` and a Vitest setup
+   (`npm test`, 19 tests) now cover the pure helpers (`formatCurrency`, `formatDate`,
+   `sanitizeSegment`, `getProductImagePath`) and the `RepoResult` contract.
+   Still open: **ESLint + Prettier**, and running the gates in CI (a GitHub Action
+   that runs `check` + `test` + `build`).
 5. **UX consistency:** ✅ purchase/payment deletion now confirms through
    `ConfirmModal`, and both dashboard sections render their own `errorAlert`.
    Still open: image and payment failures are swallowed, `updatePayment` is
