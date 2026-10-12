@@ -1,15 +1,38 @@
 ---
 import '../styles/theme.css'; // Shared design tokens (colors, radii, shadows)
+import es from '../i18n/locales/es';
+import en from '../i18n/locales/en';
 
 interface Props {
-	title: string;
+  /** The Spanish page title. Spanish is the static default (see the script below). */
+  title: string;
 }
 
 const { title } = Astro.props;
+
+// The three strings this shell owns — skip link, <title>, <meta description> —
+// are baked at build time, so i18next cannot reach them (there is no SSR). The
+// English side therefore comes from the same resource files, looked up by the
+// Spanish title the page passed, and handed to the inline script as data
+// attributes. One source of truth; no map to keep in sync by hand.
+const TITLES: Record<string, string> = {
+  [es.meta.titleLogin]: en.meta.titleLogin,
+  [es.meta.titleDashboard]: en.meta.titleDashboard,
+  [es.meta.titleNotFound]: en.meta.titleNotFound,
+};
+
+const titleEn = TITLES[title];
 ---
 
 <!doctype html>
-<html lang="es">
+<!-- `lang="es"` is the static truth: this document is Spanish until JavaScript
+     says otherwise, which is what a JS-less or pre-hydration render shows. -->
+<html
+	lang="es"
+	data-title-en={titleEn}
+	data-description-en={en.meta.description}
+	data-skip-en={en.nav.skipToContent}
+>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -17,7 +40,7 @@ const { title } = Astro.props;
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
-		<meta name="description" content="Gestión de cupos, compras y pagos de clientes." />
+		<meta name="description" content={es.meta.description} />
 		<!-- Blends the mobile browser chrome with the page background
 		     (--color-surface-subtle, see theme.css). -->
 		<meta name="theme-color" content="#f8fafc" />
@@ -32,8 +55,62 @@ const { title } = Astro.props;
 		/>
 	</head>
 	<body>
-		<a class="skipLink" href="#main">Saltar al contenido</a>
+		<a class="skipLink" href="#main">{es.nav.skipToContent}</a>
 		<slot />
+
+		<!-- Inline, static, zero dependencies and zero network: the only code that
+		     can fix this shell's copy before (or without) the island bundle. It
+		     publishes one function that `src/i18n/index.ts` calls on every language
+		     change, so these three strings have exactly one implementation.
+
+		     It resolves only a *stored* choice. The browser-language guess lives in
+		     the bundle, which is why a first visit from an English browser shows the
+		     Spanish HTML for a moment and then switches. -->
+		<script is:inline>
+			(function () {
+				var root = document.documentElement;
+				var description = document.querySelector('meta[name="description"]');
+				var skipLink = document.querySelector('.skipLink');
+
+				// The Spanish side of each string is whatever the build rendered, so
+				// capture it once instead of duplicating it into another attribute.
+				var spanish = {
+					title: document.title,
+					description: description && description.getAttribute('content'),
+					skip: skipLink && skipLink.textContent,
+				};
+
+				window.__cuposApplyLang = function (lang) {
+					var isEnglish = lang === 'en';
+
+					root.lang = lang;
+					// A hook for CSS/JS later — copy itself stays in the resource files.
+					root.dataset.lang = lang;
+
+					document.title = (isEnglish && root.dataset.titleEn) || spanish.title;
+
+					if (description && spanish.description) {
+						description.setAttribute(
+							'content',
+							(isEnglish && root.dataset.descriptionEn) || spanish.description
+						);
+					}
+
+					if (skipLink && spanish.skip) {
+						skipLink.textContent = (isEnglish && root.dataset.skipEn) || spanish.skip;
+					}
+				};
+
+				var stored = null;
+				try {
+					stored = localStorage.getItem('cupos.lang');
+				} catch (error) {
+					/* Private mode: fall through to the static Spanish default. */
+				}
+
+				window.__cuposApplyLang(stored === 'en' ? 'en' : 'es');
+			})();
+		</script>
 	</body>
 </html>
 

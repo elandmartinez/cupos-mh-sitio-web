@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import Modal from './modal';
 
 interface ConfirmModalProps {
@@ -18,16 +19,21 @@ interface ConfirmModalProps {
  * wired in via aria-describedby. Cancel sits bottom-left and the danger action
  * bottom-right, and focus starts on the dialog itself — never on the button
  * that destroys data.
+ *
+ * Callers pass their own labels (the sentence is per-action); the defaults are
+ * the generic confirm, resolved through `t()` like any other copy.
  */
 export default function ConfirmModal({
-  title = '¿Confirmar acción?',
+  title,
   message,
-  confirmLabel = 'Eliminar',
-  cancelLabel = 'Cancelar',
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
   closing = false,
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
+
   return (
     <Modal
       labelledBy="confirmTitle"
@@ -38,8 +44,13 @@ export default function ConfirmModal({
       closing={closing}
     >
       <div className="formCardHeader">
-        <h2 id="confirmTitle">{title}</h2>
-        <button type="button" onClick={onCancel} className="btnIcon btnClose" aria-label="Cerrar">
+        <h2 id="confirmTitle">{title ?? t('confirm.title')}</h2>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="btnIcon btnClose"
+          aria-label={t('common.close')}
+        >
           ×
         </button>
       </div>
@@ -50,10 +61,10 @@ export default function ConfirmModal({
 
       <div className="buttonGroup">
         <button type="button" onClick={onCancel} className="btnSecondary">
-          {cancelLabel}
+          {cancelLabel ?? t('common.cancel')}
         </button>
         <button type="button" onClick={onConfirm} className="btnDanger">
-          {confirmLabel}
+          {confirmLabel ?? t('common.remove')}
         </button>
       </div>
     </Modal>

@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Modal from './modal';
 import Button from './button';
 import type { Product } from '../hooks/useProducts';
@@ -46,6 +47,7 @@ export default function AddPurchaseModal({
   addPurchase,
   updatePurchase,
 }: AddPurchaseModalProps) {
+  const { t } = useTranslation();
   const isEditing = purchase != null;
   const titleId = useId();
 
@@ -86,13 +88,18 @@ export default function AddPurchaseModal({
   return (
     <Modal labelledBy={titleId} onClose={onClose} cardClassName="purchasesCard" closing={closing}>
       <div className="formCardHeader">
-        <h2 id={titleId}>{isEditing ? 'Editar compra' : 'Agregar compra'}</h2>
-        <Button variant="icon" className="btnClose" aria-label="Cerrar" onClick={onClose}>
+        <h2 id={titleId}>{isEditing ? t('purchases.editTitle') : t('purchases.addTitle')}</h2>
+        <Button
+          variant="icon"
+          className="btnClose"
+          aria-label={t('common.close')}
+          onClick={onClose}
+        >
           ×
         </Button>
       </div>
 
-      <p className="textMuted">Producto: {product.name}</p>
+      <p className="textMuted">{t('purchases.productLabel', { name: product.name })}</p>
 
       {error && (
         <div className="banner banner--danger" role="alert">
@@ -103,7 +110,7 @@ export default function AddPurchaseModal({
       <form onSubmit={handleSubmit} className="form">
         <div className="fieldGroup">
           <label className="label" htmlFor={`${titleId}-name`}>
-            Nombre del cliente
+            {t('purchases.clientName')}
           </label>
           <input
             id={`${titleId}-name`}
@@ -119,7 +126,7 @@ export default function AddPurchaseModal({
 
         <div className="fieldGroup">
           <label className="label" htmlFor={`${titleId}-phone`}>
-            Teléfono
+            {t('purchases.phone')}
           </label>
           <input
             id={`${titleId}-phone`}
@@ -134,7 +141,7 @@ export default function AddPurchaseModal({
 
         <div className="fieldGroup">
           <label className="label" htmlFor={`${titleId}-fees`}>
-            Tarifa acordada
+            {t('purchases.agreedFees')}
           </label>
           <input
             id={`${titleId}-fees`}
@@ -150,10 +157,10 @@ export default function AddPurchaseModal({
 
         <div className="buttonGroup">
           <Button variant="secondary" onClick={onClose}>
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button variant="primary" type="submit" loading={saving}>
-            {isEditing ? 'Guardar cambios' : 'Registrar compra'}
+            {isEditing ? t('common.saveChanges') : t('purchases.register')}
           </Button>
         </div>
       </form>

@@ -5,6 +5,58 @@ today and `DESIGN.md` for how it looks; this file records the reasoning behind t
 that produced them. Newest entry first.
 
 ---
+## 2026-10-10 — ES/EN i18n, `ui/` primitives and lazily-loaded dialogs
+
+**Why:** two problems with the same root. Every user-facing string was a literal in
+a component, so the copy could not exist in a second language and a typo was
+invisible to every gate; and every dialog was statically imported, so
+`dashboardApp` (and the login page) paid for product-detail, purchases, add-purchase
+and confirm before the user could possibly need them. This pass moved the copy into
+resource files behind a typed `t()` and the dialogs behind `lazy()`, without adding
+a server, a route or an env var.
+
+**Code**
+
+| Change | Detail |
+| :-- | :-- |
+| **New** `src/i18n/` | `index.ts` (the singleton: `createInstance` + `initReactI18next`, both locales inlined, `escapeValue: false`, `returnNull: false`, a dev-only `missingKey` warn), `languages.ts` (pure rules: `AppLanguage`, `localStorage['cupos.lang']`, resolution **stored → browser → `es`**, `LOCALE_TAG`), `types.ts` (`CustomTypeOptions` so `t()` keys are compile-checked, plus the `window.__cuposApplyLang` contract), `locales/es.ts` (**reference locale**) and `locales/en.ts`. |
+| **Fixed while documenting** | The resolution order was implemented (`resolveLanguage`) and tested but **never called** — `init()` used the defaulted `readStoredLanguage()`, so a first visit from an English browser stayed Spanish and the Layout comment's "the browser guess lives in the bundle" was untrue. `init({ lng })` now applies `resolveLanguage(readRawStoredLanguage(), navigator.language)` (new `readRawStoredLanguage()` keeps the defaulting from hiding the hint), with `src/i18n/index.test.ts` pinning it — verified by mutation (removing the hint fails 2 of its 5 cases). |
+| **New** `src/hooks/useLanguage.ts` · `useFormatters.ts` | The language + setter, and the pure `formatCurrency`/`formatDate` bound to the active locale. `setLanguage` funnels through the one `applyLanguage()` path (change → persist → sync the document) so nothing can drift from the switch. |
+| **New** `src/components/ui/languageSwitch.tsx` | The ES/EN control, on **both** screens. `role="group"` + `aria-pressed` buttons (not a tablist: these are two toggles over a stored preference and a tablist would owe an arrow-key contract), two-letter visible labels with the full name in `aria-label`. |
+| `Layout.astro` | Renders the Spanish `<title>`/`<meta description>`/skip link — the build-time truth — and carries the English counterparts from the same `en.ts` as `data-*` attributes, read by a small `is:inline` script that publishes `window.__cuposApplyLang`. No hand-kept translation map, no SSR. |
+| Every component / page / `lib/supabase.ts` | Literals replaced with `t(...)`; the env guard's message is now `errors.configMissing` interpolated with the missing variable names. A repository/hook that throws nothing and returns `RepoResult<T>` was already the shape that made this mechanical. |
+| `src/components/ui/` (Phase A) | Barrel + JSDoc convention, `Skeleton*` placeholders replacing the spinner-only first loads, and `LanguageSwitch`. Screen components stay flat; a `ui/` primitive may never import a screen. |
+| Lazy dialogs | `productDetailModal`, `purchasesModal`, `addPurchaseModal`, `modal` and the shared `button` are separate chunks now. The island's **eagerly-preloaded JS went down 20 KB**, which is what paid for the language switch. |
+| `package.json` | `dependencies` (runtime, bundled into the island by Vite — not devDeps): `i18next@^26.4.3`, `react-i18next@^17.0.16`. |
+
+**Tests:** 22 new (43 total, 9 files). `parity.test.ts` walks both locale trees and
+fails on a missing/extra key, an incomplete plural pair or an empty string —
+**bidirectionally**, which is what actually keeps `en.ts` honest.
+`interpolation.test.ts` asserts both languages use the same placeholders, that a
+plural resolves per language without a hand-rolled suffix, and that a missing key
+renders its key. `useLanguage.test.ts` covers resolution order, the storage
+round-trip and a `localStorage` that throws (private mode), and `index.test.ts`
+re-imports the singleton per case to prove the *init* applies the order. All
+hermetic: node environment, no jsdom, no network.
+
+**Measured** (`npm run build` at `aab7385` vs now, `_astro/*.js`, raw / gzip):
+
+| | Baseline | Now |
+| :-- | :-- | :-- |
+| Eagerly preloaded by `/dashboard` | 223 KB / 67 KB | **203 KB / 63 KB** |
+| Whole island payload | 443 KB / 125 KB | 510 KB / 150 KB |
+| Shared vendor chunk (Supabase; + i18next) | 212 KB / 55 KB | 272 KB / 74 KB |
+
+The 250 KB ceiling is on the eager figure, so it passes with room: i18next costs
+~60 KB raw / ~19 KB gzip and the plan's `useSyncExternalStore` fallback was not
+needed. `npm run check` is 0 errors / 0 warnings over 57 files (5 hints), `tsc` is
+clean, `npm test` is 43/43, and `.vercel/output/functions/` is still absent.
+
+**Docs:** `DOCUMENTATION.md` §1/§2/§4/§6/§7/§8 (new *Internationalization* section
+incl. the Astro-owned-copy tradeoff)/§10.2/§10.3/§10.4/§10.5/§11 (new *Bundle
+budget*)/§13/§14/§15/§16 + the "Last documented" line; `DESIGN.md` §3/§4/§7.
+
+---
 ## 2026-10-10 — Hardening pass: env guard, untracked artifacts, a real 404, first quality gates
 
 **Why:** `DOCUMENTATION.md` §14 recorded a cluster of safety and hygiene items that

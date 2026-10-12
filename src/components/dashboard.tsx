@@ -1,22 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProducts } from '../hooks/useProducts';
 import { useProductImages } from '../hooks/useProductImages';
 import { useClientPurchases } from '../hooks/useClientPurchases';
 import { usePresent } from '../hooks/usePresent';
+import { useFormatters } from '../hooks/useFormatters';
 import { useAuth } from '../context/authContext';
-import PurchasesModal from './purchasesModal';
-import ProductDetailModal from './productDetailModal';
 import ConfirmModal from './confirmModal';
 import ProductImage from './productImage';
 import Modal from './modal';
 import CollapsibleSection from './collapsibleSection';
 import SalesSection from './salesSection';
 import EmptyState from './emptyState';
-import { formatCurrency } from '../helpers/currency';
+import { LanguageSwitch, SkeletonCard, SkeletonCardGrid } from './ui';
 import monsterHighLogo from "../../public/monster-high-logo-color.png";
 
 import type { Product, CreateProductInput } from "../hooks/useProducts"
 import type { CreateClientPurchaseInput } from "../hooks/useClientPurchases"
+
+// The two heaviest dialogs on this screen are only reachable after a tap, so
+// their code is split out of the island's first-load chunk. Vite emits each as
+// its own `_astro/*.js` file, fetched on first open — static hosting either way,
+// just less JavaScript before the panel appears. `usePresent` already gates
+// mounting, so the Suspense fallback is a shape that is effectively never
+// painted; it exists because a boundary must have one.
+const PurchasesModal = lazy(() => import('./purchasesModal'));
+const ProductDetailModal = lazy(() => import('./productDetailModal'));
 
 const emptyFormData: CreateProductInput = {
   name: '',
@@ -26,6 +35,9 @@ const emptyFormData: CreateProductInput = {
 };
 
 export default function Dashboard() {
+  const { t } = useTranslation();
+  // Money in the panel follows the interface language (see helpers/currency).
+  const { formatCurrency } = useFormatters();
   const { products, loading, error, addProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
   const { uploadProductImage, renameProductImage, deleteProductImage, getSignedUrl } = useProductImages();
   const {
@@ -107,7 +119,7 @@ export default function Dashboard() {
     if (allPurchases.length === 0) return undefined;
 
     const pending = allPurchases.filter((purchase) => !purchase.is_fully_paid);
-    if (pending.length === 0) return 'Todo pagado';
+    if (pending.length === 0) return t('summary.allPaid');
 
     const owed = pending.reduce(
       (total, purchase) =>
@@ -115,12 +127,12 @@ export default function Dashboard() {
       0
     );
 
-    return `${pending.length} pendiente${pending.length === 1 ? '' : 's'} · ${formatCurrency(owed)} por cobrar`;
-  }, [allPurchases]);
+    // One phrase, not a joined string: English and Spanish inflect differently,
+    // so only i18next's plural rules can decide the wording here.
+    return t('summary.owed', { count: pending.length, amount: formatCurrency(owed) });
+  }, [allPurchases, t, formatCurrency]);
 
-  const productsMeta = loading
-    ? undefined
-    : `${products.length} producto${products.length === 1 ? '' : 's'}`;
+  const productsMeta = loading ? undefined : t('products.count', { count: products.length });
 
   // One primary action per screen: while the empty state owns the "Nuevo
   // producto" button, the page header must not render a second identical one.
@@ -268,16 +280,17 @@ export default function Dashboard() {
         <span className="userEmail" title={user?.email ?? undefined}>
           {user?.email}
         </span>
+        <LanguageSwitch />
         <button type="button" onClick={signOut} className="btnGhost">
-          Cerrar sesión
+          {t('nav.signOut')}
         </button>
       </header>
 
       <main className="mainContent">
         <div className="pageHeader">
           <div className="pageHeaderText">
-            <h1 className="title">Panel de gestión</h1>
-            <p className="textMuted">Tu catálogo, las compras de tus clientes y sus pagos.</p>
+            <h1 className="title">{t('nav.dashboardTitle')}</h1>
+            <p className="textMuted">{t('nav.dashboardSubtitle')}</p>
           </div>
 
           <div className="pageHeaderActions">
@@ -285,8 +298,8 @@ export default function Dashboard() {
               type="button"
               onClick={handleRefresh}
               className="btnIcon btnRefresh"
-              aria-label="Refrescar productos y ventas"
-              title="Refrescar"
+              aria-label={t('nav.refreshAria')}
+              title={t('nav.refresh')}
             >
               <span aria-hidden="true">⟳</span>
             </button>
@@ -297,7 +310,7 @@ export default function Dashboard() {
                 className="btnPrimary"
                 aria-haspopup="dialog"
               >
-                <span aria-hidden="true">+</span> Nuevo producto
+                <span aria-hidden="true">+</span> {t('products.new')}
               </button>
             )}
           </div>
@@ -309,23 +322,23 @@ export default function Dashboard() {
           <div className="banner banner--danger dashboardBanner" role="alert">
             <p>{error}</p>
             <button type="button" onClick={handleRefresh} className="btnSecondary">
-              Reintentar
+              {t('common.retry')}
             </button>
           </div>
         )}
 
         <div className="dashboardSections">
-          <CollapsibleSection title="Mis productos" meta={productsMeta}>
-            {loading ? (
-              <div className="statusMessage" role="status" aria-live="polite">
-                <span className="spinner" aria-hidden="true" />
-                <p>Cargando productos…</p>
-              </div>
+          <CollapsibleSection title={t('products.sectionTitle')} meta={productsMeta}>
+            {loading && products.length === 0 ? (
+              /* First load only: the grid keeps its shape so nothing jumps when
+                 the real cards arrive. A refresh leaves the products on screen,
+                 which is what tells them apart from a blank first paint. */
+              <SkeletonCardGrid label={t('products.loading')} />
             ) : showProductsEmptyState ? (
               <EmptyState
                 art="products"
-                title="Todavía no hay productos"
-                body="Publica tu primer cupo para poder registrar las compras de tus clientes y el avance de sus pagos."
+                title={t('products.emptyTitle')}
+                body={t('products.emptyBody')}
                 action={
                   <button
                     type="button"
@@ -333,7 +346,7 @@ export default function Dashboard() {
                     className="btnPrimary"
                     aria-haspopup="dialog"
                   >
-                    <span aria-hidden="true">+</span> Nuevo producto
+                    <span aria-hidden="true">+</span> {t('products.new')}
                   </button>
                 }
               />
@@ -362,14 +375,15 @@ export default function Dashboard() {
 
                     <span className="productHeader">
                       <span className="productName">{product.name}</span>
-                      <span className="badge badge--primary">ID: {product.id}</span>
+                      <span className="badge badge--primary">
+                        {t('products.idBadge', { id: product.id })}
+                      </span>
                     </span>
 
                     <span className="productCardMeta">
                       <span className="productValue">{formatCurrency(product.value)}</span>
                       <span className="productPurchases">
-                        {productPurchases.length} compra
-                        {productPurchases.length === 1 ? '' : 's'}
+                        {t('products.purchasesCount', { count: productPurchases.length })}
                       </span>
                     </span>
                   </button>
@@ -379,7 +393,7 @@ export default function Dashboard() {
             )}
           </CollapsibleSection>
 
-          <CollapsibleSection title="Mis ventas" meta={salesMeta}>
+          <CollapsibleSection title={t('sales.sectionTitle')} meta={salesMeta}>
             <SalesSection
               purchases={allPurchases}
               loading={purchasesLoading}
@@ -395,17 +409,19 @@ export default function Dashboard() {
           document and are therefore the ones answering Escape and Tab — the
           same nesting `PurchasesModal` uses for its add/edit form. */}
       {detailProduct && (
-        <ProductDetailModal
-          product={detailProduct}
-          purchaseCount={(purchasesByProduct[detailProduct.id] || []).length}
-          imageVersion={imageVersion}
-          getSignedUrl={getSignedUrl}
-          onClose={handleCloseDetails}
-          closing={detailDialog.isClosing}
-          onEdit={handleEditClick}
-          onDelete={handleRequestDeleteProduct}
-          onOpenPurchases={handleOpenPurchases}
-        />
+        <Suspense fallback={<SkeletonCard />}>
+          <ProductDetailModal
+            product={detailProduct}
+            purchaseCount={(purchasesByProduct[detailProduct.id] || []).length}
+            imageVersion={imageVersion}
+            getSignedUrl={getSignedUrl}
+            onClose={handleCloseDetails}
+            closing={detailDialog.isClosing}
+            onEdit={handleEditClick}
+            onDelete={handleRequestDeleteProduct}
+            onOpenPurchases={handleOpenPurchases}
+          />
+        </Suspense>
       )}
 
       {formDialog.isPresent && (
@@ -416,13 +432,13 @@ export default function Dashboard() {
         >
           <div className="formCardHeader">
             <h2 id="productFormTitle">
-              {isEditing ? 'Editar producto' : 'Nuevo producto'}
+              {isEditing ? t('products.editTitle') : t('products.createTitle')}
             </h2>
               <button
                 type="button"
                 onClick={closeForm}
                 className="btnIcon btnClose"
-                aria-label="Cerrar formulario"
+                aria-label={t('products.closeFormAria')}
               >
                 ×
               </button>
@@ -431,7 +447,7 @@ export default function Dashboard() {
           <form onSubmit={handleSubmit} className="form">
             <div className="fieldGroup">
               <label className="label" htmlFor="productName">
-                Nombre
+                {t('products.name')}
               </label>
               <input
                 id="productName"
@@ -447,7 +463,7 @@ export default function Dashboard() {
 
             <div className="fieldGroup">
               <label className="label" htmlFor="productDescription">
-                Descripción
+                {t('products.description')}
               </label>
               <textarea
                 id="productDescription"
@@ -460,7 +476,7 @@ export default function Dashboard() {
 
             <div className="fieldGroup">
               <label className="label" htmlFor="productValue">
-                Valor
+                {t('products.value')}
               </label>
               <input
                 id="productValue"
@@ -476,7 +492,7 @@ export default function Dashboard() {
 
             <div className="fieldGroup">
               <label className="label" htmlFor="productReleaseDate">
-                Fecha de lanzamiento
+                {t('products.releaseDate')}
               </label>
               <input
                 id="productReleaseDate"
@@ -490,7 +506,7 @@ export default function Dashboard() {
 
             <div className="fieldGroup">
               <label className="label" htmlFor="productImage">
-                Imagen
+                {t('products.image')}
               </label>
               <input
                 id="productImage"
@@ -499,7 +515,7 @@ export default function Dashboard() {
                 onChange={handleFileSelected}
                 className="fileInput"
               />
-              <p className="fieldHint">JPG o PNG. Al guardar se reemplaza la imagen actual.</p>
+              <p className="fieldHint">{t('products.imageHint')}</p>
 
               {(pendingImage || (isEditing && currentImageVisible)) && (
                 <div className="imagePreviewGrid">
@@ -516,7 +532,7 @@ export default function Dashboard() {
                           type="button"
                           onClick={handleDeleteCurrentImage}
                           className="imageRemoveBtn"
-                          aria-label="Eliminar imagen"
+                          aria-label={t('products.removeCurrentImageAria')}
                         >
                           ×
                         </button>
@@ -532,7 +548,7 @@ export default function Dashboard() {
                           type="button"
                           onClick={clearPendingImage}
                           className="imageRemoveBtn"
-                          aria-label="Quitar imagen"
+                          aria-label={t('products.discardSelectedImageAria')}
                         >
                           ×
                         </button>
@@ -545,10 +561,10 @@ export default function Dashboard() {
 
             <div className="buttonGroup">
               <button type="button" onClick={closeForm} className="btnSecondary">
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button type="submit" className="btnPrimary">
-                {isEditing ? 'Guardar cambios' : 'Crear producto'}
+                {isEditing ? t('common.saveChanges') : t('products.create')}
               </button>
             </div>
           </form>
@@ -556,24 +572,26 @@ export default function Dashboard() {
       )}
 
       {productForPurchases && (
-        <PurchasesModal
-          product={productForPurchases}
-          purchases={purchasesByProduct[productForPurchases.id] || []}
-          onClose={handleClosePurchases}
-          closing={purchasesDialog.isClosing}
-          addPurchase={handleAddPurchase}
-          updatePurchase={updatePurchase}
-          deletePurchase={deletePurchase}
-          applyPurchaseUpdate={applyPurchaseUpdate}
-        />
+        <Suspense fallback={<SkeletonCard />}>
+          <PurchasesModal
+            product={productForPurchases}
+            purchases={purchasesByProduct[productForPurchases.id] || []}
+            onClose={handleClosePurchases}
+            closing={purchasesDialog.isClosing}
+            addPurchase={handleAddPurchase}
+            updatePurchase={updatePurchase}
+            deletePurchase={deletePurchase}
+            applyPurchaseUpdate={applyPurchaseUpdate}
+          />
+        </Suspense>
       )}
 
       {productToDelete && (
         <ConfirmModal
-          title="¿Eliminar producto?"
-          message={`Se eliminará "${productToDelete.name}" junto con sus compras y sus pagos. No se puede deshacer.`}
-          confirmLabel="Eliminar producto"
-          cancelLabel="Cancelar"
+          title={t('products.deleteTitle')}
+          message={t('products.deleteMessage', { name: productToDelete.name })}
+          confirmLabel={t('products.deleteConfirm')}
+          cancelLabel={t('common.cancel')}
           onConfirm={handleConfirmDeleteProduct}
           onCancel={handleCancelDeleteProduct}
           closing={deleteProductDialog.isClosing}

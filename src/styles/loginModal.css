@@ -21,6 +21,15 @@
     max(var(--space-16), env(safe-area-inset-bottom));
 }
 
+/* Language switch, parked opposite the reading start so it never competes with
+   the wordmark. Same 40px row as the dashboard's top bar. */
+.authTopBar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 2.5rem;
+}
+
 /* ---- Hero / wordmark ---------------------------------------------------- */
 
 .authHero {

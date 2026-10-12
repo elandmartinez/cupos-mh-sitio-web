@@ -15,4 +15,10 @@ describe('formatCurrency', () => {
     expect(formatCurrency(null)).toBe('0');
     expect(formatCurrency(undefined)).toBe('0');
   });
+
+  it('follows an explicit locale, so the language switch changes the grouping', () => {
+    // Same number, two languages — the reason `useFormatters` passes a tag in.
+    expect(formatCurrency(180000, 'es-CO')).toBe('180.000');
+    expect(formatCurrency(180000, 'en-US')).toBe('180,000');
+  });
 });

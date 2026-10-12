@@ -110,11 +110,34 @@ only — never for UI copy.
   Avoid 800+, it reads as shouting in Outfit.
 - Money and comparable numbers get `font-variant-numeric: tabular-nums` so
   `$1,250` and `$9,999` align in a column.
+- Copy ships in **Spanish and English** and both use the same type scale; language
+  changes *formatting*, not type. Dates and amounts go through the locale-bound
+  formatters (`useFormatters()` — `es` → `es-CO`, `en` → `en-US`), never a
+  hand-built string, so `180.000`/`180,000` and `4 de oct de 2026`/`Oct 4, 2026`
+  follow the switch. Tabular figures stay on in both.
 - Ellipsis is always the single character `…`, never `...` (`Iniciando sesión…`).
 - Headings get `text-wrap: balance`, paragraphs `text-wrap: pretty`.
 - Never all-caps a sentence — caps are reserved for 12px badges/labels.
 
 ## 4. Component stylings
+
+**Every new shared primitive ships with a JSDoc header** — one block above the
+component that says *why it exists* and what its accessibility contract is (what
+it announces, what it hides, which keys it answers). `skeleton.tsx` and
+`languageSwitch.tsx` are the reference shape. Prop types are documented inline with
+`/** … */` rather than enforced at runtime: the repo is strict TypeScript, so
+PropTypes would only duplicate what the compiler already proves. **Cross-screen**
+primitives live in `src/components/ui/` and are imported from its barrel; the
+shared-but-flat ones (`button.tsx`, `modal.tsx`, `confirmModal.tsx`,
+`emptyState.tsx`) stay in `src/components/` and are imported by name
+(`DOCUMENTATION.md` §6 has the rule).
+
+**Copy is never baked into a shared primitive.** Anything whose wording depends on
+the screen (`Button`, `Modal`, `ConfirmModal`, `EmptyState`) takes it as a prop and
+stays i18n-agnostic; the screen owns the `t(...)` call. The one primitive allowed
+to translate is `LanguageSwitch`, whose whole purpose is the language — and its
+visible label is the two-letter code, never the word ("Español" is too wide for a
+phone top bar), with the action ("Cambiar a inglés") in `aria-label`.
 
 **Buttons** (`theme.css`) — shared base: inline-flex, `--radius-md`, `min-height`
 2.5rem (40px, the `md` default), 14px/500, transitioning background,
@@ -324,9 +347,12 @@ that value written down a second time — **change one, change the other.**
   not random dark sections.
 - Give every interactive element a visible `:focus-visible` ring.
 - Make destructive actions confirm first (they do: `confirmModal.tsx`).
-- Show money with `formatCurrency()` (`Intl.NumberFormat('es-CO')`, no symbol)
-  plus tabular figures.
-- Write state copy in Spanish, sentence case, ending in `…` while pending.
+- Show money with `formatCurrency()` (`Intl.NumberFormat`, no symbol)
+  plus tabular figures — and through `useFormatters()` so the locale follows the
+  language. Never hardcode a separator.
+- Write state copy in the locale resources (`src/i18n/locales/es.ts` + `en.ts`),
+  sentence case, ending in `…` while pending. Spanish is the reference file; a new
+  key lands in both or the parity test fails.
 - Keep scrollbars hidden (scroll behaviour stays intact) — the global rules in
   `theme.css` do this; don't add visible track styling back.
 
@@ -339,6 +365,14 @@ that value written down a second time — **change one, change the other.**
 - Don't nest cards inside cards; at most one surface level per concept.
 - Don't leave icon-only buttons unlabelled.
 - Don't reach for a shadow where a border would do, and never a gray-black one.
+- Don't fake a segmented control with `role="tab"`/`radiogroup` — two independent
+  choices over a stored preference are `aria-pressed` buttons in a labelled
+  `role="group"`, and a tablist would owe a keyboard contract we don't implement.
+- Don't put a user-facing sentence straight into JSX. New copy goes in both locale
+  files; a literal left in a component is invisible to the parity test.
+- Don't use a toast for a failed mutation — failures are a `role="alert"` banner
+  that stays until it is read (or dismissed); when toasts arrive, they are for
+  confirmations only.
 
 ## 8. Responsive behaviour
 

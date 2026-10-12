@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePurchasePayments } from '../hooks/usePurchasePayments';
 import { usePresent } from '../hooks/usePresent';
+import { useFormatters } from '../hooks/useFormatters';
 import ConfirmModal from './confirmModal';
 import Modal from './modal';
 import EmptyState from './emptyState';
 import Button from './button';
 import CollapsibleCard from './collapsibleCard';
-import AddPurchaseModal from './addPurchaseModal';
-import { formatCurrency } from '../helpers/currency';
+import { SkeletonCard } from './ui';
+
+// The add/edit purchase form is the largest thing in this dialog and the last
+// thing anyone needs, so it loads with the dialog instead of before it. Same
+// deal as the dashboard's own lazy dialogs: an extra static chunk, fetched on
+// first open, and a Suspense shape that `usePresent` means is never painted.
+const AddPurchaseModal = lazy(() => import('./addPurchaseModal'));
 
 import type { Product } from '../hooks/useProducts';
 import type {
@@ -49,6 +56,10 @@ export default function PurchasesModal({
   deletePurchase,
   applyPurchaseUpdate,
 }: PurchasesModalProps) {
+  const { t } = useTranslation();
+  // Money formatted per the active language, so an English reader sees en-US
+  // grouping/decimals on Colombian amounts.
+  const { formatCurrency } = useFormatters();
   const { paymentsByPurchase, fetchPaymentsForPurchase, addPayment, deletePayment } =
     usePurchasePayments();
 
@@ -128,8 +139,13 @@ export default function PurchasesModal({
         closing={closing}
       >
         <div className="formCardHeader">
-          <h2 id="purchasesTitle">Compras de {product.name}</h2>
-          <Button variant="icon" className="btnClose" aria-label="Cerrar" onClick={onClose}>
+          <h2 id="purchasesTitle">{t('purchases.title', { product: product.name })}</h2>
+          <Button
+            variant="icon"
+            className="btnClose"
+            aria-label={t('common.close')}
+            onClick={onClose}
+          >
             ×
           </Button>
         </div>
@@ -141,7 +157,7 @@ export default function PurchasesModal({
             onClick={openAddModal}
             aria-haspopup="dialog"
           >
-            Agregar compra
+            {t('purchases.add')}
           </Button>
         )}
 
@@ -150,11 +166,11 @@ export default function PurchasesModal({
             <EmptyState
               art="sales"
               plain
-              title="Todavía no hay compras"
-              body="Registra la primera compra de este producto para poder seguir el avance de sus pagos."
+              title={t('purchases.emptyTitle')}
+              body={t('purchases.emptyBody')}
               action={
                 <Button variant="primary" icon="+" onClick={openAddModal} aria-haspopup="dialog">
-                  Agregar compra
+                  {t('purchases.add')}
                 </Button>
               }
             />
@@ -178,7 +194,7 @@ export default function PurchasesModal({
                   title={
                     <span className="purchaseTitleBlock">
                       <span className="purchaseClientName">
-                        {purchase.client_name || 'Cliente sin nombre'}
+                        {purchase.client_name || t('common.unnamedClient')}
                       </span>
                       {purchase.client_phone_number && (
                         <span className="purchaseClientPhone">
@@ -193,7 +209,7 @@ export default function PurchasesModal({
                         purchase.is_fully_paid ? 'badge--success' : 'badge--warning'
                       }`}
                     >
-                      {purchase.is_fully_paid ? 'Pagado' : 'Pendiente'}
+                      {purchase.is_fully_paid ? t('purchases.paid') : t('purchases.pending')}
                     </span>
                   }
                 >
@@ -209,15 +225,15 @@ export default function PurchasesModal({
 
                   <div className="purchaseActionRow">
                     <Button variant="secondary" onClick={() => openEditModal(purchase)}>
-                      Editar
+                      {t('common.edit')}
                     </Button>
                     <Button
                       variant="ghost-danger"
                       onClick={() => deletePurchaseDialog.open(purchase)}
                       aria-haspopup="dialog"
-                      aria-label={`Eliminar la compra de ${purchase.client_name}`}
+                      aria-label={t('purchases.deleteAria', { name: purchase.client_name })}
                     >
-                      Eliminar
+                      {t('common.remove')}
                     </Button>
                   </div>
 
@@ -231,7 +247,7 @@ export default function PurchasesModal({
                           unique even if several rows are expanded. */}
                       <div className="fieldGroup">
                         <label className="label" htmlFor={`paymentAmount-${purchase.id}`}>
-                          Monto del pago
+                          {t('payments.amountLabel')}
                         </label>
                         <input
                           id={`paymentAmount-${purchase.id}`}
@@ -246,7 +262,7 @@ export default function PurchasesModal({
                           className="input"
                           required
                         />
-                        <p className="fieldHint">Se descuenta del saldo pendiente.</p>
+                        <p className="fieldHint">{t('payments.amountHint')}</p>
                       </div>
                       <div className="paymentFormRow">
                         <label className="paymentExtraFeeLabel">
@@ -255,31 +271,29 @@ export default function PurchasesModal({
                             checked={paymentIsExtraFee}
                             onChange={(e) => setPaymentIsExtraFee(e.target.checked)}
                           />
-                          Cargo extra
+                          {t('payments.extraFee')}
                         </label>
                         <Button variant="primary" type="submit" className="paymentSubmitBtn">
-                          Agregar pago
+                          {t('payments.add')}
                         </Button>
                       </div>
                     </form>
 
                     {payments.length === 0 ? (
-                      <p className="fieldHint">
-                        Todavía no hay pagos. Registra el primer abono con el formulario de arriba.
-                      </p>
+                      <p className="fieldHint">{t('payments.empty')}</p>
                     ) : (
                       <ul className="paymentsList">
                         {payments.map((payment) => (
                           <li key={payment.id} className="paymentItem">
                             <span>
                               {formatCurrency(payment.amount)}
-                              {payment.is_extra_fee ? ' (extra)' : ''}
+                              {payment.is_extra_fee ? t('payments.extraSuffix') : ''}
                             </span>
                             <Button
                               variant="icon"
                               onClick={() => deletePaymentDialog.open(payment)}
                               className="rowRemoveBtn"
-                              aria-label="Eliminar pago"
+                              aria-label={t('payments.removeAria')}
                             >
                               ×
                             </Button>
@@ -296,21 +310,23 @@ export default function PurchasesModal({
       </Modal>
 
       {addDialog.isPresent && (
-        <AddPurchaseModal
-          product={product}
-          purchase={addDialog.value}
-          onClose={addDialog.close}
-          closing={addDialog.isClosing}
-          addPurchase={addPurchase}
-          updatePurchase={updatePurchase}
-        />
+        <Suspense fallback={<SkeletonCard />}>
+          <AddPurchaseModal
+            product={product}
+            purchase={addDialog.value}
+            onClose={addDialog.close}
+            closing={addDialog.isClosing}
+            addPurchase={addPurchase}
+            updatePurchase={updatePurchase}
+          />
+        </Suspense>
       )}
 
       {purchaseToDelete && (
         <ConfirmModal
-          title="¿Eliminar esta compra?"
-          message={`Se eliminará la compra de "${purchaseToDelete.client_name}" y sus pagos registrados. No se puede deshacer.`}
-          confirmLabel="Eliminar compra"
+          title={t('purchases.deleteTitle')}
+          message={t('purchases.deleteMessage', { name: purchaseToDelete.client_name })}
+          confirmLabel={t('purchases.deleteConfirm')}
           onConfirm={handleConfirmDeletePurchase}
           onCancel={deletePurchaseDialog.close}
           closing={deletePurchaseDialog.isClosing}
@@ -319,9 +335,11 @@ export default function PurchasesModal({
 
       {paymentToDelete && (
         <ConfirmModal
-          title="¿Eliminar este pago?"
-          message={`Se eliminará el pago de ${formatCurrency(paymentToDelete.amount)} y se recalculará el saldo. No se puede deshacer.`}
-          confirmLabel="Eliminar pago"
+          title={t('payments.deleteTitle')}
+          message={t('payments.deleteMessage', {
+            amount: formatCurrency(paymentToDelete.amount),
+          })}
+          confirmLabel={t('payments.deleteConfirm')}
           onConfirm={handleConfirmDeletePayment}
           onCancel={deletePaymentDialog.close}
           closing={deletePaymentDialog.isClosing}

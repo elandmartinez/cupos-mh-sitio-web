@@ -1,8 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import es from '../i18n/locales/es';
 ---
 
-<Layout title="Página no encontrada · Gestión de cupos">
+<Layout title={es.meta.titleNotFound}>
   <main id="main" class="notFoundShell">
     <section class="emptyState notFoundCard" aria-labelledby="notFoundTitle">
       <p class="notFoundCode" aria-hidden="true">404</p>

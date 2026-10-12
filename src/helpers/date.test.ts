@@ -23,4 +23,13 @@ describe('formatDate', () => {
     expect(formatDate('')).toBeNull();
     expect(formatDate('no-es-una-fecha')).toBeNull();
   });
+
+  it('renders the English month name for en-US', () => {
+    const formatted = formatDate('2026-10-04', 'en-US');
+    // Asserted on the stable parts (month + year) rather than the punctuation,
+    // which ICU versions disagree about — same rule as the Spanish case above.
+    expect(formatted).toContain('Oct');
+    expect(formatted).toContain('2026');
+    expect(formatted).not.toContain('oct');
+  });
 });

@@ -1,10 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import DashboardApp from '../components/dashboardApp';
+import es from '../i18n/locales/es';
 import '../styles/dashboard.css';
 ---
 
-<Layout title="Panel de gestión · Cupos">
+<Layout title={es.meta.titleDashboard}>
   <main id="main">
     <DashboardApp client:only="react" />
   </main>

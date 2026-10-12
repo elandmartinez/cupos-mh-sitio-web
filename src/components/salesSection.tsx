@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { formatCurrency } from '../helpers/currency';
-import { formatDate } from '../helpers/date';
+import { useTranslation } from 'react-i18next';
+import { useFormatters } from '../hooks/useFormatters';
 import EmptyState from './emptyState';
+import { SkeletonList } from './ui';
 import type { ClientPurchaseWithProduct } from '../hooks/useClientPurchases';
 
 interface SalesSectionProps {
@@ -21,6 +22,10 @@ interface SalesSectionProps {
  * Compras modal of its product, where its payments live.
  */
 export default function SalesSection({ purchases, loading, error, onRetry }: SalesSectionProps) {
+  const { t } = useTranslation();
+  // Dates and money both follow the language, so a switch re-renders them.
+  const { formatCurrency, formatDate } = useFormatters();
+
   // Pending first — the reason to open this list — then the newest-first order
   // the query returned (Array#sort is stable, so equal keys keep it).
   const sortedPurchases = useMemo(
@@ -37,31 +42,22 @@ export default function SalesSection({ purchases, loading, error, onRetry }: Sal
       <div className="banner banner--danger" role="alert">
         <p>{error}</p>
         <button type="button" onClick={onRetry} className="btnSecondary">
-          Reintentar
+          {t('common.retry')}
         </button>
       </div>
     );
   }
 
-  // Only the first load shows a spinner: a refresh keeps the rows that are
+  // Only the first load shows a skeleton: a refresh keeps the rows that are
   // already on screen (the flag is shared with the per-product purchase fetch).
+  // Waiting on grey boxes when real rows are visible would throw away work the
+  // user can already read — the rule the primitives exist to enforce.
   if (loading && purchases.length === 0) {
-    return (
-      <div className="statusMessage" role="status" aria-live="polite">
-        <span className="spinner" aria-hidden="true" />
-        <p>Cargando ventas…</p>
-      </div>
-    );
+    return <SkeletonList label={t('sales.loading')} />;
   }
 
   if (sortedPurchases.length === 0) {
-    return (
-      <EmptyState
-        art="sales"
-        title="Todavía no hay ventas"
-        body="Registra una compra en Mis productos y aparecerá aquí, con lo pagado y lo pendiente de cada cliente."
-      />
-    );
+    return <EmptyState art="sales" title={t('sales.emptyTitle')} body={t('sales.emptyBody')} />;
   }
 
   return (
@@ -72,7 +68,9 @@ export default function SalesSection({ purchases, loading, error, onRetry }: Sal
         // back to its id rather than claiming the product was deleted.
         const productName =
           purchase.product?.name ||
-          (purchase.product_id != null ? `Producto #${purchase.product_id}` : 'Sin producto');
+          (purchase.product_id != null
+            ? t('common.productNumber', { id: purchase.product_id })
+            : t('common.productFallback'));
 
         const metaParts: string[] = [productName];
         if (purchase.client_phone_number) metaParts.push(purchase.client_phone_number);
@@ -82,7 +80,9 @@ export default function SalesSection({ purchases, loading, error, onRetry }: Sal
         return (
           <li key={purchase.id} className="saleRow">
             <div className="saleMain">
-              <div className="saleClientName">{purchase.client_name || 'Cliente sin nombre'}</div>
+              <div className="saleClientName">
+                {purchase.client_name || t('common.unnamedClient')}
+              </div>
               <div className="saleMeta">{metaParts.join(' · ')}</div>
             </div>
 
@@ -90,12 +90,11 @@ export default function SalesSection({ purchases, loading, error, onRetry }: Sal
               <div className="saleMoney">
                 {formatCurrency(purchase.amount_paid_so_far)}
                 <span className="saleMoneyTotal">
-                  {' de '}
-                  {formatCurrency(purchase.agreed_fees)}
+                  {t('sales.paidOfTotal', { total: formatCurrency(purchase.agreed_fees) })}
                 </span>
               </div>
               <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
-                {isFullyPaid ? 'Pagado' : 'Pendiente'}
+                {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
               </span>
             </div>
           </li>

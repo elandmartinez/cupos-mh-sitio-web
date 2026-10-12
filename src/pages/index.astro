@@ -1,10 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import LoginModal from '../components/loginModal';
+import es from '../i18n/locales/es';
 import '../styles/loginModal.css';
 ---
 
-<Layout title="Iniciar sesión · Gestión de cupos">
+<Layout title={es.meta.titleLogin}>
   <main id="main">
     <LoginModal client:load />
   </main>

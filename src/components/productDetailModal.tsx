@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import Modal from './modal';
 import Button from './button';
 import ProductImage from './productImage';
-import { formatCurrency } from '../helpers/currency';
+import { useFormatters } from '../hooks/useFormatters';
 
 import type { Product } from '../hooks/useProducts';
 
@@ -43,11 +44,21 @@ export default function ProductDetailModal({
   onDelete,
   onOpenPurchases,
 }: ProductDetailModalProps) {
+  const { t } = useTranslation();
+  // Locale-aware money: the amount follows the interface language, not the
+  // number's country of origin.
+  const { formatCurrency } = useFormatters();
+
   return (
     <Modal labelledBy="productDetailTitle" onClose={onClose} closing={closing}>
       <div className="formCardHeader">
         <h2 id="productDetailTitle">{product.name}</h2>
-        <button type="button" onClick={onClose} className="btnIcon btnClose" aria-label="Cerrar">
+        <button
+          type="button"
+          onClick={onClose}
+          className="btnIcon btnClose"
+          aria-label={t('common.close')}
+        >
           ×
         </button>
       </div>
@@ -57,7 +68,7 @@ export default function ProductDetailModal({
           product={product}
           imageVersion={imageVersion}
           getSignedUrl={getSignedUrl}
-          alt={product.name || 'Producto'}
+          alt={product.name || t('common.productFallback')}
           className="productDetailImage"
         />
 
@@ -67,29 +78,31 @@ export default function ProductDetailModal({
           <div className="productDetailEntry">
             <dt className="productDetailLabel">ID</dt>
             <dd className="productDetailValue">
-              <span className="badge badge--primary">ID: {product.id}</span>
+              <span className="badge badge--primary">
+                {t('products.idBadge', { id: product.id })}
+              </span>
             </dd>
           </div>
 
           {product.description && (
             <div className="productDetailEntry productDetailEntry--stacked">
-              <dt className="productDetailLabel">Descripción</dt>
+              <dt className="productDetailLabel">{t('products.detailDescription')}</dt>
               <dd className="productDetailValue">{product.description}</dd>
             </div>
           )}
 
           <div className="productDetailEntry">
-            <dt className="productDetailLabel">Lanzamiento</dt>
-            <dd className="productDetailValue">{product.release_date || 'N/D'}</dd>
+            <dt className="productDetailLabel">{t('products.detailRelease')}</dt>
+            <dd className="productDetailValue">{product.release_date || t('common.notAvailable')}</dd>
           </div>
 
           <div className="productDetailEntry">
-            <dt className="productDetailLabel">Valor</dt>
+            <dt className="productDetailLabel">{t('products.detailValue')}</dt>
             <dd className="productDetailValue tabular">{formatCurrency(product.value)}</dd>
           </div>
 
           <div className="productDetailEntry">
-            <dt className="productDetailLabel">Compras</dt>
+            <dt className="productDetailLabel">{t('products.detailPurchases')}</dt>
             <dd className="productDetailValue tabular">{purchaseCount}</dd>
           </div>
         </dl>
@@ -102,16 +115,18 @@ export default function ProductDetailModal({
           onClick={() => onOpenPurchases(product)}
           aria-haspopup="dialog"
         >
-          <span aria-hidden="true">🛍️</span> Compras
+          <span aria-hidden="true">🛍️</span> {t('products.openPurchases')}
+          {/* A bare count in brackets — punctuation and a numeral, so there is
+              nothing here for the translators to see. */}
           {purchaseCount > 0 ? ` (${purchaseCount})` : ''}
         </Button>
 
         <div className="buttonGroup productDetailButtonRow">
           <Button variant="secondary" onClick={() => onEdit(product)} aria-haspopup="dialog">
-            Editar
+            {t('common.edit')}
           </Button>
           <Button variant="ghost-danger" onClick={() => onDelete(product)} aria-haspopup="dialog">
-            Eliminar
+            {t('common.remove')}
           </Button>
         </div>
       </div>

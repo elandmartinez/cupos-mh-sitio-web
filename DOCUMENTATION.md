@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-10-10 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes and the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts) committed on top of it
+> **Status:** work in progress · **Last documented:** 2026-10-10 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes, the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts), the **design-system primitives pass** (a `src/components/ui/` barrel, `Skeleton*` loading placeholders, lazily-loaded dialogs) and the **ES/EN i18n pass** (i18next singleton, locale files, `LanguageSwitch`, locale-aware formatters) — the last two are **in the working tree on top of `aab7385`, not yet committed**
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -21,7 +21,10 @@ The app lets a signed-in operator manage three related things:
 | **Client purchase** | Compra | A client reserving one product, with an agreed fee and a running paid total. |
 | **Payment** | Pago | Money received against a purchase (can be flagged as an extra fee). |
 
-All user-facing copy is in **Spanish**.
+The UI ships in **Spanish and English** (ES/EN), chosen at runtime by
+`LanguageSwitch` and remembered in `localStorage['cupos.lang']`. Spanish is the
+static default — the HTML is built in Spanish, and English arrives with the island
+bundle (§8).
 
 ## 2. Tech stack
 
@@ -31,6 +34,7 @@ All user-facing copy is in **Spanish**.
 | UI islands | **React 19** | via `@astrojs/react` (JSX runtime `react-jsx`). |
 | Language | **TypeScript** | `astro/tsconfigs/strict`. |
 | Backend / BaaS | **Supabase** | Auth, Postgres (data + trigger logic), Storage (product images). |
+| i18n | **i18next + react-i18next** | ES/EN, resources bundled (no fetch), choice in `localStorage['cupos.lang']`, static default `es`. See §8. |
 | Deploy target | **Vercel** | via `@astrojs/vercel` adapter (`.vercel/` present). |
 | Styling | **Plain CSS** | Hand-written CSS files + CSS custom properties (no Tailwind). The design system is documented in `DESIGN.md`. |
 | Typography | **Outfit** (Google Fonts) | One family for the whole app, loaded in `Layout.astro` with `display=swap` plus a system fallback stack (degrades gracefully offline). |
@@ -70,6 +74,10 @@ instead of a blank page), then throws at module load so the build fails too.
 > `PUBLIC_SUPABASE_KEY` must be set on the **Vercel project** (Production *and*
 > Preview) **before the first deploy**, or the build fails with the guard message
 > above. `.env.template` lists the two names with no values.
+
+The ES/EN pass added **no `PUBLIC_*` variable**: both locale files are bundled
+modules, so the language choice is runtime state, not build-time config. Nothing
+about the deploy shape or the secret surface changed.
 
 ## 5. Getting started
 
@@ -140,7 +148,11 @@ cupos-sitio-web/
     │   ├── emptyState.tsx   # illustration + heading + body + one CTA
     │   ├── productImage.tsx # renders a product image via a signed URL
     │   ├── confirmModal.tsx # destructive-action confirm dialog (built on modal.tsx)
-    │   └── modal.tsx        # shared dialog shell: role=dialog, Escape, focus trap, scroll lock
+    │   ├── modal.tsx        # shared dialog shell: role=dialog, Escape, focus trap, scroll lock
+    │   └── ui/              # cross-screen primitives; import from the barrel
+    │       ├── index.ts          # barrel: re-exports each primitive and its prop types
+    │       ├── skeleton.tsx      # loading placeholders (first load only — DESIGN.md §7)
+    │       └── languageSwitch.tsx # ES/EN segmented control (aria-pressed group)
     ├── context/
     │   └── authContext.tsx  # AuthProvider + useAuth() (Supabase session)
     ├── repositories/        # the ONLY layer that talks to Supabase (see §10.1)
@@ -156,18 +168,38 @@ cupos-sitio-web/
     │   ├── useClientPurchases.ts   # purchases CRUD + per-product & all-sales caches
     │   ├── usePurchasePayments.ts  # payments CRUD + parent re-read
     │   ├── usePresent.ts           # presence window: holds a surface mounted through its exit
-    │   └── useCollapsiblePanel.ts  # WAAPI fold for disclosure panels (rests `hidden`)
+    │   ├── useCollapsiblePanel.ts  # WAAPI fold for disclosure panels (rests `hidden`)
+    │   ├── useLanguage.ts          # active language + setLanguage (storage, `lang`, title)
+    │   └── useFormatters.ts        # formatCurrency/formatDate bound to the active locale
     ├── helpers/
-    │   ├── currency.ts      # formatCurrency() — es-CO, no decimals
-    │   └── date.ts          # formatDate() — short es-CO label, local-midnight safe
+    │   ├── currency.ts      # formatCurrency(value, locale) — no decimals
+    │   └── date.ts          # formatDate(value, locale) — local-midnight safe
+    ├── i18n/                # ES/EN resources + language rules (see §8)
+    │   ├── index.ts            # the singleton, its idempotent init, applyLanguage/syncDocumentLanguage
+    │   ├── languages.ts        # AppLanguage, storage key, resolution + locale-tag rules
+    │   ├── types.ts            # `CustomTypeOptions` (typed keys) + `window.__cuposApplyLang`
+    │   ├── index.test.ts       # the init order: stored → browser hint → `es`
+    │   └── locales/
+    │       ├── es.ts / en.ts   # the two resource objects (`es` is the reference locale)
+    │       ├── parity.test.ts        # key/plural/empty-string parity, both directions
+    │       └── interpolation.test.ts # placeholder + interpolation parity
     ├── lib/
     │   └── supabase.ts      # canonical supabase client (env-guarded)
     ├── styles/
     │   ├── theme.css        # design tokens + globals + shared components
     │   ├── dashboard.css    # dashboard layout + interaction states
     │   └── loginModal.css   # login layout only (tokens come from theme.css)
-    └── **/*.test.ts         # colocated Vitest unit tests (helpers + repositories)
+    └── **/*.test.ts         # colocated Vitest unit tests (helpers, repositories, i18n rules)
 ```
+
+**Where a component lives.** `src/components/ui/` is the home for **cross-screen
+primitives** — anything a second screen could reasonably want. They are imported
+from the barrel (`src/components/ui/index.ts`), which re-exports each primitive
+by name *and* its prop types. Everything else stays flat in `src/components/` and
+is screen-specific: the dashboard's own pieces (`salesSection`, `dashboard`), the
+shared dialog shell (`modal`, `confirmModal`) and the app-level leaves. The
+dependency arrow points one way — a `ui/` primitive may never import a screen
+component. One primitive per file; a variant is a prop, never a `_v2` filename.
 
 ## 7. Routes
 
@@ -181,6 +213,13 @@ Both pages are wrapped in `Layout.astro`, which sets `<title>`, viewport, favico
 and the shared background color token. Each route supplies its own title —
 `Iniciar sesión · Gestión de cupos` for `/`, `Panel de gestión · Cupos` for
 `/dashboard`. The Astro dev toolbar is disabled in `astro.config.mjs`.
+
+**There are no localized route variants** (`/en/…`, `?lang=en`) — the URL space is
+unchanged by i18n. Language is a client-side preference: every route serves one
+static document and the island re-renders it in the chosen language. `Layout.astro`
+renders the Spanish `<title>`/`<meta description>`/skip link (the build-time truth)
+and carries the English counterparts as `data-*` attributes for its inline script —
+see §8.
 
 Because there is no `src/middleware.ts`, **there is no server-side route
 protection** — `/dashboard` returns the same static shell to everyone. Access
@@ -245,6 +284,57 @@ Key characteristics:
   through `createSignedUrl()` (async, expiring, 1 h) rather than `getPublicUrl()`.
   `ProductImage` owns fetching/caching that URL, and `dashboard.tsx` bumps an
   `imageVersion` counter after any upload/rename/delete to defeat browser caching.
+
+### Internationalization (ES/EN)
+
+Two languages ship. Spanish is the **static default** (the HTML is built in
+Spanish); English is applied by the island bundle. The pieces:
+
+- **The singleton — `src/i18n/index.ts`.** Built once at module scope with
+  `i18next.createInstance()` + `initReactI18next`, with both resource objects
+  inlined, `fallbackLng: 'es'`, `supportedLngs: ['es', 'en']`,
+  `interpolation.escapeValue: false` (React escapes) and `returnNull: false`
+  (a missing key renders its key rather than an empty node). Module identity means
+  the two React roots a page can host (`LoginModal`, `DashboardApp`) reuse one
+  instance instead of re-initialising it, and HMR does too. In dev only, a
+  `missingKey` listener logs the missing key; it is stripped from the build.
+- **The rules — `src/i18n/languages.ts`** (imports no i18next, so it is testable in
+  plain Node). Resolution order is **stored choice → browser hint → `es`**, and it
+  is the singleton's `init({ lng })` that applies it —
+  `resolveLanguage(readRawStoredLanguage(), navigator.language)`, covered by
+  `src/i18n/index.test.ts`. `resolveLanguage()` ignores an unrecognised stored value
+  rather than trusting it, and `readRawStoredLanguage()` exists so the defaulting
+  (`readStoredLanguage()`) cannot hide the hint before the rule runs.
+  `LOCALE_TAG` maps `es → es-CO`, `en → en-US` and is the single place that mapping
+  lives. The choice is persisted under `localStorage['cupos.lang']`; every storage
+  access is wrapped, so private mode degrades to the default.
+- **The hook — `src/hooks/useLanguage.ts`.** Exposes `{ language, setLanguage }`.
+  `language` is always `'es' | 'en'` (never a locale tag), so the switch compares
+  exactly. Mounting also syncs the document (`<html lang>` + the shell's copy),
+  which is what makes a returning English visitor's Spanish-baked HTML correct.
+- **The one apply path.** `setLanguage` → `applyLanguage()` → `changeLanguage()` →
+  `writeStoredLanguage()` → `syncDocumentLanguage()`. Every change funnels through
+  that function, so the switch, the initial sync and any future caller cannot drift.
+- **Typed keys — `src/i18n/types.ts`.** Augmenting i18next's `CustomTypeOptions`
+  with `typeof es` makes `t('sales.owed')` a compile-time key: a typo or a stale
+  key is a `tsc` error. This is the repo's substitute for a lint rule on copy.
+- **The Astro shell.** `Layout.astro` owns three strings i18next cannot reach
+  (there is no SSR): the skip link, `<title>` and `<meta description>`. They are
+  rendered in Spanish at build time, their English counterparts come from the same
+  `en.ts` (looked up by the Spanish title the page passed — no hand-kept map), and
+  a tiny `is:inline` script publishes `window.__cuposApplyLang(lang)` to swap them
+  and set `<html lang>`/`data-lang`. `syncDocumentLanguage()` calls it. The script
+  resolves only a *stored* choice (the bundle owns the browser hint), so a first
+  visit from an English browser shows Spanish HTML briefly, then switches.
+- **Formatters follow the language.** `useFormatters()` binds the pure helpers to
+  the active locale: `useFormatters().formatCurrency(v)` renders `180.000` in
+  Spanish and `180,000` in English from the same `Intl` call (§10.4).
+
+**The tradeoff (R2).** The shell's copy is Astro-baked, so a JS-less or
+pre-hydration render is Spanish and English costs one brief flash on a first visit.
+The alternative — rendering the shell on the server per language — would need a
+request-time function and would break the static frame (`AGENTS.md`), so it is
+deliberately not done. Costs and the measured bundle delta are in §11 and §13.
 
 ## 9. Data model
 
@@ -363,10 +453,11 @@ strings they surface, all come from there.
 They return `{ data, error }` (or `{ error }`) instead of throwing, while also
 keeping an `error` string in state for the UI to render.
 
-Two of them — `usePresent()` and `useCollapsiblePanel()` — are **UI-only**: they
-wrap no repository and exist purely to drive motion (presence windows and the
-disclosure fold), so they are documented here alongside the data hooks rather
-than in §10.1.
+Two pairs of hooks wrap no repository. `usePresent()` and `useCollapsiblePanel()`
+are **UI-only** (presence windows and the disclosure fold). `useLanguage()` and
+`useFormatters()` are **i18n-only** (§8) — one wraps the i18next singleton, the
+other binds the pure formatters to the active locale. All four are documented here
+alongside the data hooks rather than in §10.1.
 
 #### `useProducts()` — `src/hooks/useProducts.ts`
 
@@ -466,6 +557,35 @@ Animations API, because `height: auto` cannot be transitioned. Padding lives on
 an inner wrapper (`.collapsibleBodyInner` / `.collapsibleCardBodyInner`) so the
 panel height animates to a true `0`. `prefers-reduced-motion` skips straight to the end state.
 
+#### `useLanguage()` — `src/hooks/useLanguage.ts`
+
+The active language and the way to change it. Not a data hook: it wraps the i18n
+singleton, not a repository.
+
+| Returns | Description |
+| :-- | :-- |
+| `language` | `'es' \| 'en'` — the normalised language, never a locale tag, so the switch compares it exactly. |
+| `setLanguage(next)` | Runs `applyLanguage(next)`: `changeLanguage` → persist to `localStorage['cupos.lang']` → sync the document. Fire-and-forget (`void`). |
+
+Mounting syncs the document (`<html lang>` + `Layout.astro`'s copy) and it also
+subscribes to i18next's `languageChanged`, so a change made anywhere is reflected —
+not just the ones routed through `setLanguage`. Storage and `document` access live
+in the pure `languages.ts` helpers, so the tested surface needs no jsdom.
+
+#### `useFormatters()` — `src/hooks/useFormatters.ts`
+
+Binds the pure date/currency helpers to the active language. Not a data hook
+either.
+
+| Returns | Description |
+| :-- | :-- |
+| `formatCurrency(value)` | `formatCurrency(value, locale)` with the active locale (`es` → `es-CO`, `en` → `en-US`). |
+| `formatDate(value)` | `formatDate(value, locale)` with the active locale. |
+
+`Intl` stays the engine — the hook only supplies the locale tag, so `180000`
+renders `180.000` in Spanish and `180,000` in English. Memoised on the locale, and
+the helpers underneath stay pure and unit-tested (§10.4).
+
 #### `AuthProvider` / `useAuth()` — `src/context/authContext.tsx`
 
 React context exposing `{ session, user, loading, signOut }`. On mount it restores
@@ -490,16 +610,26 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 | `ProductDetailModal` | `productDetailModal.tsx` | What tapping a product card opens. Built on `Modal`: the image, then a `<dl>` label/value ledger (ID badge, description, release date, value, purchase count) and the three actions — a full-width "Compras (N)" over a row holding "Editar" and "Eliminar". Purely presentational and action-only: it takes the `product`, the `purchaseCount`, the `imageVersion`/`getSignedUrl` pair for `ProductImage`, the `closing` flag, and `onEdit` / `onDelete` / `onOpenPurchases` callbacks. Each callback opens a **further** dialog on top of this one rather than replacing it, so cancelling lands back on the product (the same nesting `PurchasesModal` uses). |
 | `Modal` | `modal.tsx` | The shared dialog shell. `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, Escape to close, backdrop click to close, focus moved in on open and restored to the trigger on close, Tab trapped (only the topmost dialog reacts, so nested confirms work), and a background scroll lock. Takes a `closing` prop from `usePresent`: it adds `.modalOverlay--closing` and stops answering Escape/Tab while the exit plays, so the dialog fades and slides out instead of snapping away. |
 | `ConfirmModal` | `confirmModal.tsx` | Destructive-action confirmation built on `Modal` (`title`, `message`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`, and the `closing` flag passed straight through). Cancel is rendered first so the safe choice sits under the thumb, and the consequence sentence is wired up via `aria-describedby`. |
+| `LanguageSwitch` | `ui/languageSwitch.tsx` | The ES/EN control, rendered by **both** screens — the login card and the dashboard top bar (which is why it lives in `ui/`). A `role="group"` labelled by `common.language` holding two `aria-pressed` buttons; `aria-pressed` (not `role="tab"`/`radiogroup`) because these are two toggles over a stored preference and the component owes no arrow-key contract. Each button carries `lang` for its own two-letter label and an `aria-label` naming the target language (`Cambiar a inglés`), so a sighted user reads a compact segment while assistive tech hears an action. Copy-free inside: every string comes from `t()`. |
+
+**Components that take their copy as props are i18n-agnostic by design** —
+`Button`, `Modal`, `ConfirmModal`, `EmptyState` — they render whatever string the
+caller passes, so they never import i18next. The translating happens in the screen
+component, which is also where the `t(...)` keys stay visible in one place.
 
 ### 10.4 Helpers
 
-- **`formatCurrency(value)` — `src/helpers/currency.ts`.** Formats whole-peso
-  amounts the Colombian way (`.` thousands separator, no decimals) using
-  `Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })`. `null`/`undefined`
-  render as `"0"`. Example: `formatCurrency(180000) === "180.000"`.
-- **`formatDate(value)` — `src/helpers/date.ts`.** Short Spanish label via
-  `Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })`
-  → `"4 oct 2026"`. Accepts both shapes Supabase returns: a `date` column
+- **`formatCurrency(value, locale = 'es-CO')` — `src/helpers/currency.ts`.** Formats
+  whole-peso amounts the Colombian way by default (`.` thousands separator, no
+  decimals) using `Intl.NumberFormat(locale, { maximumFractionDigits: 0 })`.
+  `null`/`undefined` render as `"0"`. The `locale` parameter is what makes the
+  English side read naturally: `formatCurrency(180000) === "180.000"` (es-CO) while
+  `formatCurrency(180000, 'en-US') === "180,000"`. The hook that supplies the active
+  locale is `useFormatters()` (§10.2) — components do not pass it by hand.
+- **`formatDate(value, locale = 'es-CO')` — `src/helpers/date.ts`.** Short label via
+  `Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' })`
+  → `"4 de oct de 2026"` (es-CO) / `"Oct 4, 2026"` (en-US); the exact wording is
+  ICU-provided. Accepts both shapes Supabase returns: a `date` column
   (`"2026-10-04"`) and a `timestamptz`. A bare `YYYY-MM-DD` is parsed as *UTC*
   midnight by `Date`, which would render as the previous day anywhere west of
   Greenwich (Colombia is UTC-5), so a 10-character value gets an explicit
@@ -511,7 +641,7 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 
 | File | Purpose |
 | :-- | :-- |
-| `src/styles/theme.css` | **Single source of truth** for the design system, imported once by `Layout.astro`. Holds the tokens (color, type scale, spacing, elevation, motion), the globals (`box-sizing`, `body` typography, `:focus-visible`, `prefers-reduced-motion`, `.skipLink`, `.spinner`, `.tabular`, `.textMuted`) **and the shared components**: the form primitives (`.fieldGroup`, `.label`, `.input`, `.textarea`, `.fieldHint`, `.fieldError`), the button set (`.btnPrimary`/`.btnSecondary`/`.btnGhost`/`.btnDanger`/`.btnIcon`/`.btnGhost--danger` plus the `.btnSm`/`.btnLg` size modifiers), `.card` and the foldable `.collapsibleCard*` (header, trigger, title, meta, chevron, actions, body), `.badge` + its six modifiers, `.banner`, `.emptyState*` and `.statusMessage`. It also owns **motion**: the `--duration-*` / `--ease-*` tokens, the `riseIn` entrance utility, and the `prefers-reduced-motion` override that collapses every duration to nothing. Token rationale lives in `DESIGN.md`. |
+| `src/styles/theme.css` | **Single source of truth** for the design system, imported once by `Layout.astro`. Holds the tokens (color, type scale, spacing, elevation, motion), the globals (`box-sizing`, `body` typography, `:focus-visible`, `prefers-reduced-motion`, `.skipLink`, `.spinner`, `.tabular`, `.textMuted`) **and the shared components**: the form primitives (`.fieldGroup`, `.label`, `.input`, `.textarea`, `.fieldHint`, `.fieldError`), the button set (`.btnPrimary`/`.btnSecondary`/`.btnGhost`/`.btnDanger`/`.btnIcon`/`.btnGhost--danger` plus the `.btnSm`/`.btnLg` size modifiers), the language switch (`.langSwitch` + `.langSwitchOption`, whose pressed state is styled off `[aria-pressed='true']`), the loading placeholders (`.skeleton`, `.skeletonLine` + its `--short`/`--title`/`--label`/`--value`/`--meta` widths, `.skeletonText`, `.skeletonBlock` — a shimmer that `prefers-reduced-motion` stills), `.card` and the foldable `.collapsibleCard*` (header, trigger, title, meta, chevron, actions, body), `.badge` + its six modifiers, `.banner`, `.emptyState*` and `.statusMessage`. It also owns **motion**: the `--duration-*` / `--ease-*` tokens, the `riseIn` entrance utility, and the `prefers-reduced-motion` override that collapses every duration to nothing. Token rationale lives in `DESIGN.md`. |
 | `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`/`topBarLogo`/`userEmail`, `mainContent`, `pageHeader*` (`.pageHeaderText .title` steps 24px → 32px at `640px`; `.pageHeaderActions` centres the refresh/close buttons against the taller CTA), `dashboardBanner` (a `.banner` from theme.css), `productsGrid` with the `product*` card parts (`.card.productCard` is the button surface itself — tighter `--space-12` padding, `productHeader`, `productName`, `productCardMeta`, `productValue`, `productPurchases`, and the bleeding `productImage`), the `productDetail*` internals of the product dialog (image, label/value ledger, stacked description row, full-width primary action + button row), the `purchases*` / `payments*` / `payment*` modal internals (`.purchaseCard` is now only a surface modifier on the shared `.collapsibleCard`; `.purchaseTitleBlock` stacks the client name over the phone in the card header), `modalOverlay`, `formCard`/`formCardHeader`/`form`/`confirmMessage`/`confirmCard`/`buttonGroup`, `fileInput`/`imagePreview*`/`imageRemoveBtn`, `dashboardSections`, `collapsible*` (heading, trigger, title, meta, chevron, body, and the `.collapsibleBodyInner` padder that lets the fold reach a true `0`), the dialog animations (`fadeIn` / `slideUp` on open at `--duration-slow`, `fadeOut` / `slideDown` under `.modalOverlay--closing`, held with `forwards` until React unmounts), and `salesList` with its `sale*` rows (`saleRow`, `saleMain`, `saleClientName`, `saleMeta`, `saleSide`, `saleMoney`, `saleMoneyTotal`). Layout-only modifiers on the shared buttons (`btnRefresh`, `btnClose`, `purchasesNewBtn`, `paymentSubmitBtn`, `rowRemoveBtn`, `productDetailPrimary`, `productDetailButtonRow`) also live here. Each interaction state (hover/active/focus) sits next to the class it belongs to. Imported by `dashboard.astro`. |
 | `src/styles/loginModal.css` | Login screen layout only: `authShell`, `authHero`, `authLogo`, `authEyebrow`, `authWordmark`, `authCard`, `authHeader`, `authTitle`, `authSubtitle`, `authForm`, `submitBtn`. It defines **no palette of its own** — colors and type come from `theme.css`. Imported by `index.astro`. |
 
@@ -554,6 +684,33 @@ something that consumes compute:
 - No `astro:assets` usage, so the adapter adds no image-optimization route.
 - The build never calls Supabase (the app is a client-side SPA), so it is
   deterministic and can run offline.
+- **i18n changes none of that.** Both locale files are bundled modules and the
+  language is a runtime `localStorage` preference: no fetch at build or run time,
+  no new route, no `PUBLIC_*` variable, no function (§8).
+
+### Bundle budget
+
+The dashboard island's JS is the thing to watch, because i18next is the largest
+dependency added since the baseline. Measured with `npm run build` at `aab7385`
+and after the i18n pass (uncompressed / gzip over `_astro/*.js`):
+
+| | Baseline | After i18n |
+| :-- | :-- | :-- |
+| **Eagerly preloaded by `/dashboard`** (`client` + `dashboardApp`) | 223 KB / 67 KB | **203 KB / 63 KB** |
+| Whole island payload (every chunk it can load) | 443 KB / 125 KB | 510 KB / 150 KB |
+| Shared vendor chunk (Supabase; + i18next after) | 212 KB / 55 KB | 272 KB / 74 KB |
+
+The **ceiling is 250 KB uncompressed for the eagerly-loaded dashboard JS** — the
+figure to compare is the first row, and it went *down* (−20 KB) because the dialogs
+became `lazy()` chunks (Phase A) while i18next (+60 KB) landed in the shared
+vendor chunk. The fallback recorded in the plan (dropping `react-i18next` for a
+`useSyncExternalStore` bridge over `i18next`'s own `t()`, ~10 KB saved) was
+therefore **not needed** — decided on the real number, not in advance.
+
+The vendor chunk (`client` for React DOM, `ui` for Supabase + i18next) has never
+been split, so the *whole-island* figure is what a user on a slow link eventually
+downloads; it grew ~67 KB raw / 25 KB gzip. Only the ceiling is enforced, because
+the island cannot render at all without the vendor half.
 
 ### Deploying
 
@@ -662,14 +819,16 @@ codegraph serve --mcp --path "$PWD"
 | :-- | :-- |
 | `npm run build` | ✅ passes — 3 static pages (`/index.html`, `/dashboard/index.html`, `404.html`), ~0.9 s. |
 | Dev server | `npm run dev` → `http://localhost:4321` (or `astro dev --background`). |
-| Types | ✅ `npx tsc --noEmit` clean, `npm run check` (`astro check`) → **0 errors** (43 files; 5 hints, all pre-existing deprecations/unused-import). |
-| Tests | ✅ `npm test` (`vitest run`) → **19 passing** across 5 files (`formatCurrency`, `formatDate`, `sanitizeSegment`/`getPath`, `getProductImagePath`, `RepoResult` helpers). Node environment, Supabase mocked, hermetic. |
+| Types | ✅ `npx tsc --noEmit` clean, `npm run check` (`astro check`) → **0 errors, 0 warnings** (57 files; 5 hints, all pre-existing — four deprecated `FormEvent`s and one unused `React` import). |
+| Tests | ✅ `npm test` (`vitest run`) → **43 passing** across 9 files: the pure helpers (`formatCurrency` incl. its `en-US` branch, `formatDate`, `sanitizeSegment`/`getPath`, `getProductImagePath`), the `RepoResult` contract, and the i18n rules (key/plural/empty-string parity **both directions**, placeholder + interpolation parity, the singleton's init order — stored → browser→ `es` — `resolveLanguage`/`normaliseLanguage`, the storage round-trip, and a storage that throws). Node environment, Supabase mocked, hermetic. |
+| i18n | ✅ ES/EN, static default `es`, persisted in `localStorage['cupos.lang']`; `Layout.astro`'s three shell strings swap through its inline script. Verified by reading the source + the rules above (no browser simulation) — the interactive toggle needs a manual pass (`plan.md` Phase B gate). |
 | Lint / format | ❌ no ESLint/Prettier config yet (see [§14](#14-known-issues--tech-debt)). |
 | CodeGraph index | ✅ built (`.codegraph/`), MCP handshake verified. |
 | Visual check | ✅ By reading the source: values traced to `theme.css` tokens, layout rules read from the stylesheets. No browser is simulated. |
 | Motion check | ✅ By reading the source: durations/easings come from the `--duration-*` / `--ease-*` tokens with `EXIT_MS` in `usePresent.ts` kept in sync with `--duration-base`, and both JS drivers branch on `prefers-reduced-motion`. |
 | Static output | ✅ `.vercel/output/static/` written, `.vercel/output/functions/` absent. |
-| Design system | Tokens in `src/styles/theme.css`, contract in `DESIGN.md`. |
+| Design system | Tokens in `src/styles/theme.css`, contract in `DESIGN.md`. Cross-screen primitives live in `src/components/ui/` and are imported from its barrel (§6). |
+| Bundle shape | The dashboard's eagerly-loaded JS is **203 KB** (ceiling 250 KB); every dialog is a separate `lazy()` chunk. See §11 *Bundle budget*. |
 
 ## 14. Known issues & tech debt
 
@@ -745,6 +904,27 @@ Ordered roughly by how much they matter:
 16. **`allowScripts` in `package.json` is inert here.** npm 10.9.3 (installed locally
     and bundled with Vercel's Node 22 image) does not read that field, so it is
     ignored on both sides; it does not affect the deploy either way.
+17. **The `404` page's body copy is Spanish-only.** `src/pages/404.astro` has no
+    island, so it cannot call `t()` — an English visitor who mistypes a URL gets a
+    Spanish "No encontramos esta página" card. Its `<title>`/`<meta>` *do* swap
+    (they come from `Layout.astro`'s shared `data-*-en` payload, verified in the
+    built `404.html`), so the gap is only the heading, body and CTA. Accepted:
+    one more island for a route that should be rare costs more than it fixes, and
+    the page is statically correct either way.
+18. **Repository error strings are Spanish-only and untranslated.** The
+    `__NOT_FOUND__`-style sentinels and the messages built in
+    `src/repositories/*` do not go through `t()` — they predate the i18n pass and
+    are surfaced verbatim in the dashboard's `role="alert"` banners. Moving them
+    into the resources (`t('errors.…')`) is the next i18n step; the parity test
+    would then guard them automatically.
+19. **The dashboard's `client` chunk (React DOM, 184 KB) is still the single
+    largest script** and has never been code-split. It is not urgent (the island
+    cannot render without it), but it is the reason "whole island payload" in §11
+    is much larger than the eager figure the ceiling measures.
+20. **No `lint` on copy.** Typed keys via `CustomTypeOptions` and the parity test
+    catch *missing/extra* keys, but nothing detects a hardcoded Spanish sentence
+    left in a component. A lint rule (or a grep-based CI check) would; there is no
+    ESLint yet (§14.13).
 
 ## 15. Git history
 
@@ -772,7 +952,8 @@ So the app was built in this order: **Astro scaffold → auth + login → data h
 UI polish (confirm modal, images, currency) → repo hygiene (`node_modules`) → AI
 tooling → design system → dashboard sections + repository layer → reusable
 primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`) → motion (a presence
-hook for dialogs, an animated fold for disclosures).** The domain model
+hook for dialogs, an animated fold for disclosures) → design-system primitives
+(`ui/` barrel, skeletons, lazily-loaded dialogs) → ES/EN i18n.** The domain model
 (products → purchases → payments) and the storage layer have existed since `2e0b0c6`.
 
 `9ea91d7` is a single commit that carries **two** passes — the reusable
@@ -796,26 +977,32 @@ Roughly in priority order:
 3. ✅ **Artifact churn stopped:** `.astro/`, `dist/` and `.env` are ignored and
    untracked.
 4. **Quality gates:** ✅ `astro check` via `npm run check` and a Vitest setup
-   (`npm test`, 19 tests) now cover the pure helpers (`formatCurrency`, `formatDate`,
-   `sanitizeSegment`, `getProductImagePath`) and the `RepoResult` contract.
-   Still open: **ESLint + Prettier**, and running the gates in CI (a GitHub Action
-   that runs `check` + `test` + `build`).
-5. **UX consistency:** ✅ purchase/payment deletion now confirms through
+   (`npm test`, **43 tests / 9 files**) now cover the pure helpers (`formatCurrency`
+   incl. `en-US`, `formatDate`, `sanitizeSegment`, `getProductImagePath`), the
+   `RepoResult` contract, and the i18n rules (locale parity both directions,
+   placeholders, the singleton's init order, `resolveLanguage`, storage). Still
+   open: **ESLint + Prettier**,
+   and running the gates in CI (a GitHub Action that runs `check` + `test` + `build`).
+5. **i18n follow-through:** ✅ ES/EN with a persisted choice on both screens.
+   Still open: the repository error strings and the `404` copy are Spanish-only
+   (§14.17–§14.18), and nothing lints for a hardcoded sentence (§14.20).
+6. **UX consistency:** ✅ purchase/payment deletion now confirms through
    `ConfirmModal`, and both dashboard sections render their own `errorAlert`.
    Still open: image and payment failures are swallowed, `updatePayment` is
    unwired, and the sales list has no actions of its own.
-6. **Cleanup:** ✅ the debug `console.log` and the stray `localStorage` write are
+7. **Cleanup:** ✅ the debug `console.log` and the stray `localStorage` write are
    gone, and the unused Astro starter page (`Welcome.astro`) with its
    `astro.svg`/`background.svg` assets and the stray PDF have been deleted.
    Still open: fix `package.json` metadata (§14.11).
-7. **Extend the docs:** record the actual Supabase schema (SQL migrations) so this
+8. **Extend the docs:** record the actual Supabase schema (SQL migrations) so this
    file stays the single source of truth.
-8. **Design-system follow-through:** the login screen and the dashboard now share
-   tokens, but their field markup is still written twice. Consider extracting the
-   remaining duplicated form markup the same way `Modal` was extracted.
-9. **Production readiness:** add `src/pages/404.astro` (§14.15), add loud guards for
-   every env var the code reads (§14.1), and set the Supabase vars on the Vercel
-   project before the first deploy — then run the [§11](#11-build--deployment)
+9. **Design-system follow-through:** ✅ cross-screen primitives live in
+   `src/components/ui/` behind a barrel. Still open: the login screen and the
+   dashboard field markup is still written twice — extract it the same way `Modal`
+   was extracted.
+10. **Production readiness:** ✅ `src/pages/404.astro` (§14.15), ✅ loud env guards
+    (§14.1). Still to do: set the Supabase vars on the Vercel project before the
+    first deploy — then run the [§11](#11-build--deployment)
    checklist.
 
 ---

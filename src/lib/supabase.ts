@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { i18n, LOCALE_TAG, normaliseLanguage } from '../i18n';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_KEY;
@@ -13,12 +14,32 @@ const missingEnvVars = [
   !supabaseKey ? 'PUBLIC_SUPABASE_KEY' : null,
 ].filter((name): name is string => name !== null);
 
-/** Readable, actionable failure message — never a silent `undefined`. */
-const configErrorMessage = [
-  `Falta configurar ${missingEnvVars.join(' y ')}.`,
-  'Copia .env.template a .env y rellena los valores, o defínelos en Vercel',
-  '(Production y Preview) antes de construir.',
-].join(' ');
+/**
+ * Readable, actionable failure message — never a silent `undefined`.
+ *
+ * Read through the singleton already in hand rather than a hardcoded literal, so
+ * the message is in the visitor's language: this is the first thing a
+ * misconfigured deploy shows. The conjunction ("y" / "and") comes from
+ * `Intl.ListFormat`, so the phrase is never half-translated.
+ *
+ * `t()` renders its own key when a resource is missing (`returnNull: false`), and
+ * a raw key is useless in a message whose whole job is to be actionable — so a
+ * miss is re-read explicitly in Spanish, the fallback language and the reference
+ * resource. The guard stays loud in every language, from one source of truth.
+ */
+const CONFIG_ERROR_KEY = 'errors.configMissing';
+
+function configErrorMessageFor(name: string): string {
+  const message = i18n.t(CONFIG_ERROR_KEY, { name });
+  return message === CONFIG_ERROR_KEY ? i18n.t(CONFIG_ERROR_KEY, { name, lng: 'es' }) : message;
+}
+
+const configErrorMessage = configErrorMessageFor(
+  new Intl.ListFormat(LOCALE_TAG[normaliseLanguage(i18n.language)], {
+    style: 'long',
+    type: 'conjunction',
+  }).format(missingEnvVars)
+);
 
 if (missingEnvVars.length > 0) {
   // A bare module-scope throw would leave the page blank, so paint the reason

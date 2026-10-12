@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authRepository } from '../repositories/authRepository';
+import { LanguageSwitch } from './ui';
 import monsterHighLogo from '../../public/monster-high-logo.png';
 
+/**
+ * The sign-in screen. Copy-free by construction: every string comes from `t()`,
+ * and `LanguageSwitch` (which renders unconditionally) is also what keeps
+ * `<html lang>` and the shell's copy in step with the chosen language.
+ */
 export default function LoginModal() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,6 +36,12 @@ export default function LoginModal() {
 
   return (
     <div className="authShell">
+      {/* Language before credentials: a visitor who cannot read the form should
+          not have to sign in first to fix that. */}
+      <div className="authTopBar">
+        <LanguageSwitch />
+      </div>
+
       <header className="authHero">
         <img
           src={monsterHighLogo.src}
@@ -36,22 +50,22 @@ export default function LoginModal() {
           width="860"
           height="213"
         />
-        <p className="authEyebrow">Y más.</p>
-        <h1 className="authWordmark">Gestión de cupos</h1>
+        <p className="authEyebrow">{t('auth.eyebrow')}</p>
+        <h1 className="authWordmark">{t('auth.wordmark')}</h1>
       </header>
 
       <section className="authCard" aria-labelledby="authTitle">
         <div className="authHeader">
           <h2 id="authTitle" className="authTitle">
-            Inicia sesión
+            {t('auth.title')}
           </h2>
-          <p className="authSubtitle">Ingresa con tu correo y contraseña para ver tu panel.</p>
+          <p className="authSubtitle">{t('auth.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="authForm">
           <div className="fieldGroup">
             <label className="label" htmlFor="email">
-              Correo electrónico
+              {t('auth.email')}
             </label>
             <input
               id="email"
@@ -61,7 +75,7 @@ export default function LoginModal() {
               autoComplete="username"
               spellCheck={false}
               className="input"
-              placeholder="nombre@ejemplo.com"
+              placeholder={t('auth.emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -70,7 +84,7 @@ export default function LoginModal() {
 
           <div className="fieldGroup">
             <label className="label" htmlFor="password">
-              Contraseña
+              {t('auth.password')}
             </label>
             <input
               id="password"
@@ -107,10 +121,10 @@ export default function LoginModal() {
             {loading ? (
               <>
                 <span className="spinner" aria-hidden="true" />
-                <span>Iniciando sesión…</span>
+                <span>{t('auth.submitting')}</span>
               </>
             ) : (
-              'Iniciar sesión'
+              t('auth.submit')
             )}
           </button>
         </form>
