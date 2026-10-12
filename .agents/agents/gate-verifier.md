@@ -44,5 +44,7 @@ Return exactly:
 - Prefix git commands with `GIT_PAGER=cat` or `git --no-pager`: an unpaged `git diff` in
   this terminal opens `less` and hangs the session. `--no-pager` is a *git-level* flag
   (`git --no-pager commit`), not a `commit` option.
-- `dist/` is untracked but **not** gitignored. Never `git add -A`, never `git clean` here.
+- `dist/`, `.vercel/`, `node_modules/` and `.astro/` are git-ignored. Still never `git clean`
+  here (it would delete `.env` and any local state), and stage explicit paths rather than
+  `git add -A`.
 - Report what you actually observed. A gate you did not run is `NOT RUN`, never `PASS`.

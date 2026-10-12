@@ -1,7 +1,3 @@
----
-description: CodeGraph MCP usage guide — when to use which tool
-alwaysApply: true
----
 <!-- CODEGRAPH_START -->
 ## CodeGraph
 
@@ -28,7 +24,7 @@ Use codegraph for **structural** questions — what calls what, what would break
 - **Trust codegraph results.** They come from a full AST parse. Do NOT re-verify them with grep — that's slower, less accurate, and wastes context.
 - **Don't grep first** when looking up a symbol by name. `codegraph_search` is faster and returns kind + location + signature in one call.
 - **Don't chain `codegraph_search` + `codegraph_node`** when you just want context — `codegraph_context` is one call.
-- **`codegraph_explore` is the heavy hitter** for unfamiliar areas — it returns full source from all relevant files in one call, but is token-heavy. If your harness supports parallel subagents (e.g., Claude Code's Task tool), spawn one for explore-class questions to keep main session context clean.
+- **`codegraph_explore` is the heavy hitter** for unfamiliar areas — it returns full source from all relevant files in one call, but is token-heavy. If your harness supports parallel subagents (a Task/subagent tool), spawn one for explore-class questions to keep main session context clean.
 - **Index lag**: the file watcher debounces ~500ms behind writes; don't re-query immediately after editing a file in the same turn.
 
 ### If `.codegraph/` doesn't exist

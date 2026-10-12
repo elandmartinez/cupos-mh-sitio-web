@@ -30,7 +30,7 @@ Requires Node 22.12 or newer.
 
 - [DOCUMENTATION.md](./DOCUMENTATION.md): what the app does, architecture, routes, data model, deployment, known issues.
 - [DESIGN.md](./DESIGN.md): the design system (tokens, components, states, accessibility).
-- [AGENTS.md](./AGENTS.md): working rules for contributors and AI agents (`CLAUDE.md` is a symlink to it).
+- [AGENTS.md](./AGENTS.md): working rules for contributors and AI agents.
 - [CHANGELOG.md](./CHANGELOG.md): change history.
 
 ## Prompts

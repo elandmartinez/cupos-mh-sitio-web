@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-10-10 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes, the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts), the **design-system primitives pass** (a `src/components/ui/` barrel, `Skeleton*` loading placeholders, lazily-loaded dialogs) and the **ES/EN i18n pass** (i18next singleton, locale files, `LanguageSwitch`, locale-aware formatters) — the last two are **in the working tree on top of `aab7385`, not yet committed**
+> **Status:** work in progress · **Last documented:** 2026-10-11 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes, the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts), the **design-system primitives pass** (a `src/components/ui/` barrel, `Skeleton*` loading placeholders, lazily-loaded dialogs) and the **ES/EN i18n pass** (i18next singleton, locale files, `LanguageSwitch`, locale-aware formatters) — the last two are **in the working tree on top of `aab7385`, not yet committed**; plus the **AI-tooling cleanup** (removed `.claude/`/`.cline/`, relocated `.cursor/agents/` → `.agents/agents/`, deleted `uxonfly.md`)
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -117,11 +117,10 @@ cupos-sitio-web/
 ├── .env                    # PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_KEY (⚠ tracked)
 ├── .env.template           # names of the two PUBLIC_SUPABASE_* vars, no values
 ├── vitest.config.ts         # Vitest config: node env, src/**/*.test.ts
-├── AGENTS.md               # agent/contributor instructions (CLAUDE.md symlinks to it)
+├── AGENTS.md               # agent/contributor instructions
 ├── DESIGN.md               # design system: tokens, components, states, a11y (see §10.5)
 ├── prompts/                # prompt chain: PROMPT-NN-NAME.md (01 = baseline, 02 = known issues)
 ├── kill-criteria.md        # blank business-facing scaffold, to be filled in
-├── .cline/.clinerules      # short Cline rules that defer to AGENTS.md
 ├── public/                 # served as-is at the site root
 │   ├── monster-high-logo.png        # used by loginModal.tsx
 │   ├── monster-high-logo-color.png  # used by dashboard.tsx
@@ -733,21 +732,20 @@ was added later:
 
 | Path | What it is |
 | :-- | :-- |
-| `AGENTS.md` | Contributing/agent guidance: project reference, the non-negotiable **shipping constraint** (static-only frame, see above), design system, dev server in background mode, how UI changes are verified, Astro doc links. `CLAUDE.md` is a **symlink** to it. |
-| `prompts/` | The prompt chain for planned agent work, named `PROMPT-NN-UPPERCASE-NAME.md`. `PROMPT-01` records the baseline (done); `PROMPT-02` covers the §14 fixes. Scaffolded with the `cc-project-scaffold` skill. |
-| `.cline/.clinerules` | Cline rules, kept deliberately short: they point at `AGENTS.md`, `DOCUMENTATION.md` and `DESIGN.md` and restate only the stack and verification rules. `.cline/skills/cc-project-scaffold` is the scaffold skill (its own git repo). |
+| `AGENTS.md` | Contributing/agent guidance: project reference, the non-negotiable **shipping constraint** (static-only frame, see above), design system, dev server in background mode, how UI changes are verified, Astro doc links. |
+| `prompts/` | The prompt chain for planned agent work, named `PROMPT-NN-UPPERCASE-NAME.md`. `PROMPT-01` records the baseline (done); `PROMPT-02` covers the §14 fixes. |
 | `DESIGN.md` | The design contract for this repo: tokens, type scale, component stylings, states, layout, do's/don'ts and a pre-flight checklist. |
-| `.agents/skills/` | Vendored agent skills — Supabase (`supabase`, `supabase-postgres-best-practices`) plus design (`web-design-guidelines` from `vercel-labs/agent-skills`, `redesign-existing-projects` from `Leonxlnx/taste-skill`), mirrored under `.claude/skills/`. |
+| `.agents/skills/` | Vendored agent skills — Supabase (`supabase`, `supabase-postgres-best-practices`) plus design (`web-design-guidelines` from `vercel-labs/agent-skills`, `redesign-existing-projects` from `Leonxlnx/taste-skill`). |
 | `skills-lock.json` | Lockfile for the above (sources + content hashes; see §14 for the two entries without a hash). |
-| `.cursor/rules/codegraph.mdc` | Cursor rule describing when/how to use the CodeGraph MCP tools (`alwaysApply: true`). |
-| `.cursor/agents/` | Project **subagents** — one `.md` per agent (YAML `name`/`description` + system prompt). See *Subagents* below. Project-level, so they take priority over any same-named user agent in `~/.cursor/agents/`. |
+| `.agents/codegraph.md` | CodeGraph usage guide — when to prefer structural search (`codegraph_*`) over grep. |
+| `.agents/agents/` | Project **subagents** — one `.md` per agent (YAML `name`/`description` + system prompt). See *Subagents* below. |
 | `.codegraph/` | CodeGraph index for this repo (`config.json` + `.gitignore` are committed). |
-| `.vscode/extensions.json` | Recommends `saoudrizwan.claude-dev` (Cline). |
-| `.claude/`, `.agents/` | Skill files consumed by Claude-based agents. |
+| `.mcp.json` | Cross-tool MCP config (Claude Code, Cursor, Windsurf, Roo, Codex CLI, …) registering the `codegraph` server over stdio. |
+| `opencode.json` | OpenCode project config — registers the `codegraph` MCP server under `mcp.servers`. |
 
 ### Subagents
 
-Five project subagents live in `.cursor/agents/`. They exist so independent work runs **in
+Five project subagents live in `.agents/agents/`. They exist so independent work runs **in
 parallel** in isolated contexts instead of serially inside one conversation: the main agent
 can edit while `ui-verifier` checks the layout against `DESIGN.md` and `docs-sync` checks the prose, and none
 of those three need the others' context. Delegating also keeps large command output (build
@@ -767,7 +765,7 @@ does two things is picked for neither.
 
 ### Design tooling
 
-Of the five resources in the shared "Claude Code plugins" set, three were adopted for
+Of the five resources in the shared design-plugin set, three were adopted for
 the design-system pass and two were deliberately not:
 
 | Resource | Status |
@@ -789,28 +787,21 @@ tree-sitter knowledge graph of the TypeScript code. Because CodeGraph only parse
 **code** files, `.astro`, `.css` and `.svg` are **not** in the index — searches for
 those still need normal text search.
 
-The server is registered per-assistant, for example in Cline at
-`~/.cline/data/settings/cline_mcp_settings.json`:
+The server is wired up in-repo by two config files, so any MCP-capable assistant that
+opens this project picks it up automatically:
 
-```json
-{
-  "mcpServers": {
-    "codegraph": {
-      "command": "codegraph",
-      "args": ["serve", "--mcp", "--path", "/home/eland/Documents/projects/cupos-sitio-web"],
-      "type": "stdio",
-      "disabled": false,
-      "autoApprove": []
-    }
-  }
-}
-```
+- `.mcp.json` — the cross-tool `mcpServers` shape (Claude Code, Cursor, Windsurf, Roo,
+  Codex CLI, …): `command: codegraph serve --mcp`.
+- `opencode.json` — OpenCode's `mcp.servers` entry (OpenCode does not read `.mcp.json`).
+
+`serve --mcp` resolves the project from the client's `rootUri`, so neither file hard-codes
+a path. Requires the `codegraph` CLI on `PATH` (`npm i -g codegraph`).
 
 To (re)build the index for this repo:
 
 ```sh
 codegraph init -i        # parse + index, writes .codegraph/
-codegraph serve --mcp --path "$PWD"
+codegraph status         # confirm the index is up to date
 ```
 
 ## 13. Current status & validation

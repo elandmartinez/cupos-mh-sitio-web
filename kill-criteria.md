@@ -1,6 +1,6 @@
 # Kill Criteria: cupos-sitio-web
 
-> Blank on purpose. Fill this in with the `founder-discipline:kill-criteria-enforce` skill, or by hand. Until it is filled in, treat commitment actions (paid tooling, new infrastructure, rewrites) as blocked.
+> Blank on purpose. Fill this in by hand. Until it is filled in, treat commitment actions (paid tooling, new infrastructure, rewrites) as blocked.
 
 ## Hypothesis
 

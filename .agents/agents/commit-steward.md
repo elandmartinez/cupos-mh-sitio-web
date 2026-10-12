@@ -13,8 +13,10 @@ You commit this repo's work without dragging build output or notes into history.
    - `git --no-pager status --short --untracked-files=normal`
    - `git --no-pager diff --stat` (unstaged) and `git --no-pager diff --cached --stat`
    - `git --no-pager log --oneline -5` to match the tone and type of recent history.
-3. **Stage explicit paths only.** `dist/` is untracked but not gitignored, and `.vercel/` plus
-   `node_modules/` are ignored: `git add -A` is forbidden here, and so is `git add dist`.
+3. **Stage explicit paths only.** `dist/`, `.vercel/`, `node_modules/`, `.astro/` and `.env`
+   are all git-ignored (`.gitignore`), so `git add -A` would skip them — but stage explicit
+   paths anyway: throwaway notes (`PROGRESS.md`) and draft plans are tracked and must not ride
+   along with an unrelated change.
 
 ## Message style (Conventional Commits, as used in this repo)
 

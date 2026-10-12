@@ -350,9 +350,11 @@ sections and add a read-only sales ledger.
 - **Git pagers:** use `GIT_PAGER=cat` / `git --no-pager`. An unpaged `git diff` in this
   terminal opens `less` and hangs the session. `--no-pager` is a *git-level* flag
   (`git --no-pager commit`), not a `commit` option (`git commit --no-pager` errors out).
-- **`dist/` is untracked but not gitignored** (§14.3), so it shows up as `git status` noise.
-  Never `git add -A` in this repo — stage explicit paths.
+- **`dist/` is now git-ignored** (PROMPT-02 added it to `.gitignore`, along with `.astro/`
+  and `.env`). Stage explicit paths anyway — throwaway notes (`PROGRESS.md`) and draft plans
+  are tracked and would ride along with `git add -A`.
 - **`/dashboard` needs real Supabase credentials** to render; re-measuring the authed UI
   means rebuilding a harness (the old one was deleted on purpose).
-- **`.astro/*` is tracked** and regenerated: `astro build` rewrites `.astro/types.d.ts`, and
-  `astro dev stop` deletes `.astro/dev.json`.
+- **`.astro/` is now git-ignored and untracked** (PROMPT-02). `astro build` still regenerates
+  `.astro/types.d.ts` and `astro dev stop` deletes `.astro/dev.json`, but neither shows up in
+  `git status`.

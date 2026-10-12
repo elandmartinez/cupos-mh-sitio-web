@@ -1,10 +1,9 @@
 /*
  * UXonFly design system — tokens + global primitives for the whole app.
  *
- * Installed from UXonFly: the vendored upstream text lives at
- * .agents/uxonfly.md, DESIGN.md is the project-adapted contract, and this file
- * is its implementation. When this file and DESIGN.md disagree, this file wins
- * for values — then fix DESIGN.md.
+ * Installed from the UXonFly design system (upstream: github.com/Phanikondru/uxonfly-mcp).
+ * DESIGN.md is the project-adapted contract, and this file is its implementation.
+ * When this file and DESIGN.md disagree, this file wins for values — then fix DESIGN.md.
  *
  * Imported once by src/layouts/Layout.astro so every page gets it.
  *

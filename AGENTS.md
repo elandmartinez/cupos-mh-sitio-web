@@ -1,3 +1,18 @@
+## CodeGraph — search structurally first
+
+This repo has a CodeGraph MCP server (`codegraph_*` tools): a tree-sitter knowledge
+graph of every symbol, call site and file. For **structural** questions, use CodeGraph
+instead of grep:
+
+- "Where is X defined?" → `codegraph_search`
+- "What calls Y / what does Y call?" → `codegraph_callers` / `codegraph_callees`
+- "What would break if I changed Z?" → `codegraph_impact`
+- "Survey an unfamiliar module/area" → `codegraph_explore`
+
+Use grep/read only for **literal text** (string contents, comments, log messages) or
+after you already have a specific file open. Full tool table and rules of thumb:
+`.agents/codegraph.md`.
+
 ## Project reference
 
 `DOCUMENTATION.md` is the reference document for this repo — it describes what the
@@ -69,7 +84,7 @@ Reusable skills in `.agents/skills/`:
   Guidelines (accessibility, focus, forms, motion, typography). Use it to review.
 - `redesign-existing-projects` — audit-first protocol for bigger visual overhauls.
 
-Reusable subagents in `.cursor/agents/` — **delegate; don't serialise.** They run in
+Reusable subagents in `.agents/agents/` — **delegate; don't serialise.** They run in
 isolated contexts, so independent checks fan out in parallel and their noisy output
 (build logs, DOM dumps) stays out of the main conversation:
 
