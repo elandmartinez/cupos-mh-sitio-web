@@ -742,6 +742,8 @@ was added later:
 | `.codegraph/` | CodeGraph index for this repo (`config.json` + `.gitignore` are committed). |
 | `.mcp.json` | Cross-tool MCP config (Claude Code, Cursor, Windsurf, Roo, Codex CLI, …) registering the `codegraph` server over stdio. |
 | `opencode.json` | OpenCode project config — registers the `codegraph` MCP server under `mcp.servers`. |
+| `.github/workflows/ci.yml` | CI quality gate: `tsc` + `astro check` + `vitest` + `build` + the static-only assertion, on every push and PR. |
+| `.github/workflows/deploy.yml` | Deploys the static output to Vercel on push to `master` (needs `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` secrets). |
 
 ### Subagents
 
@@ -803,6 +805,19 @@ To (re)build the index for this repo:
 codegraph init -i        # parse + index, writes .codegraph/
 codegraph status         # confirm the index is up to date
 ```
+
+### Continuous integration
+
+Two GitHub Actions workflows, both targeting the `master` branch:
+
+- `ci.yml` runs the shippable-by-default gates (types → `astro check` → tests → build → the
+  static-only assertion) on every push and pull request. It uses placeholder `PUBLIC_*` values
+  so the gate stays hermetic — no Supabase credentials or secrets required.
+- `deploy.yml` deploys the built output to Vercel on push to `master`, via `vercel pull` →
+  `vercel build` → `vercel deploy --prebuilt --prod`. It needs three secrets (`VERCEL_TOKEN`,
+  `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`) and the `PUBLIC_*` vars set on the Vercel project. A
+  dashboard-side Vercel↔GitHub integration achieves the same auto-deploy without any committed
+  workflow.
 
 ## 13. Current status & validation
 

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Shippable-by-default gates
+    runs-on: ubuntu-latest
+    env:
+      # The build only checks these are present (they are inlined at build time),
+      # so placeholder values keep the gate hermetic — no real Supabase creds.
+      PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      PUBLIC_SUPABASE_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Astro check
+        run: npm run check
+      - name: Unit tests
+        run: npm test
+      - name: Build (static)
+        run: npm run build
+      - name: Assert static-only output (no functions/)
+        run: |
+          test -d .vercel/output/static
+          test -f .vercel/output/config.json
+          test ! -d .vercel/output/functions || {
+            echo "::error::.vercel/output/functions/ exists — the deploy silently became serverless (a regression)."
+            exit 1
+          }
