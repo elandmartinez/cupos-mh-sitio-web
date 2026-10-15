@@ -33,7 +33,7 @@ Four things, in this order:
   radius, shadow or spacing value.
 - **No new route, no `/en` route variants, no middleware, no API route, no SSR.**
   Language is a client-side concern of the islands (see §11, tradeoff R2).
-- **No new `PUBLIC_*` env var** (i18n needs none) and **no new backend work** —
+- **No new `*` env var** (i18n needs none) and **no new backend work** —
   no schema change, no new query, no migration.
 - **Not** Redux / RTK Query / React Query / Bootstrap / sweetalert2 / d3 /
   react-joyride — all explicitly rejected in the scan.
@@ -941,7 +941,7 @@ click-through; C/D not started).
 
 ### Post-ship (owner action, not code)
 
-- [ ] Confirm `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_KEY` are set on the Vercel
+- [ ] Confirm `SUPABASE_URL` / `SUPABASE_KEY` are set on the Vercel
   project for **Production and Preview** (unchanged by this work — i18n adds no
   variable).
 - [ ] Verify the deployed build has no `/functions` output and that ES↔EN works on
