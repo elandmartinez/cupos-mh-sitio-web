@@ -96,8 +96,10 @@ const en: EsResources = {
     addTitle: 'Add purchase',
     editTitle: 'Edit purchase',
     clientName: 'Client name',
+    firstName: 'First name',
     phone: 'Phone',
-    agreedFees: 'Agreed fee',
+    socialMedia: 'Social media contact',
+    agreedPrice: 'Agreed price',
     register: 'Record purchase',
     productLabel: 'Product: {{name}}',
     paid: 'Paid',
@@ -107,6 +109,7 @@ const en: EsResources = {
     emptyBody:
       'Record this product’s first purchase so you can follow the progress of its payments.',
 
+    deleteLabel: 'Delete purchase',
     deleteAria: 'Delete {{name}}’s purchase',
     deleteTitle: 'Delete this purchase?',
     deleteMessage:
@@ -115,17 +118,29 @@ const en: EsResources = {
   },
 
   payments: {
+    sectionTitle: 'Payments',
     amountLabel: 'Payment amount',
     amountHint: 'Deducted from the outstanding balance.',
-    extraFee: 'Extra charge',
-    extraSuffix: ' (extra)',
     add: 'Add payment',
-    empty: 'No payments yet. Record the first one with the form above.',
+    empty: 'No payments yet.',
     removeAria: 'Delete payment',
     deleteTitle: 'Delete this payment?',
     deleteMessage:
       'The payment of {{amount}} will be deleted and the balance recalculated. This cannot be undone.',
     deleteConfirm: 'Delete payment',
+  },
+
+  extraFees: {
+    sectionTitle: 'Extra charges',
+    amountLabel: 'Charge amount',
+    amountHint: 'Added to what the client owes.',
+    add: 'Add extra charge',
+    empty: 'No extra charges yet.',
+    removeAria: 'Delete extra charge',
+    deleteTitle: 'Delete this extra charge?',
+    deleteMessage:
+      'The charge of {{amount}} will be deleted and the balance recalculated. This cannot be undone.',
+    deleteConfirm: 'Delete extra charge',
   },
 
   sales: {
@@ -135,6 +150,7 @@ const en: EsResources = {
     emptyBody:
       'Record a purchase under My products and it will show up here, with what each client has paid and what they still owe.',
     paidOfTotal: ' of {{total}}',
+    editAria: 'Edit {{name}}’s purchase',
   },
 
   summary: {

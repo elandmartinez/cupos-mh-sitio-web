@@ -19,10 +19,15 @@ export interface ClientPurchase {
   created_at: string;
   updated_at: string | null;
   client_name: string | null;
+  client_first_name: string | null;
   client_phone_number: string | null;
+  client_social_media: string | null;
   is_fully_paid: boolean | null;
   agreed_fees: number | null;
+  /** App-maintained: the money received against this purchase (no trigger). */
   amount_paid_so_far: number | null;
+  /** App-maintained: the sum of fines owed (rows in `purchases_extra_fees`). */
+  extra_charges_total: number | null;
   product_id: number | null;
   /** Free-text lifecycle label; the database defaults it to 'no_payment_done'. */
   status: string | null;
@@ -39,23 +44,43 @@ export interface ClientPurchaseWithProduct extends ClientPurchase {
 /**
  * Columns a caller may set when creating a purchase.
  *
- * `amount_paid_so_far` and `is_fully_paid` are **not** here: a Postgres trigger
- * recomputes them from `purchases_payments`, so the repository seeds them at
- * `0` / `false` on insert and never writes them again.
+ * The money totals (`amount_paid_so_far`, `extra_charges_total`, `is_fully_paid`)
+ * are **not** here: there is no database trigger, so the repository seeds them at
+ * `0` / `0` / `false` on insert and the app writes them afterwards through
+ * {@link updateTotals}.
  */
 export type CreateClientPurchaseInput = Pick<
   ClientPurchase,
-  'client_name' | 'client_phone_number' | 'agreed_fees' | 'product_id'
+  | 'client_name'
+  | 'client_first_name'
+  | 'client_phone_number'
+  | 'client_social_media'
+  | 'agreed_fees'
+  | 'product_id'
 >;
 
 /** Full update of the client/fee details — `product_id` is never moved. */
 export type UpdateClientPurchaseInput = Pick<
   ClientPurchase,
-  'client_name' | 'client_phone_number' | 'agreed_fees'
+  | 'client_name'
+  | 'client_first_name'
+  | 'client_phone_number'
+  | 'client_social_media'
+  | 'agreed_fees'
 >;
 
 /** Partial update — only the client/fee fields present are touched. */
 export type PatchClientPurchaseInput = Partial<UpdateClientPurchaseInput>;
+
+/**
+ * The totals the app computes and writes. No trigger owns these — after every
+ * payment/fine mutation, `usePurchasePayments` derives them from the purchase's
+ * payments and persists them here.
+ */
+export type UpdatePurchaseTotalsInput = Pick<
+  ClientPurchase,
+  'amount_paid_so_far' | 'extra_charges_total' | 'is_fully_paid'
+>;
 
 export interface FindManyClientPurchasesOptions {
   /** Restrict to the purchases of these products (`.in('product_id', ids)`). */
@@ -139,12 +164,12 @@ async function findManyWithProduct(
   }
 }
 
-/** Register a purchase; the trigger-maintained totals start at 0 / false. */
+/** Register a purchase; the app-owned totals start at 0 / 0 / false. */
 async function create(input: CreateClientPurchaseInput): Promise<RepoResult<ClientPurchase>> {
   try {
     const { data, error } = await supabase
       .from(TABLE)
-      .insert([{ ...input, amount_paid_so_far: 0, is_fully_paid: false }])
+      .insert([{ ...input, amount_paid_so_far: 0, extra_charges_total: 0, is_fully_paid: false }])
       .select()
       .single();
 
@@ -164,6 +189,30 @@ async function updatePartial(
     const { data, error } = await supabase
       .from(TABLE)
       .update({ ...patch, updated_at: nowIso() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return repoSuccess(data as ClientPurchase);
+  } catch (error) {
+    return repoFailure(error, 'No se pudo actualizar la compra.');
+  }
+}
+
+/**
+ * Persist the client-computed totals. There is no database trigger, so the app
+ * is the single owner of `amount_paid_so_far`, `extra_charges_total` and
+ * `is_fully_paid`: it writes them here after every payment/fine mutation.
+ */
+async function updateTotals(
+  id: number,
+  totals: UpdatePurchaseTotalsInput
+): Promise<RepoResult<ClientPurchase>> {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update({ ...totals, updated_at: nowIso() })
       .eq('id', id)
       .select()
       .single();
@@ -242,6 +291,7 @@ export const clientsPurchasesRepository = {
   create,
   update,
   updatePartial,
+  updateTotals,
   updateMany,
   delete: remove,
   deleteMany: removeMany,

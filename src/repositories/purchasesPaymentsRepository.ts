@@ -13,8 +13,6 @@ export interface PurchasePayment {
   client_purchase_id: number | null;
   /** Whole pesos. */
   amount: number | null;
-  /** Shown as "(extra)" in the UI: a fee charged on top of the agreed total. */
-  is_extra_fee: boolean | null;
 }
 
 /** New payment — everything except the generated/DB-owned columns. */
@@ -68,9 +66,9 @@ async function findMany(
 }
 
 /**
- * Insert a payment. A database trigger then recomputes the parent purchase's
- * `amount_paid_so_far` / `is_fully_paid`, so callers should re-read the parent
- * through `clientsPurchasesRepository.find()` after this resolves.
+ * Insert a payment. There is no database trigger: the caller recomputes the
+ * parent purchase's totals from its payments (see `usePurchasePayments`) and
+ * writes them back through `clientsPurchasesRepository.updateTotals`.
  */
 async function create(
   input: CreatePurchasePaymentInput
@@ -133,7 +131,7 @@ async function updateMany(
   }
 }
 
-/** Delete one payment (the parent purchase's totals are recomputed by trigger). */
+/** Delete one payment (the caller recomputes the parent's totals afterwards). */
 async function remove(id: number): Promise<RepoResult<null>> {
   try {
     const { error } = await supabase.from(TABLE).delete().eq('id', id);

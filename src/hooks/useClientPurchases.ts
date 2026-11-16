@@ -21,8 +21,8 @@ export type UpdateClientPurchaseInput = PatchClientPurchaseInput;
  * - `allPurchases` — every purchase with its product attached, for the
  *   cross-product "Mis ventas" list.
  *
- * `amount_paid_so_far` / `is_fully_paid` are maintained by a DB trigger off of
- * `purchases_payments` (see usePurchasePayments) — never set them from here.
+ * `amount_paid_so_far` / `extra_charges_total` / `is_fully_paid` are owned by
+ * the app and written through `usePurchasePayments` — never set them from here.
  */
 export function useClientPurchases() {
   const [purchasesByProduct, setPurchasesByProduct] = useState<Record<number, ClientPurchase[]>>({});
@@ -31,7 +31,7 @@ export function useClientPurchases() {
   const [error, setError] = useState<string | null>(null);
 
   // Merge/replace a single purchase row in local state — used both internally
-  // and by callers (e.g. after a payment mutation) to reflect trigger-updated totals.
+  // and by callers (e.g. after a payment mutation) to reflect app-computed totals.
   const applyPurchaseUpdate = useCallback((purchase: ClientPurchase) => {
     const productId = purchase.product_id;
     if (productId == null) return;

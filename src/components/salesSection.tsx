@@ -11,17 +11,24 @@ interface SalesSectionProps {
   error: string | null;
   /** Re-runs the fetch after a failure: a blocked panel always offers a way out. */
   onRetry: () => void;
+  /** Opens the edit modal for one sale — the whole row is the control. */
+  onOpenPurchase: (purchase: ClientPurchaseWithProduct) => void;
 }
 
 /**
  * "Mis ventas" — every client purchase across all products: the read-only
  * overview that answers "who still owes me?".
  *
- * Rows are hairline-separated, not cards, so the list sits on the page
- * background as a single surface. Editing a purchase still happens in the
- * Compras modal of its product, where its payments live.
+ * Each row is a single button that opens the edit modal for that purchase, so a
+ * customer can be reached without searching for their product first.
  */
-export default function SalesSection({ purchases, loading, error, onRetry }: SalesSectionProps) {
+export default function SalesSection({
+  purchases,
+  loading,
+  error,
+  onRetry,
+  onOpenPurchase,
+}: SalesSectionProps) {
   const { t } = useTranslation();
   // Dates and money both follow the language, so a switch re-renders them.
   const { formatCurrency, formatDate } = useFormatters();
@@ -77,26 +84,49 @@ export default function SalesSection({ purchases, loading, error, onRetry }: Sal
         const date = formatDate(purchase.created_at);
         if (date) metaParts.push(date);
 
-        return (
-          <li key={purchase.id} className="saleRow">
-            <div className="saleMain">
-              <div className="saleClientName">
-                {purchase.client_name || t('common.unnamedClient')}
-              </div>
-              <div className="saleMeta">{metaParts.join(' · ')}</div>
-            </div>
+        // Fines are owed on top of the agreed fee, so the "of total" figure and
+        // the progress bar measure against the fee plus any fines.
+        const totalOwed = (purchase.agreed_fees ?? 0) + (purchase.extra_charges_total ?? 0);
+        const progressPct = totalOwed
+          ? Math.min(100, Math.round(((purchase.amount_paid_so_far || 0) / totalOwed) * 100))
+          : 0;
 
-            <div className="saleSide">
-              <div className="saleMoney">
-                {formatCurrency(purchase.amount_paid_so_far)}
-                <span className="saleMoneyTotal">
-                  {t('sales.paidOfTotal', { total: formatCurrency(purchase.agreed_fees) })}
+        return (
+          <li key={purchase.id} className="salesListItem">
+            <button
+              type="button"
+              className="saleRow"
+              onClick={() => onOpenPurchase(purchase)}
+              aria-haspopup="dialog"
+              aria-label={t('sales.editAria', {
+                name: purchase.client_name || t('common.unnamedClient'),
+              })}
+            >
+              <span className="saleMain">
+                <span className="saleClientName">
+                  {purchase.client_name || t('common.unnamedClient')}
                 </span>
-              </div>
-              <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
-                {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
+                <span className="saleMeta">{metaParts.join(' · ')}</span>
               </span>
-            </div>
+
+              <span className="saleSide">
+                <span className="saleMoney">
+                  {formatCurrency(purchase.amount_paid_so_far)}
+                  <span className="saleMoneyTotal">
+                    {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
+                  </span>
+                </span>
+                <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
+                  {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
+                </span>
+              </span>
+
+              <span className="saleProgress" aria-hidden="true">
+                <span className="purchaseProgressBar">
+                  <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                </span>
+              </span>
+            </button>
           </li>
         );
       })}

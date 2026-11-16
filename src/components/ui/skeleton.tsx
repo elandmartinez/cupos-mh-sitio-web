@@ -108,6 +108,7 @@ export function SkeletonRow({ className }: SkeletonProps) {
         <span className="skeleton skeletonLine" />
         <span className="skeleton skeletonLine" />
       </span>
+      <span className="skeleton skeletonBlock skeletonRowProgress" />
     </span>
   );
 }

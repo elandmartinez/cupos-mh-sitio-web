@@ -13,10 +13,10 @@ import CollapsibleSection from './collapsibleSection';
 import SalesSection from './salesSection';
 import EmptyState from './emptyState';
 import { LanguageSwitch, SkeletonCard, SkeletonCardGrid } from './ui';
-import monsterHighLogo from "../../public/monster-high-logo-color.png";
+import monsterHighLogo from "../../public/monster-high-logo.png";
 
 import type { Product, CreateProductInput } from "../hooks/useProducts"
-import type { CreateClientPurchaseInput } from "../hooks/useClientPurchases"
+import type { CreateClientPurchaseInput, ClientPurchaseWithProduct } from "../hooks/useClientPurchases"
 
 // The two heaviest dialogs on this screen are only reachable after a tap, so
 // their code is split out of the island's first-load chunk. Vite emits each as
@@ -26,6 +26,7 @@ import type { CreateClientPurchaseInput } from "../hooks/useClientPurchases"
 // painted; it exists because a boundary must have one.
 const PurchasesModal = lazy(() => import('./purchasesModal'));
 const ProductDetailModal = lazy(() => import('./productDetailModal'));
+const ClientPurchaseModal = lazy(() => import('./clientPurchaseModal'));
 
 const emptyFormData: CreateProductInput = {
   name: '',
@@ -70,6 +71,8 @@ export default function Dashboard() {
   // Tapping a product card opens this. The cards carry no controls of their
   // own, so this dialog is also where "Compras", "Editar" and "Eliminar" live.
   const detailDialog = usePresent<Product>();
+  // Editing a purchase straight from the sales list — no product hop.
+  const editPurchaseDialog = usePresent<ClientPurchaseWithProduct>();
 
   // Keep purchase counts in sync with the product list
   useEffect(() => {
@@ -121,11 +124,10 @@ export default function Dashboard() {
     const pending = allPurchases.filter((purchase) => !purchase.is_fully_paid);
     if (pending.length === 0) return t('summary.allPaid');
 
-    const owed = pending.reduce(
-      (total, purchase) =>
-        total + Math.max(0, (purchase.agreed_fees ?? 0) - (purchase.amount_paid_so_far ?? 0)),
-      0
-    );
+    const owed = pending.reduce((total, purchase) => {
+      const totalOwed = (purchase.agreed_fees ?? 0) + (purchase.extra_charges_total ?? 0);
+      return total + Math.max(0, totalOwed - (purchase.amount_paid_so_far ?? 0));
+    }, 0);
 
     // One phrase, not a joined string: English and Spanish inflect differently,
     // so only i18next's plural rules can decide the wording here.
@@ -252,6 +254,9 @@ export default function Dashboard() {
   const handleOpenDetails = (product: Product) => detailDialog.open(product);
 
   const handleCloseDetails = () => detailDialog.close();
+
+  const handleOpenPurchase = (purchase: ClientPurchaseWithProduct) =>
+    editPurchaseDialog.open(purchase);
 
   // Bound to consts so the narrowing survives into the JSX below.
   const productForPurchases = purchasesDialog.value;
@@ -399,6 +404,7 @@ export default function Dashboard() {
               loading={purchasesLoading}
               error={purchasesError}
               onRetry={handleRefresh}
+              onOpenPurchase={handleOpenPurchase}
             />
           </CollapsibleSection>
         </div>
@@ -579,6 +585,20 @@ export default function Dashboard() {
             onClose={handleClosePurchases}
             closing={purchasesDialog.isClosing}
             addPurchase={handleAddPurchase}
+            updatePurchase={updatePurchase}
+            deletePurchase={deletePurchase}
+            applyPurchaseUpdate={applyPurchaseUpdate}
+          />
+        </Suspense>
+      )}
+
+      {editPurchaseDialog.value && (
+        <Suspense fallback={<SkeletonCard />}>
+          <ClientPurchaseModal
+            product={editPurchaseDialog.value.product}
+            purchase={editPurchaseDialog.value}
+            onClose={editPurchaseDialog.close}
+            closing={editPurchaseDialog.isClosing}
             updatePurchase={updatePurchase}
             deletePurchase={deletePurchase}
             applyPurchaseUpdate={applyPurchaseUpdate}

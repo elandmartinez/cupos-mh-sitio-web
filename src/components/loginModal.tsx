@@ -50,7 +50,6 @@ export default function LoginModal() {
           width="860"
           height="213"
         />
-        <p className="authEyebrow">{t('auth.eyebrow')}</p>
         <h1 className="authWordmark">{t('auth.wordmark')}</h1>
       </header>
 

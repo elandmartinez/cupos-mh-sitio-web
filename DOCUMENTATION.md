@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-10-11 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes, the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts), the **design-system primitives pass** (a `src/components/ui/` barrel, `Skeleton*` loading placeholders, lazily-loaded dialogs) and the **ES/EN i18n pass** (i18next singleton, locale files, `LanguageSwitch`, locale-aware formatters) — the last two are **in the working tree on top of `aab7385`, not yet committed**; plus the **AI-tooling cleanup** (removed `.claude/`/`.cline/`, relocated `.cursor/agents/` → `.agents/agents/`, deleted `uxonfly.md`)
+> **Status:** work in progress · **Last documented:** 2026-11-15 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes, the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts), the **design-system primitives pass** (a `src/components/ui/` barrel, `Skeleton*` loading placeholders, lazily-loaded dialogs) and the **ES/EN i18n pass** (i18next singleton, locale files, `LanguageSwitch`, locale-aware formatters) — the last two are **in the working tree on top of `aab7385`, not yet committed**; plus the **AI-tooling cleanup** (removed `.claude/`/`.cline/`, relocated `.cursor/agents/` → `.agents/agents/`, deleted `uxonfly.md`); plus the **payment-totals pass** (no DB trigger — totals computed in `src/helpers/purchaseTotals.ts` and written via `clientsPurchasesRepository.updateTotals`), the **sales-row edit** navigation and the **first-name / social-media** fields
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -19,7 +19,7 @@ The app lets a signed-in operator manage three related things:
 | :-- | :-- | :-- |
 | **Product** | Producto | A catalog item / "cupo" being sold (name, description, value, release date, image). |
 | **Client purchase** | Compra | A client reserving one product, with an agreed fee and a running paid total. |
-| **Payment** | Pago | Money received against a purchase (can be flagged as an extra fee). |
+| **Payment** | Pago | Money received against a purchase. An **extra fee** (fine / multa) is money owed, stored in its own table. |
 
 The UI ships in **Spanish and English** (ES/EN), chosen at runtime by
 `LanguageSwitch` and remembered in `localStorage['cupos.lang']`. Spanish is the
@@ -142,8 +142,8 @@ cupos-sitio-web/
     │   ├── collapsibleCard.tsx # general foldable card (controlled or uncontrolled)
     │   ├── collapsibleSection.tsx # page-level disclosure: heading button + kept-mounted panel
     │   ├── salesSection.tsx # read-only "Mis ventas": every purchase, product joined
-    │   ├── purchasesModal.tsx  # per-product purchases (collapsible cards) + payments UI
-    │   ├── addPurchaseModal.tsx # add/edit a purchase — wired to useClientPurchases
+    │   ├── purchasesModal.tsx  # per-product purchases: clickable cards → client modal
+    │   ├── clientPurchaseModal.tsx # edit a purchase + manage its payments (create reuses it)
     │   ├── emptyState.tsx   # illustration + heading + body + one CTA
     │   ├── productImage.tsx # renders a product image via a signed URL
     │   ├── confirmModal.tsx # destructive-action confirm dialog (built on modal.tsx)
@@ -274,11 +274,11 @@ Key characteristics:
   `purchasesByProduct` (per-product, for the Compras modal) and `allPurchases`
   (every purchase with its product embedded, for "Mis ventas"), the latter read
   with `clientsPurchasesRepository.findManyWithProduct()`.
-- **Derived totals live in the database.** `clients_purchases.amount_paid_so_far`
-  and `is_fully_paid` are maintained by a **Postgres trigger** on
-  `purchases_payments`. After every payment mutation the client re-reads the parent
-  purchase and merges it into cache via `applyPurchaseUpdate` — the client never
-  sets those two columns itself.
+- **Derived totals live in the app, not the database.** There is no trigger.
+  `clients_purchases.amount_paid_so_far`, `extra_charges_total` and `is_fully_paid`
+  are computed by the client (`computePurchaseTotals`) and written back through
+  `clientsPurchasesRepository.updateTotals` after every payment mutation, then
+  merged into cache via `applyPurchaseUpdate`.
 - **Images are private.** The `products-images` bucket is private, so reads go
   through `createSignedUrl()` (async, expiring, 1 h) rather than `getPublicUrl()`.
   `ProductImage` owns fetching/caching that URL, and `dashboard.tsx` bumps an
@@ -364,15 +364,19 @@ Type: `Product` in `src/hooks/useProducts.ts`.
 | `created_at` | timestamptz | set by DB. |
 | `updated_at` | timestamptz \| null | client-set on update. |
 | `client_name` | text \| null | |
+| `client_first_name` | text \| null | "Nombre de pila" (first name). |
 | `client_phone_number` | text \| null | |
-| `is_fully_paid` | boolean \| null | **DB-maintained** (trigger). |
-| `agreed_fees` | int \| null | total the client agreed to pay. |
-| `amount_paid_so_far` | int \| null | **DB-maintained** (trigger). |
+| `client_social_media` | text \| null | "Red social de contacto". |
+| `is_fully_paid` | boolean \| null | **App-maintained** (no trigger). |
+| `agreed_fees` | int \| null | total the client agreed to pay (the *base* price). |
+| `amount_paid_so_far` | int \| null | **App-maintained** — sum of received payments. |
+| `extra_charges_total` | int \| null | **App-maintained** — sum of fines owed. |
 | `product_id` | int \| null | FK → `products.id`. |
 
 Type: `ClientPurchase` in `src/hooks/useClientPurchases.ts`. On insert the client
-seeds `amount_paid_so_far: 0` and `is_fully_paid: false`; afterwards those two are
-**never** written by the client (they are excluded from the update input type).
+seeds `amount_paid_so_far: 0`, `extra_charges_total: 0` and `is_fully_paid: false`;
+afterwards the app writes them through `updateTotals` (they are excluded from the
+*form* update input type, so the edit form never touches them).
 
 ### Table `purchases_payments`
 
@@ -383,16 +387,33 @@ seeds `amount_paid_so_far: 0` and `is_fully_paid: false`; afterwards those two a
 | `updated_at` | timestamptz \| null | client-set on update. |
 | `client_purchase_id` | int \| null | FK → `clients_purchases.id`. |
 | `amount` | int \| null | whole pesos. |
-| `is_extra_fee` | boolean \| null | shown as "(extra)" in the UI. |
 
 Type: `PurchasePayment` in `src/hooks/usePurchasePayments.ts`.
 
-### Trigger (assumed)
+### Table `purchases_extra_fees`
 
-Changing a `purchases_payments` row recomputes the parent
-`clients_purchases.amount_paid_so_far` and `is_fully_paid`. Deleting a
-`clients_purchases` row cascades to its payments via the FK, so the library never
-deletes payments manually when a purchase is removed.
+| Column | Type | Notes |
+| :-- | :-- | :-- |
+| `id` | int PK | |
+| `created_at` | timestamptz | set by DB. |
+| `updated_at` | timestamptz \| null | client-set on update. |
+| `client_purchase_id` | int \| null | FK → `clients_purchases.id`. |
+| `amount` | int \| null | whole pesos — a **fine owed** (multa) on top of the agreed fee. |
+
+Type: `PurchaseExtraFee` in `src/hooks/usePurchasePayments.ts`.
+
+### No triggers — totals are app-owned
+
+There are **no database triggers or functions**. The app is the single owner of a
+purchase's `amount_paid_so_far`, `extra_charges_total` and `is_fully_paid`: after
+every payment or extra-fee mutation it recomputes them from the purchase's
+payments *and* extra fees (`computePurchaseTotals` in
+`src/helpers/purchaseTotals.ts`) and writes them back through
+`clientsPurchasesRepository.updateTotals`.
+
+> The money-table foreign keys have no `on delete cascade`, so deleting a purchase
+> that still has payments or extra fees fails with a foreign-key violation — see
+> `SCHEMA.md` §4.
 
 ### Storage bucket `products-images`
 
@@ -425,8 +446,9 @@ write stamps it explicitly.
 | Repository | Surface | API |
 | :-- | :-- | :-- |
 | `productsRepository` | table `products` | `Product`, `Create/Update/PatchProductInput`, `find`, `findMany`, `create`, `update`, `updatePartial`, `updateMany`, `delete`, `deleteMany`. |
-| `clientsPurchasesRepository` | table `clients_purchases` | `ClientPurchase`, `ClientPurchaseWithProduct`, `Create/Update/PatchClientPurchaseInput`, the same verb set, plus `findWithProduct` / `findManyWithProduct`. |
+| `clientsPurchasesRepository` | table `clients_purchases` | `ClientPurchase`, `ClientPurchaseWithProduct`, `Create/Update/PatchClientPurchaseInput`, `UpdatePurchaseTotalsInput`, the same verb set, plus `findWithProduct` / `findManyWithProduct` / `updateTotals`. |
 | `purchasesPaymentsRepository` | table `purchases_payments` | `PurchasePayment`, `Create/Update/PatchPurchasePaymentInput`, plus the same verb set. |
+| `purchasesExtraFeesRepository` | table `purchases_extra_fees` | `PurchaseExtraFee`, `Create/Update/PatchPurchaseExtraFeeInput`, plus the same verb set. |
 | `productImagesRepository` | bucket `products-images` | `PRODUCT_IMAGES_BUCKET`, `SIGNED_URL_EXPIRY_SECONDS` (1 h), `sanitizeSegment`, `getPath`, `upload`, `move`, `remove`, `getSignedUrl`. |
 | `authRepository` | `supabase.auth` | `getSession`, `signInWithPassword`, `signOut`, `onAuthStateChange(cb)` → an unsubscribe function. |
 
@@ -440,8 +462,9 @@ Conventions worth knowing:
   resolve the `clients_purchases.product_id → products.id` foreign key inside a
   single request. That embed is what "Mis ventas" renders; an insert carries no
   joined product, so the hook re-reads the list (`fetchAllPurchases`) instead.
-- `create()` seeds `amount_paid_so_far: 0` / `is_fully_paid: false`. From then on
-  those columns belong to a Postgres trigger, and no repository writes them.
+- `create()` seeds `amount_paid_so_far: 0` / `extra_charges_total: 0` /
+  `is_fully_paid: false`. From then on those columns are app-owned and written
+  through `updateTotals` after each payment/extra-fee mutation — no trigger.
 
 ### 10.2 Hooks (React state)
 
@@ -504,23 +527,27 @@ and `UpdateClientPurchaseInput`. It keeps **two** caches: `purchasesByProduct`
 | `fetchAllPurchases()` | `findManyWithProduct()` — the whole "Mis ventas" list with each product joined. |
 | `addPurchase(input)` | `create()` (totals seeded at `0` / `false`); prepends to `allPurchases` with `product: null`, so `SalesSection` falls back to `Producto #id` until the list is re-read. |
 | `updatePurchase(purchase, updates)` | Client/fee fields only (never the derived totals). |
-| `deletePurchase(purchase)` | Deletes; payments cascade via FK. |
-| `applyPurchaseUpdate(purchase)` | Merge/replace one purchase in **both** caches (keeping the joined product in `allPurchases`) — used after payment mutations refresh the trigger-maintained totals. |
+| `deletePurchase(purchase)` | Deletes the purchase (the money-table FKs have no `on delete cascade` — see `SCHEMA.md`). |
+| `applyPurchaseUpdate(purchase)` | Merge/replace one purchase in **both** caches (keeping the joined product in `allPurchases`) — used after payment/extra-fee mutations refresh the app-computed totals. |
 
 #### `usePurchasePayments()` — `src/hooks/usePurchasePayments.ts`
 
-Exports `PurchasePayment`, `CreatePurchasePaymentInput`, `UpdatePurchasePaymentInput`.
-Payments are cached keyed by `client_purchase_id` as `paymentsByPurchase`.
+Manages a purchase's **payments** and **extra fees** (two tables), cached keyed by
+`client_purchase_id` as `paymentsByPurchase` / `extraFeesByPurchase`.
 
 | Returns | Description |
 | :-- | :-- |
 | `fetchPaymentsForPurchase(purchaseId)` | `.eq('client_purchase_id', id)`, newest first. |
-| `addPayment(input)` | Inserts, caches, and returns `updatedPurchase` (re-read parent). |
-| `updatePayment(payment, updates)` | Same shape; **not currently used by any component**. |
-| `deletePayment(payment)` | Deletes, caches, returns `updatedPurchase`. |
+| `fetchExtraFeesForPurchase(purchaseId)` | Same, against `purchases_extra_fees`. |
+| `addPayment(input, agreedFees)` | Inserts, caches, recomputes totals, writes them back, returns `updatedPurchase`. |
+| `deletePayment(payment, agreedFees)` | Deletes, caches, recomputes totals, returns `updatedPurchase`. |
+| `addExtraFee(input, agreedFees)` | Inserts an extra fee, caches, recomputes totals, returns `updatedPurchase`. |
+| `deleteExtraFee(fee, agreedFees)` | Deletes an extra fee, caches, recomputes totals, returns `updatedPurchase`. |
 
-The three mutations each re-read the parent purchase (`fetchParentPurchase`) so the
-caller can sync the trigger-updated totals.
+Each mutation recomputes the parent purchase's totals from its payments *and*
+extra fees (`computePurchaseTotals`) and writes them back via
+`clientsPurchasesRepository.updateTotals` — the app owns the totals; there is no
+trigger. The caller passes the purchase's `agreed_fees` so the helper has the base.
 
 #### `usePresent()` — `src/hooks/usePresent.ts`
 
@@ -600,11 +627,11 @@ the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
 | `AuthGuard` | `authGuard.tsx` | Reads `{ user, loading }` from `useAuth()`. Shows an `aria-live="polite"` spinner + "Verificando sesión…" while loading, redirects to `/` when there is no user, otherwise renders children. |
 | `Dashboard` | `dashboard.tsx` | The main screen. Top bar (logo, `user.email`, "Cerrar sesión"), then two collapsible sections: **"Mis productos"** (a grid of product cards, refresh + "Nuevo producto", a modal product form for name / description / value / release date / image with live preview rendered through `Modal`, and `ConfirmModal` for deletions) and **"Mis ventas"** (`SalesSection`). **Each product card is a single `<button>`** — image, name, ID badge, value and purchase count, no controls — and opens `ProductDetailModal`, which is where "Compras", "Editar" and "Eliminar" live; the dialog resolves its product out of the live list so an edit saved from the form shows up behind it, and deleting a product closes it. It also orchestrates `PurchasesModal`. Refreshing re-reads the products *and* every purchase, because a deleted product's purchases cascade away in the database rather than through the hook. Renames the stored image when a product's name changes and bumps `imageVersion` after any image change to defeat browser caching. Section headers carry a one-line summary (`N producto(s)`, `N pendientes · $X por cobrar`, `Todo pagado`). Loading/empty/error states are explicit; the empty state offers the primary action. Every dialog it holds (the product form, the delete confirmation, the detail view) goes through `usePresent`, so they animate out instead of unmounting mid-exit. |
 | `CollapsibleSection` | `collapsibleSection.tsx` | The reusable disclosure both dashboard sections are built on. A heading-styled `<button>` (`aria-expanded` + `aria-controls`, stable `useId` ids) toggles the panel; the panel **stays mounted** and *rests* `hidden` (so `aria-controls` always resolves and in-flight state is never thrown away), and `useCollapsiblePanel` lifts the attribute only long enough to fold the height to `0`. Optional `meta` string is right-aligned next to the title, with a `▲`/`▼` chevron as the visual affordance. Deliberately **not** a card — the header is a hairline-ruled row on the page background, so the content it wraps stays the only surface on screen. `defaultOpen` is `true`. |
-| `CollapsibleCard` | `collapsibleCard.tsx` | The **card** counterpart to `CollapsibleSection`, and the general foldable surface. Renders a `.card` whose header row is the toggle (`aria-expanded` + `aria-controls`, stable `useId`; the body **stays mounted**, rests `hidden`, and folds through `useCollapsiblePanel`). Takes `title`, optional `meta`/`actions`, and works uncontrolled (`defaultOpen`) or controlled (`open` + `onToggle`) — the latter when the parent must react to opening (the purchases list lazily fetches payments on expand). Optional `className` adds a layout modifier (e.g. `purchaseCard`). |
+| `CollapsibleCard` | `collapsibleCard.tsx` | The **card** counterpart to `CollapsibleSection`, and the general foldable surface: a `.card` whose header row toggles a kept-mounted body through `useCollapsiblePanel` (`aria-expanded` + `aria-controls`, stable `useId`). Works uncontrolled (`defaultOpen`) or controlled (`open` + `onToggle`). **No longer used** — the purchases list became clickable summary cards — but kept as a documented primitive. |
 | `Button` | `button.tsx` | The general-purpose button: a native `<button>` (never an anchor) carrying the design-system classes. `variant` → `primary` / `secondary` / `ghost` / `ghost-danger` / `danger` / `icon`; `size` → `sm` / `md` / `lg`; plus `icon` (decorative, `aria-hidden`) and `loading` (swaps in `.spinner`, disables, sets `aria-busy`). Every other `<button>` prop passes straight through. |
-| `SalesSection` | `salesSection.tsx` | Read-only "Mis ventas": every purchase across every product, as hairline-separated rows rather than cards. Each row is client name over `producto · teléfono · fecha`, with `pagado de acordado` (tabular figures) and a `Pagado` / `Pendiente` badge. Pending rows sort first — the reason to open the list — and the sort is stable, so within each group the newest-first query order survives. Purely presentational: it receives `purchases` / `loading` / `error` and shows a spinner only when it has no rows yet, so a refresh never blanks the list. Editing a sale still happens in its product's Compras modal, where its payments live. |
-| `PurchasesModal` | `purchasesModal.tsx` | Everything about one product's clients: each purchase is a `CollapsibleCard` (client name over phone, a paid/agreed progress bar, a "Pagado"/"Pendiente" badge) whose body reveals the payments — an add-payment form with optional "Cargo extra" and the list of payments — fetched lazily on expand via `usePurchasePayments`. Adding or editing a purchase goes through `AddPurchaseModal` (a single entry point; the old inline form is gone), and both purchase **and** payment deletion are confirmed through `ConfirmModal`. Uses `applyPurchaseUpdate` to push trigger-refreshed totals back up. Every dialog it raises (add/edit purchase, delete purchase, delete payment) is held through `usePresent` and gets its `closing` flag. |
-| `AddPurchaseModal` | `addPurchaseModal.tsx` | The one way to add or edit a client purchase. Owns only its form state (`client_name`, `client_phone_number`, `agreed_fees`) and calls the `addPurchase` / `updatePurchase` functions from `useClientPurchases` that the parent passes in (create when `purchase` is omitted, edit when it is set), so the caller's list stays in sync without this component knowing about it. Errors render in a `role="alert"` banner; the submit button shows the shared `.spinner` while saving. Takes the `closing` flag so it can animate out. |
+| `SalesSection` | `salesSection.tsx` | "Mis ventas": every purchase across every product, as hairline-separated rows rather than cards. Each row is a single `<button>` — client name over `producto · teléfono · fecha`, with `pagado de total` (paid vs `agreed_fees + extra_charges_total`) and a `Pagado` / `Pendiente` badge — that opens the edit modal for that purchase via `onOpenPurchase`, so a customer is reachable without searching for their product first. Pending rows sort first, stably. Shows a spinner only when it has no rows yet, so a refresh never blanks the list. |
+| `PurchasesModal` | `purchasesModal.tsx` | Everything about one product's clients: each purchase is a clickable summary **card** (client name over phone, a paid/total progress bar, a "Pagado"/"Pendiente" badge) that opens `ClientPurchaseModal` — the single modal for editing a purchase *and* managing its money — two titled sections ("Pagos" and "Cargos extra") each with its own add form and list, plus a delete action. Registering a new purchase reuses that same modal without the money/delete sections. Every dialog is held through `usePresent` and gets its `closing` flag. |
+| `ClientPurchaseModal` | `clientPurchaseModal.tsx` | The one modal for a client purchase: the edit form (`client_name`, `client_first_name`, `client_phone_number`, `client_social_media`, `agreed_fees`) plus — when editing — the money (a progress summary, then two titled sections "Pagos" and "Cargos extra", each with its own add form and list) and a delete action. Holds the live purchase in `currentPurchase` so the totals stay current after each save/payment/extra-fee mutation. `product` and `addPurchase` are optional, so the dashboard opens it standalone from the sales list (whose `product` may be deleted). Saving in edit mode keeps it open for continued payment management. Errors render in a `role="alert"` banner; destructive actions are confirmed through `ConfirmModal`. Takes the `closing` flag so it can animate out. |
 | `ProductImage` | `productImage.tsx` | Fetches a signed URL for a product and renders `<img>` with explicit `width`/`height` (avoids layout shift) plus `loading="lazy"`; renders nothing while loading and calls `onMissing` when there is no image. Re-fetches only when `product.id`, `product.name` or `imageVersion` change. |
 | `ProductDetailModal` | `productDetailModal.tsx` | What tapping a product card opens. Built on `Modal`: the image, then a `<dl>` label/value ledger (ID badge, description, release date, value, purchase count) and the three actions — a full-width "Compras (N)" over a row holding "Editar" and "Eliminar". Purely presentational and action-only: it takes the `product`, the `purchaseCount`, the `imageVersion`/`getSignedUrl` pair for `ProductImage`, the `closing` flag, and `onEdit` / `onDelete` / `onOpenPurchases` callbacks. Each callback opens a **further** dialog on top of this one rather than replacing it, so cancelling lands back on the product (the same nesting `PurchasesModal` uses). |
 | `Modal` | `modal.tsx` | The shared dialog shell. `role="dialog"`, `aria-modal`, `aria-labelledby`/`aria-describedby`, Escape to close, backdrop click to close, focus moved in on open and restored to the trigger on close, Tab trapped (only the topmost dialog reacts, so nested confirms work), and a background scroll lock. Takes a `closing` prop from `usePresent`: it adds `.modalOverlay--closing` and stops answering Escape/Tab while the exit plays, so the dialog fades and slides out instead of snapping away. |
@@ -635,13 +662,17 @@ component, which is also where the `t(...)` keys stay visible in one place.
   `T00:00:00` appended and is read as local midnight. Returns `null` for missing
   or unparseable input so callers can drop the line instead of printing
   `Invalid Date` (used by `SalesSection`).
+- **`computePurchaseTotals(payments, extraFees, agreedFees)` — `src/helpers/purchaseTotals.ts`.**
+  The money math behind the progress bar, with no database trigger. Sums payments
+  into `amount_paid_so_far` and extra fees into `extra_charges_total`, then derives
+  `is_fully_paid` from `agreed_fees + extra_charges_total`. Pure and unit-tested.
 
 ### 10.5 Styling
 
 | File | Purpose |
 | :-- | :-- |
 | `src/styles/theme.css` | **Single source of truth** for the design system, imported once by `Layout.astro`. Holds the tokens (color, type scale, spacing, elevation, motion), the globals (`box-sizing`, `body` typography, `:focus-visible`, `prefers-reduced-motion`, `.skipLink`, `.spinner`, `.tabular`, `.textMuted`) **and the shared components**: the form primitives (`.fieldGroup`, `.label`, `.input`, `.textarea`, `.fieldHint`, `.fieldError`), the button set (`.btnPrimary`/`.btnSecondary`/`.btnGhost`/`.btnDanger`/`.btnIcon`/`.btnGhost--danger` plus the `.btnSm`/`.btnLg` size modifiers), the language switch (`.langSwitch` + `.langSwitchOption`, whose pressed state is styled off `[aria-pressed='true']`), the loading placeholders (`.skeleton`, `.skeletonLine` + its `--short`/`--title`/`--label`/`--value`/`--meta` widths, `.skeletonText`, `.skeletonBlock` — a shimmer that `prefers-reduced-motion` stills), `.card` and the foldable `.collapsibleCard*` (header, trigger, title, meta, chevron, actions, body), `.badge` + its six modifiers, `.banner`, `.emptyState*` and `.statusMessage`. It also owns **motion**: the `--duration-*` / `--ease-*` tokens, the `riseIn` entrance utility, and the `prefers-reduced-motion` override that collapses every duration to nothing. Token rationale lives in `DESIGN.md`. |
-| `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`/`topBarLogo`/`userEmail`, `mainContent`, `pageHeader*` (`.pageHeaderText .title` steps 24px → 32px at `640px`; `.pageHeaderActions` centres the refresh/close buttons against the taller CTA), `dashboardBanner` (a `.banner` from theme.css), `productsGrid` with the `product*` card parts (`.card.productCard` is the button surface itself — tighter `--space-12` padding, `productHeader`, `productName`, `productCardMeta`, `productValue`, `productPurchases`, and the bleeding `productImage`), the `productDetail*` internals of the product dialog (image, label/value ledger, stacked description row, full-width primary action + button row), the `purchases*` / `payments*` / `payment*` modal internals (`.purchaseCard` is now only a surface modifier on the shared `.collapsibleCard`; `.purchaseTitleBlock` stacks the client name over the phone in the card header), `modalOverlay`, `formCard`/`formCardHeader`/`form`/`confirmMessage`/`confirmCard`/`buttonGroup`, `fileInput`/`imagePreview*`/`imageRemoveBtn`, `dashboardSections`, `collapsible*` (heading, trigger, title, meta, chevron, body, and the `.collapsibleBodyInner` padder that lets the fold reach a true `0`), the dialog animations (`fadeIn` / `slideUp` on open at `--duration-slow`, `fadeOut` / `slideDown` under `.modalOverlay--closing`, held with `forwards` until React unmounts), and `salesList` with its `sale*` rows (`saleRow`, `saleMain`, `saleClientName`, `saleMeta`, `saleSide`, `saleMoney`, `saleMoneyTotal`). Layout-only modifiers on the shared buttons (`btnRefresh`, `btnClose`, `purchasesNewBtn`, `paymentSubmitBtn`, `rowRemoveBtn`, `productDetailPrimary`, `productDetailButtonRow`) also live here. Each interaction state (hover/active/focus) sits next to the class it belongs to. Imported by `dashboard.astro`. |
+| `src/styles/dashboard.css` | Dashboard **layout** + dashboard-only classes: `pageContainer`, `topBar`/`topBarLogo`/`userEmail`, `mainContent`, `pageHeader*` (`.pageHeaderText .title` steps 24px → 32px at `640px`; `.pageHeaderActions` centres the refresh/close buttons against the taller CTA), `dashboardBanner` (a `.banner` from theme.css), `productsGrid` with the `product*` card parts (`.card.productCard` is the button surface itself — tighter `--space-12` padding, `productHeader`, `productName`, `productCardMeta`, `productValue`, `productPurchases`, and the bleeding `productImage`), the `productDetail*` internals of the product dialog (image, label/value ledger, stacked description row, full-width primary action + button row), the `purchases*` / `payments*` / `payment*` modal internals (`.purchaseCard` is now a whole-card `<button>` that scales on hover; `.purchaseHeader` puts the name block beside the badge, `.purchaseTitleBlock` stacks the client name over the phone), `modalOverlay`, `formCard`/`formCardHeader`/`form`/`confirmMessage`/`confirmCard`/`buttonGroup`, `fileInput`/`imagePreview*`/`imageRemoveBtn`, `dashboardSections`, `collapsible*` (heading, trigger, title, meta, chevron, body, and the `.collapsibleBodyInner` padder that lets the fold reach a true `0`), the dialog animations (`fadeIn` / `slideUp` on open at `--duration-slow`, `fadeOut` / `slideDown` under `.modalOverlay--closing`, held with `forwards` until React unmounts), and `salesList` with its `sale*` rows (`saleRow`, `saleMain`, `saleClientName`, `saleMeta`, `saleSide`, `saleMoney`, `saleMoneyTotal`). Layout-only modifiers on the shared buttons (`btnRefresh`, `btnClose`, `purchasesNewBtn`, `paymentSubmitBtn`, `rowRemoveBtn`, `productDetailPrimary`, `productDetailButtonRow`) also live here. Each interaction state (hover/active/focus) sits next to the class it belongs to. Imported by `dashboard.astro`. |
 | `src/styles/loginModal.css` | Login screen layout only: `authShell`, `authHero`, `authLogo`, `authEyebrow`, `authWordmark`, `authCard`, `authHeader`, `authTitle`, `authSubtitle`, `authForm`, `submitBtn`. It defines **no palette of its own** — colors and type come from `theme.css`. Imported by `index.astro`. |
 
 There is no CSS framework and no `@apply`/utility layer — components reference the

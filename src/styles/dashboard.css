@@ -308,11 +308,60 @@
   gap: var(--space-16);
 }
 
-/* Purchases reuse the generic `.collapsibleCard` (theme.css); only the surface
-   differs — a subtle fill so each purchase reads as a nested record inside the
-   modal's card. The compound selector beats `.card` regardless of file order. */
+/* A purchase is a whole-card <button>: tapping it opens the client-purchase
+   modal (edit + payments). The compound selector beats `.card` regardless of
+   file order; the subtle fill keeps each purchase reading as a nested record. */
 .card.purchaseCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-12);
+  padding: var(--space-12);
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
   background-color: var(--color-surface-subtle);
+  transition: transform var(--duration-base) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+/* The card lifts and its hairline warms on hover — the surface is the control. */
+.card.purchaseCard:hover {
+  transform: scale(1.1);
+  border-color: var(--color-primary);
+  position: relative;
+  z-index: 1;
+}
+
+.card.purchaseCard:active {
+  border-color: var(--color-primary-active);
+}
+
+.card.purchaseCard:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* A card that lifts on hover should not move for a reduced-motion reader. */
+@media (prefers-reduced-motion: reduce) {
+  .card.purchaseCard:hover {
+    transform: none;
+  }
+}
+
+/* Name + badge on one row, the progress bar below. */
+.purchaseHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+/* The card's own flex gap handles spacing, so drop the progress bar's margin. */
+.card.purchaseCard .purchaseProgress {
+  margin: 0;
 }
 
 /* Name over phone inside the card's header title. */
@@ -339,6 +388,7 @@
 }
 
 .purchaseProgressBar {
+  display: block;
   height: 0.375rem;
   border-radius: var(--radius-full);
   background-color: var(--color-border);
@@ -346,6 +396,7 @@
 }
 
 .purchaseProgressFill {
+  display: block;
   height: 100%;
   background-color: var(--color-primary);
   border-radius: var(--radius-full);
@@ -353,18 +404,20 @@
 }
 
 .purchaseProgressLabel {
+  display: block;
   margin-top: var(--space-4);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
-/* The Cancel + Save row of a purchase's inline add/edit form. */
-.purchaseActionRow {
+/* The destructive action lives at the foot of the client-purchase modal. */
+.purchaseDeleteRow {
   display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  margin-top: var(--space-12);
+  justify-content: flex-end;
+  margin-top: var(--space-16);
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--color-border);
 }
 
 .paymentsSection {
@@ -380,25 +433,25 @@
   margin-bottom: var(--space-16);
 }
 
-/* Checkbox and its submit share one row under the amount field. */
-.paymentFormRow {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-12);
+/* The two titled money sub-sections ("Pagos" / "Cargos extra"). */
+.financeSubSection {
+  margin-top: var(--space-24);
 }
 
-.paymentExtraFeeLabel {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
+.financeSubSection + .financeSubSection {
+  padding-top: var(--space-24);
+  border-top: 1px solid var(--color-border);
 }
 
-.paymentSubmitBtn {
-  flex: none;
-  margin-left: auto;
+.financeSectionTitle {
+  margin: 0 0 var(--space-12);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.financeAddBtn {
+  width: 100%;
 }
 
 .paymentsList {
@@ -750,21 +803,42 @@
   list-style: none;
 }
 
-/* Wraps so the amount drops under the client name on narrow screens. */
+/* A sale is a whole-row <button>: clicking it opens that purchase's edit modal.
+   The button chrome is reset here; the hairline keeps it reading as a list. */
 .saleRow {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--space-4) var(--space-12);
+  width: 100%;
   padding: var(--space-12) 0;
+  border: none;
   border-bottom: 1px solid var(--color-border);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
-.saleRow:first-child {
+/* The hairline warming is the hover cue — the same "surface is the control"
+   signal the product card uses, just on a row instead of a card. */
+.saleRow:hover {
+  border-bottom-color: var(--color-primary);
+}
+
+/* An inset ring: the row is edge-to-edge, so an offset outline gets clipped. */
+.saleRow:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.salesListItem:first-child .saleRow {
   padding-top: 0;
 }
 
-.saleRow:last-child {
+.salesListItem:last-child .saleRow {
   padding-bottom: 0;
   border-bottom: none;
 }
@@ -814,18 +888,27 @@
   width: 100%;
 }
 
+/* Mirrors the real row's full-width progress bar, so the list doesn't jump. */
+.skeletonRowProgress {
+  flex-basis: 100%;
+  margin-top: var(--space-8);
+  height: 0.375rem;
+}
+
 .saleMain {
   flex: 1 1 11rem;
   min-width: 0;
 }
 
 .saleClientName {
+  display: block;
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text);
 }
 
 .saleMeta {
+  display: block;
   margin-top: var(--space-4);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
@@ -851,6 +934,12 @@
 .saleMoneyTotal {
   font-weight: 500;
   color: var(--color-text-muted);
+}
+
+/* Full-width progress bar under the name/money columns of a sale row. */
+.saleProgress {
+  flex-basis: 100%;
+  margin-top: var(--space-8);
 }
 
 /* ---------------------------------------------------------------------- */

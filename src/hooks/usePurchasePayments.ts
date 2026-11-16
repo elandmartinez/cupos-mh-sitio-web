@@ -1,36 +1,58 @@
 import { useCallback, useState } from 'react';
 import { clientsPurchasesRepository } from '../repositories/clientsPurchasesRepository';
 import { purchasesPaymentsRepository } from '../repositories/purchasesPaymentsRepository';
+import { purchasesExtraFeesRepository } from '../repositories/purchasesExtraFeesRepository';
+import { computePurchaseTotals } from '../helpers/purchaseTotals';
 import type { ClientPurchase } from '../repositories/clientsPurchasesRepository';
 import type {
   CreatePurchasePaymentInput,
   PurchasePayment,
 } from '../repositories/purchasesPaymentsRepository';
+import type {
+  CreatePurchaseExtraFeeInput,
+  PurchaseExtraFee,
+} from '../repositories/purchasesExtraFeesRepository';
 
-export type { CreatePurchasePaymentInput, PurchasePayment };
+export type {
+  CreatePurchasePaymentInput,
+  PurchasePayment,
+  CreatePurchaseExtraFeeInput,
+  PurchaseExtraFee,
+};
 
 /**
- * A DB trigger recomputes `clients_purchases.amount_paid_so_far` /
- * `is_fully_paid` whenever a payment row changes, so every mutation re-reads
- * the parent purchase and hands it back as `updatedPurchase` for the caller to
- * merge into its cache (see `useClientPurchases.applyPurchaseUpdate`).
- *
- * A failed re-read is not worth failing the whole mutation over — the payment
- * itself already landed — so it resolves to `null` and the next fetch corrects it.
+ * There is no database trigger, so the app owns a purchase's totals. Payments
+ * and extra fees live in two tables; after any mutation this recomputes
+ * `amount_paid_so_far` (from payments), `extra_charges_total` (from extra fees)
+ * and `is_fully_paid` (from both) and writes them back through
+ * `clientsPurchasesRepository.updateTotals`.
  */
-async function fetchParentPurchase(purchaseId: number): Promise<ClientPurchase | null> {
-  const result = await clientsPurchasesRepository.find(purchaseId);
-  return result.ok ? result.data : null;
+async function persistTotals(
+  purchaseId: number,
+  payments: PurchasePayment[],
+  extraFees: PurchaseExtraFee[],
+  agreedFees: number | null
+): Promise<{ updatedPurchase: ClientPurchase | null; error: string | null }> {
+  const totals = computePurchaseTotals(payments, extraFees, agreedFees);
+  const result = await clientsPurchasesRepository.updateTotals(purchaseId, totals);
+  return result.ok
+    ? { updatedPurchase: result.data, error: null }
+    : { updatedPurchase: null, error: result.error };
 }
 
 /**
- * The `purchases_payments` table: paying down a single client purchase.
- *
- * Every mutation also returns the freshly recomputed parent purchase, so the
- * caller can keep its list in sync without a second round trip.
+ * The money against a single client purchase — its payments and its extra fees —
+ * plus the totals they drive. Each list is fetched lazily (the modal opens
+ * before either form is reachable), so mutations assume the list is already in
+ * cache — which the UI guarantees by fetching on open.
  */
 export function usePurchasePayments() {
-  const [paymentsByPurchase, setPaymentsByPurchase] = useState<Record<number, PurchasePayment[]>>({});
+  const [paymentsByPurchase, setPaymentsByPurchase] = useState<Record<number, PurchasePayment[]>>(
+    {}
+  );
+  const [extraFeesByPurchase, setExtraFeesByPurchase] = useState<
+    Record<number, PurchaseExtraFee[]>
+  >({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,97 +60,142 @@ export function usePurchasePayments() {
   const fetchPaymentsForPurchase = useCallback(async (purchaseId: number) => {
     setLoading(true);
     setError(null);
-
     const result = await purchasesPaymentsRepository.findMany({ purchaseIds: [purchaseId] });
-
     if (!result.ok) {
       setError(result.error);
       setLoading(false);
       return;
     }
-
     setPaymentsByPurchase((prev) => ({ ...prev, [purchaseId]: result.data }));
     setLoading(false);
   }, []);
 
-  // INSERT a new payment against a purchase
-  const addPayment = useCallback(async (input: CreatePurchasePaymentInput) => {
+  // FETCH all extra fees for a single purchase
+  const fetchExtraFeesForPurchase = useCallback(async (purchaseId: number) => {
+    setLoading(true);
     setError(null);
-    const result = await purchasesPaymentsRepository.create(input);
-
+    const result = await purchasesExtraFeesRepository.findMany({ purchaseIds: [purchaseId] });
     if (!result.ok) {
       setError(result.error);
-      return { data: null, updatedPurchase: null, error: result.error };
+      setLoading(false);
+      return;
     }
-
-    const purchaseId = result.data.client_purchase_id;
-    if (purchaseId != null) {
-      setPaymentsByPurchase((prev) => ({
-        ...prev,
-        [purchaseId]: [result.data, ...(prev[purchaseId] || [])],
-      }));
-    }
-
-    const updatedPurchase = purchaseId != null ? await fetchParentPurchase(purchaseId) : null;
-    return { data: result.data, updatedPurchase, error: null };
+    setExtraFeesByPurchase((prev) => ({ ...prev, [purchaseId]: result.data }));
+    setLoading(false);
   }, []);
 
-  // UPDATE an existing payment (e.g. correct its amount)
-  const updatePayment = useCallback(
-    async (payment: PurchasePayment, updates: Partial<CreatePurchasePaymentInput>) => {
+  // INSERT a new payment against a purchase
+  const addPayment = useCallback(
+    async (input: CreatePurchasePaymentInput, agreedFees: number | null) => {
       setError(null);
-      const result = await purchasesPaymentsRepository.updatePartial(payment.id, updates);
-
+      const result = await purchasesPaymentsRepository.create(input);
       if (!result.ok) {
         setError(result.error);
         return { data: null, updatedPurchase: null, error: result.error };
       }
-
       const purchaseId = result.data.client_purchase_id;
-      if (purchaseId != null) {
-        setPaymentsByPurchase((prev) => ({
-          ...prev,
-          [purchaseId]: (prev[purchaseId] || []).map((p) =>
-            p.id === payment.id ? result.data : p
-          ),
-        }));
+      if (purchaseId == null) {
+        return { data: result.data, updatedPurchase: null, error: null };
       }
-
-      const updatedPurchase = purchaseId != null ? await fetchParentPurchase(purchaseId) : null;
-      return { data: result.data, updatedPurchase, error: null };
+      const payments = [result.data, ...(paymentsByPurchase[purchaseId] || [])];
+      setPaymentsByPurchase((prev) => ({ ...prev, [purchaseId]: payments }));
+      const { updatedPurchase, error } = await persistTotals(
+        purchaseId,
+        payments,
+        extraFeesByPurchase[purchaseId] || [],
+        agreedFees
+      );
+      return { data: result.data, updatedPurchase, error };
     },
-    []
+    [paymentsByPurchase, extraFeesByPurchase]
   );
 
   // DELETE a payment
-  const deletePayment = useCallback(async (payment: PurchasePayment) => {
-    setError(null);
-    const result = await purchasesPaymentsRepository.delete(payment.id);
+  const deletePayment = useCallback(
+    async (payment: PurchasePayment, agreedFees: number | null) => {
+      setError(null);
+      const result = await purchasesPaymentsRepository.delete(payment.id);
+      if (!result.ok) {
+        setError(result.error);
+        return { updatedPurchase: null, error: result.error };
+      }
+      const purchaseId = payment.client_purchase_id;
+      if (purchaseId == null) {
+        return { updatedPurchase: null, error: null };
+      }
+      const payments = (paymentsByPurchase[purchaseId] || []).filter((p) => p.id !== payment.id);
+      setPaymentsByPurchase((prev) => ({ ...prev, [purchaseId]: payments }));
+      return persistTotals(
+        purchaseId,
+        payments,
+        extraFeesByPurchase[purchaseId] || [],
+        agreedFees
+      );
+    },
+    [paymentsByPurchase, extraFeesByPurchase]
+  );
 
-    if (!result.ok) {
-      setError(result.error);
-      return { updatedPurchase: null, error: result.error };
-    }
+  // INSERT a new extra fee (fine owed) against a purchase
+  const addExtraFee = useCallback(
+    async (input: CreatePurchaseExtraFeeInput, agreedFees: number | null) => {
+      setError(null);
+      const result = await purchasesExtraFeesRepository.create(input);
+      if (!result.ok) {
+        setError(result.error);
+        return { data: null, updatedPurchase: null, error: result.error };
+      }
+      const purchaseId = result.data.client_purchase_id;
+      if (purchaseId == null) {
+        return { data: result.data, updatedPurchase: null, error: null };
+      }
+      const extraFees = [result.data, ...(extraFeesByPurchase[purchaseId] || [])];
+      setExtraFeesByPurchase((prev) => ({ ...prev, [purchaseId]: extraFees }));
+      const { updatedPurchase, error } = await persistTotals(
+        purchaseId,
+        paymentsByPurchase[purchaseId] || [],
+        extraFees,
+        agreedFees
+      );
+      return { data: result.data, updatedPurchase, error };
+    },
+    [paymentsByPurchase, extraFeesByPurchase]
+  );
 
-    const purchaseId = payment.client_purchase_id;
-    if (purchaseId != null) {
-      setPaymentsByPurchase((prev) => ({
-        ...prev,
-        [purchaseId]: (prev[purchaseId] || []).filter((p) => p.id !== payment.id),
-      }));
-    }
-
-    const updatedPurchase = purchaseId != null ? await fetchParentPurchase(purchaseId) : null;
-    return { updatedPurchase, error: null };
-  }, []);
+  // DELETE an extra fee
+  const deleteExtraFee = useCallback(
+    async (fee: PurchaseExtraFee, agreedFees: number | null) => {
+      setError(null);
+      const result = await purchasesExtraFeesRepository.delete(fee.id);
+      if (!result.ok) {
+        setError(result.error);
+        return { updatedPurchase: null, error: result.error };
+      }
+      const purchaseId = fee.client_purchase_id;
+      if (purchaseId == null) {
+        return { updatedPurchase: null, error: null };
+      }
+      const extraFees = (extraFeesByPurchase[purchaseId] || []).filter((f) => f.id !== fee.id);
+      setExtraFeesByPurchase((prev) => ({ ...prev, [purchaseId]: extraFees }));
+      return persistTotals(
+        purchaseId,
+        paymentsByPurchase[purchaseId] || [],
+        extraFees,
+        agreedFees
+      );
+    },
+    [paymentsByPurchase, extraFeesByPurchase]
+  );
 
   return {
     paymentsByPurchase,
+    extraFeesByPurchase,
     loading,
     error,
     fetchPaymentsForPurchase,
+    fetchExtraFeesForPurchase,
     addPayment,
-    updatePayment,
     deletePayment,
+    addExtraFee,
+    deleteExtraFee,
   };
 }

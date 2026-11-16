@@ -105,8 +105,10 @@ const es = {
     addTitle: 'Agregar compra',
     editTitle: 'Editar compra',
     clientName: 'Nombre del cliente',
+    firstName: 'Nombre de pila',
     phone: 'Teléfono',
-    agreedFees: 'Tarifa acordada',
+    socialMedia: 'Red social de contacto',
+    agreedPrice: 'Precio acordado',
     register: 'Registrar compra',
     productLabel: 'Producto: {{name}}',
     paid: 'Pagado',
@@ -116,6 +118,7 @@ const es = {
     emptyBody:
       'Registra la primera compra de este producto para poder seguir el avance de sus pagos.',
 
+    deleteLabel: 'Eliminar compra',
     deleteAria: 'Eliminar la compra de {{name}}',
     deleteTitle: '¿Eliminar esta compra?',
     deleteMessage:
@@ -124,17 +127,29 @@ const es = {
   },
 
   payments: {
+    sectionTitle: 'Pagos',
     amountLabel: 'Monto del pago',
     amountHint: 'Se descuenta del saldo pendiente.',
-    extraFee: 'Cargo extra',
-    extraSuffix: ' (extra)',
     add: 'Agregar pago',
-    empty: 'Todavía no hay pagos. Registra el primer abono con el formulario de arriba.',
+    empty: 'Todavía no hay pagos.',
     removeAria: 'Eliminar pago',
     deleteTitle: '¿Eliminar este pago?',
     deleteMessage:
       'Se eliminará el pago de {{amount}} y se recalculará el saldo. No se puede deshacer.',
     deleteConfirm: 'Eliminar pago',
+  },
+
+  extraFees: {
+    sectionTitle: 'Cargos extra',
+    amountLabel: 'Monto del cargo',
+    amountHint: 'Se suma a lo que debe el cliente.',
+    add: 'Agregar cargo extra',
+    empty: 'Todavía no hay cargos extra.',
+    removeAria: 'Eliminar cargo extra',
+    deleteTitle: '¿Eliminar este cargo extra?',
+    deleteMessage:
+      'Se eliminará el cargo de {{amount}} y se recalculará el saldo. No se puede deshacer.',
+    deleteConfirm: 'Eliminar cargo extra',
   },
 
   sales: {
@@ -144,6 +159,7 @@ const es = {
     emptyBody:
       'Registra una compra en Mis productos y aparecerá aquí, con lo pagado y lo pendiente de cada cliente.',
     paidOfTotal: ' de {{total}}',
+    editAria: 'Editar la compra de {{name}}',
   },
 
   summary: {
