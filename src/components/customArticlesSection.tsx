@@ -102,6 +102,9 @@ export default function CustomArticlesSection() {
                           {order.name || t('common.notAvailable')}
                         </span>
                         <span className="saleMeta">{metaParts.join(' · ')}</span>
+                        {order.description && (
+                          <span className="saleDescription">{order.description}</span>
+                        )}
                       </span>
                       <span className="saleSide">
                         <span className="saleMoney">

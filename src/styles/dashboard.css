@@ -476,6 +476,22 @@
   border-top: 1px solid var(--color-border);
 }
 
+/* Read-only order detail: the order's name and its itemized description. */
+.orderDetailName {
+  margin: 0 0 var(--space-8);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* `white-space: pre-line` keeps newline-separated items on their own lines. */
+.orderDetailDescription {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: pre-line;
+}
+
 .paymentsSection {
   margin-top: var(--space-16);
   padding-top: var(--space-16);
@@ -955,6 +971,21 @@
 
 .saleMeta {
   display: block;
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* The itemized description shown inline on the card. Clamped to a few lines so a
+   long list of items ends in an ellipsis instead of stretching the row;
+   `pre-line` keeps each item on its own line. */
+.saleDescription {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  white-space: pre-line;
   margin-top: var(--space-4);
   font-size: var(--text-xs);
   color: var(--color-text-muted);

@@ -243,6 +243,9 @@ export default function CustomerDashboard() {
                             {order.name || t('common.notAvailable')}
                           </span>
                           <span className="saleMeta">{metaParts.join(' · ')}</span>
+                          {order.description && (
+                            <span className="saleDescription">{order.description}</span>
+                          )}
                         </span>
                         <span className="saleSide">
                           <span className="saleMoney">
@@ -338,6 +341,13 @@ export default function CustomerDashboard() {
             <Button variant="icon" className="btnClose" aria-label={t('common.close')} onClick={orderDetailDialog.close}>
               ×
             </Button>
+          </div>
+
+          <div className="orderDetailBody">
+            <h3 className="orderDetailName">{orderDetail.name || t('common.notAvailable')}</h3>
+            {orderDetail.description && (
+              <p className="orderDetailDescription">{orderDetail.description}</p>
+            )}
           </div>
 
           <div className="paymentsSection">
