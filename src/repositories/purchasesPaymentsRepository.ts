@@ -13,12 +13,22 @@ export interface PurchasePayment {
   client_purchase_id: number | null;
   /** Whole pesos. */
   amount: number | null;
+  /** FK → `articles_orders_payment_track.id` when the payment belongs to a custom order. */
+  article_order_payment_track_id: number | null;
 }
 
-/** New payment — everything except the generated/DB-owned columns. */
-export type CreatePurchasePaymentInput = Omit<PurchasePayment, 'id' | 'created_at' | 'updated_at'>;
-/** Full update — the whole writable set is written. */
-export type UpdatePurchasePaymentInput = Omit<PurchasePayment, 'id' | 'created_at' | 'updated_at'>;
+/**
+ * New payment. A payment has exactly one parent — a purchase OR a custom order's
+ * track — so the two parent columns are optional and a caller supplies the one
+ * that applies.
+ */
+export type CreatePurchasePaymentInput = {
+  amount: number | null;
+  client_purchase_id?: number | null;
+  article_order_payment_track_id?: number | null;
+};
+/** Full update — the same writable shape. */
+export type UpdatePurchasePaymentInput = CreatePurchasePaymentInput;
 /** Partial update — only the columns present in the object are touched. */
 export type PatchPurchasePaymentInput = Partial<UpdatePurchasePaymentInput>;
 
@@ -156,6 +166,30 @@ async function removeMany(ids: number[]): Promise<RepoResult<null>> {
 }
 
 /**
+ * Payments against custom article orders, keyed by the payment-track row.
+ *
+ * A `purchases_payments` row points at exactly one parent: either a
+ * `client_purchase_id` (regular purchase) or an `article_order_payment_track_id`
+ * (custom order). This is the query for the custom-order side.
+ */
+async function findManyForTracks(trackIds: number[]): Promise<RepoResult<PurchasePayment[]>> {
+  if (trackIds.length === 0) return repoSuccess([]);
+
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('*')
+      .in('article_order_payment_track_id', trackIds)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return repoSuccess((data ?? []) as PurchasePayment[]);
+  } catch (error) {
+    return repoFailure(error, 'No se pudieron obtener los pagos.');
+  }
+}
+
+/**
  * Everything the app can do to `purchases_payments`.
  *
  * `delete`/`deleteMany` are bound to the internal `remove*` functions because
@@ -164,6 +198,7 @@ async function removeMany(ids: number[]): Promise<RepoResult<null>> {
 export const purchasesPaymentsRepository = {
   find,
   findMany,
+  findManyForTracks,
   create,
   update,
   updatePartial,

@@ -28,6 +28,38 @@ known issues, update `DOCUMENTATION.md` in the same change and bump its
 "Last documented" line.
 
 
+## Roles & data ownership
+
+The app serves **two roles** — `admin` (the current dashboard) and `customer` (a
+read-only "my purchases" view). The frontend branches on `authContext.role`
+(`'ADMIN'` / `'CUSTOMER'`); **RLS is the actual boundary**.
+
+- `profiles`: `id uuid PK` = `auth.users.id` (1:1), plus `role text`
+  (`'ADMIN'` / `'CUSTOMER'`; `DEFAULT 'CUSTOMER'`, no CHECK — `null` acts as
+  customer). **No `username` column** — login stays Supabase email/password.
+- `clients_purchases.profile_id uuid` links a purchase to its owner (`null` =
+  walk-in customer). The ownership column is **`profile_id`, not `user_id`**, and it
+  equals `auth.uid()` directly.
+- **RLS is the security boundary.** Admin = `is_admin()` full access; customer =
+  `select` own rows only (`profile_id = auth.uid()`, or via the parent purchase for
+  payments/fees). Frontend role-branching is UX only. Never `select using (true)`.
+- `is_admin()` (security-definer) reads the role; a `handle_new_user` trigger creates
+  the profile on signup. These are auth infra — the "no triggers/functions" rule in
+  `SCHEMA.md` §1 means *no business logic*; purchase totals are still app-computed.
+- `custom_articles_orders` (off-website custom orders) and
+  `articles_orders_payment_track` (their 1:1 payment state) back the admin's
+  "Pedidos personalizados" section and the customer's read-only list.
+- `purchases_payments` is now **polymorphic**: the parent is one of
+  `client_purchase_id` **or** `article_order_payment_track_id` (two nullable FKs,
+  enforce exactly-one with a CHECK).
+
+`SCHEMA.md` and `DOCUMENTATION.md` §9 mirror the DB. The frontend is wired:
+`authContext` exposes `role`, `dashboardApp` branches to a read-only
+`CustomerDashboard`, and the admin has a "Pedidos personalizados" section backed by
+`customArticlesOrdersRepository` / `articlesOrdersPaymentTrackRepository` and the
+`useCustomArticlesOrders` hook.
+
+
 ## Shippable by default (non-negotiable)
 
 This app deploys to **Vercel as a static site**, and every tool, dependency and
@@ -154,4 +186,4 @@ before any paid or irreversible commitment.
   1. Import the repo in Vercel; the Astro preset runs `npm run build`.
   2. Set both env vars for Production and Preview (they are inlined at build time).
   3. Confirm `.vercel/output/functions/` does not exist after the build.
-  4. Verify RLS on the three tables and the `products-images` bucket.
+  4. Verify RLS on all tables (including `profiles`) and the `products-images` bucket.

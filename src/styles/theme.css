@@ -21,6 +21,7 @@
   --color-primary-subtle-hover: #e4d9f5;
   --color-primary-subtle-active: #d8c9ee;
   --color-on-primary: #ffffff; /* 9.6:1 on --color-primary */
+  --color-hover-primary: rgba(250, 200, 250, 0.5);
 
   /* --- Neutrals (slate) — never pure black, one gray family ------------ */
   --color-text: #0f172a; /* slate-900 */
@@ -431,6 +432,7 @@ h3 {
   background-color: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-on-primary);
+  transition: all var(--duration-slow) var(--ease-standard);
 }
 
 .btnPrimary:hover:not(:disabled) {

@@ -1,0 +1,1209 @@
+{
+  "total_pedidos": 22,
+  "pedidos": [
+    {
+      "pedido": "pedido 1 - Bampi",
+      "numero_pedido": 1,
+      "cliente": "Bampi",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "2",
+          "articulo": "aretes (1 inicial + 1 adicional)",
+          "personaje": "Clawdeen Wolf",
+          "linea/edicion/detalles": "13 Deseos (13 Wishes)"
+        },
+        {
+          "#": 2,
+          "cantidad": "2",
+          "articulo": "manillas / pulseras",
+          "personaje": "Clawdeen Wolf",
+          "linea/edicion/detalles": "13 Deseos (13 Wishes)"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "bolsito",
+          "personaje": "Clawdeen Wolf",
+          "linea/edicion/detalles": "13 Deseos (13 Wishes)"
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "sombrero",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Isla Calavera (Skull Shores)"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "bebida",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Isla Calavera (Skull Shores)"
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "pack de aretes",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Isla Calavera (Skull Shores)"
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "tarjeta de personaje",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Isla Calavera (Skull Shores)"
+        },
+        {
+          "#": 8,
+          "cantidad": "1",
+          "articulo": "espejo",
+          "personaje": "Gigi Grant",
+          "linea/edicion/detalles": "13 Deseos (13 Wishes)"
+        },
+        {
+          "#": 9,
+          "cantidad": "1",
+          "articulo": "anillo",
+          "personaje": "Nefera de Nile",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 10,
+          "cantidad": "1",
+          "articulo": "ramo de flores (rosas negras)",
+          "personaje": "Deuce Gorgon",
+          "linea/edicion/detalles": "novio de Draculaura"
+        },
+        {
+          "#": 11,
+          "cantidad": "1 par",
+          "articulo": "rodilleras",
+          "personaje": "Lagoona Blue",
+          "linea/edicion/detalles": "Roller Maze"
+        },
+        {
+          "#": 12,
+          "cantidad": "1",
+          "articulo": "cuadros (pinturas)",
+          "personaje": "Catrine DeMew",
+          "linea/edicion/detalles": "Scaris"
+        },
+        {
+          "#": 13,
+          "cantidad": "1",
+          "articulo": "bolso",
+          "personaje": "Catrine DeMew",
+          "linea/edicion/detalles": "Scaris"
+        },
+        {
+          "#": 14,
+          "cantidad": "1",
+          "articulo": "raspado / granizado",
+          "personaje": "Abbey Bominable",
+          "linea/edicion/detalles": "Isla Calavera (Skull Shores)"
+        },
+        {
+          "#": 15,
+          "cantidad": "1",
+          "articulo": "tarjeta de personaje",
+          "personaje": "Abbey Bominable",
+          "linea/edicion/detalles": "Isla Calavera (Skull Shores)"
+        },
+        {
+          "#": 16,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Robecca Steam",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 17,
+          "cantidad": "1",
+          "articulo": "bolso",
+          "personaje": "Cleo de Nile",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 18,
+          "cantidad": "1",
+          "articulo": "bastón",
+          "personaje": "Jane Boolittle",
+          "linea/edicion/detalles": null
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 2 - Isa",
+      "numero_pedido": 2,
+      "cliente": "Isa",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "diadema",
+          "personaje": "Scarah Screams",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "cinturón",
+          "personaje": "Scarah Screams",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "manilla / pulsera",
+          "personaje": "Ghoulia Yelps",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "base del florero",
+          "personaje": "Skelita Calaveras",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "arete",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "I Love Shoes"
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "rodillera",
+          "personaje": "Ghoulia Yelps",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "tocado",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "pedido personalizado"
+        },
+        {
+          "#": 8,
+          "cantidad": "1",
+          "articulo": "collar",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "pedido personalizado"
+        },
+        {
+          "#": 9,
+          "cantidad": "1",
+          "articulo": "cinturón",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "pedido personalizado"
+        },
+        {
+          "#": 10,
+          "cantidad": "1",
+          "articulo": "brazalete",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "pedido personalizado"
+        },
+        {
+          "#": 11,
+          "cantidad": "1",
+          "articulo": "liga de novia (pierna de recién casada)",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "pedido personalizado"
+        },
+        {
+          "#": 12,
+          "cantidad": "1",
+          "articulo": "libro",
+          "personaje": "Gigi Grant",
+          "linea/edicion/detalles": "de regalo"
+        },
+        {
+          "#": 13,
+          "cantidad": "1",
+          "articulo": "manilla / pulsera",
+          "personaje": "Elissabat",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 14,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Elissabat",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 15,
+          "cantidad": "1",
+          "articulo": "trofeo plateado",
+          "personaje": "Elissabat",
+          "linea/edicion/detalles": null
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 3 - Tania",
+      "numero_pedido": 3,
+      "cliente": "Tania",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1 par",
+          "articulo": "botas",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Skullector / temática carnaval (Freak du Chic)"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "campana (unicornio / caballo)",
+          "personaje": "Barbie",
+          "linea/edicion/detalles": "de regalo"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 4 - Sofía",
+      "numero_pedido": 4,
+      "cliente": "Sofía",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "sombrero",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "pedido personalizado"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "tocado",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Exchange — adaptado a cuerpo G3"
+        },
+        {
+          "#": 3,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Exchange — adaptado a cuerpo G3"
+        },
+        {
+          "#": 4,
+          "cantidad": "1 par",
+          "articulo": "zapatos",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Exchange — adaptado a cuerpo G3"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 5 - Freya",
+      "numero_pedido": 5,
+      "cliente": "Freya",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "mascota (Conde Fabuloso)",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 2,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Básica (Signature)"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "collar",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Básica (Signature)"
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "sombrilla",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Básica (Signature)"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "diario",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Básica (Signature)"
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "diario",
+          "personaje": "Dracubecca",
+          "linea/edicion/detalles": "Draculaura + Robecca Steam"
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "póster",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Reel Drama"
+        },
+        {
+          "#": 8,
+          "cantidad": "1",
+          "articulo": "mini diario",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 9,
+          "cantidad": "1",
+          "articulo": "mini diario",
+          "personaje": "Elissabat",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 10,
+          "cantidad": "1",
+          "articulo": "bolsa de calavera",
+          "personaje": "Monster High",
+          "linea/edicion/detalles": "de regalo"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 6 - Byron",
+      "numero_pedido": 6,
+      "cliente": "Byron",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "mini pasaporte",
+          "personaje": "Lorna McNessie",
+          "linea/edicion/detalles": "Monster Exchange"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "mini pasaporte",
+          "personaje": "Marisol Coxi",
+          "linea/edicion/detalles": "Monster Exchange"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "cuadro (pintura)",
+          "personaje": "Catrine DeMew",
+          "linea/edicion/detalles": "Scaris"
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "mini libro Fearbook",
+          "personaje": "Monster High",
+          "linea/edicion/detalles": "Fearbook"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "galletica",
+          "personaje": "Krampus",
+          "linea/edicion/detalles": "pedido personalizado"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 7 - Mariana",
+      "numero_pedido": 7,
+      "cliente": "Mariana",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "mini pasaporte",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Monster Exchange"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "cuadro (hecho por Clawd para su cumpleaños)",
+          "personaje": "Draculaura & Clawd Wolf",
+          "linea/edicion/detalles": "Sweet 1600"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "mini diario",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "fotografía (Abbey cargando a Holt)",
+          "personaje": "Abbey Bominable & Holt Hyde",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "bolsa de shopping",
+          "personaje": "Monster High",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "bolsa de shopping",
+          "personaje": "Monster High",
+          "linea/edicion/detalles": "de regalo"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 8 - Ann",
+      "numero_pedido": 8,
+      "cliente": "Ann",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "carta de personaje",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "línea de Deuce Gorgon"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "carta de personaje",
+          "personaje": "Clawdeen Wolf",
+          "linea/edicion/detalles": "línea de Deuce Gorgon"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "carta de personaje",
+          "personaje": "Lagoona Blue",
+          "linea/edicion/detalles": "línea de Deuce Gorgon"
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "carta de personaje",
+          "personaje": "Ghoulia Yelps",
+          "linea/edicion/detalles": "línea de Deuce Gorgon"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "carta de personaje",
+          "personaje": "Cleo de Nile",
+          "linea/edicion/detalles": "línea de Deuce Gorgon"
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "diario",
+          "personaje": "Lagoona Blue",
+          "linea/edicion/detalles": "Monster Exchange"
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "diario",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Monster Exchange"
+        },
+        {
+          "#": 8,
+          "cantidad": "1",
+          "articulo": "mini pasaporte",
+          "personaje": "Lagoona Blue",
+          "linea/edicion/detalles": "Monster Exchange"
+        },
+        {
+          "#": 9,
+          "cantidad": "1",
+          "articulo": "mini pasaporte",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Monster Exchange"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 9 - Laura",
+      "numero_pedido": 9,
+      "cliente": "Laura",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "bolsito (tipo calabaza)",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Holiday (lanzamiento 2026)"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 10 - Daniela",
+      "numero_pedido": 10,
+      "cliente": "Daniela",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "pack de aretes",
+          "personaje": "Clawdeen Wolf",
+          "linea/edicion/detalles": "Básica (Signature)"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "collar",
+          "personaje": "Clawdeen Wolf",
+          "linea/edicion/detalles": "Básica (Signature)"
+        },
+        {
+          "#": 3,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "Básica (Signature)"
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "manilla / pulsera",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "Básica (Signature)"
+        },
+        {
+          "#": 5,
+          "cantidad": "1 par",
+          "articulo": "medias / mallas negras",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "Básica — pedido personalizado"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 11 - María Fernanda",
+      "numero_pedido": 11,
+      "cliente": "María Fernanda",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Elle Eedee",
+          "linea/edicion/detalles": "Boo York, Boo York — único ítem pagado al 100 %"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 12 - Christian",
+      "numero_pedido": 12,
+      "cliente": "Christian",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "cinturón",
+          "personaje": "Lorna McNessie",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 2,
+          "cantidad": "1 par",
+          "articulo": "alas",
+          "personaje": "Rochelle Goyle",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "ganchito de pelo",
+          "personaje": "Ghoulia Yelps",
+          "linea/edicion/detalles": null
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 13 - Sebastián",
+      "numero_pedido": 13,
+      "cliente": "Sebastián",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1 pack",
+          "articulo": "manillas delgadas",
+          "personaje": "Wydowna Spider",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 2,
+          "cantidad": "2",
+          "articulo": "brazaletes",
+          "personaje": "Wydowna Spider",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 3,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Wydowna Spider",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "cinturón",
+          "personaje": "Wydowna Spider",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 5,
+          "cantidad": "1 par",
+          "articulo": "botas",
+          "personaje": "Wydowna Spider",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 6,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "brazalete",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 8,
+          "cantidad": "1",
+          "articulo": "anillo",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 9,
+          "cantidad": "1",
+          "articulo": "bolso",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 10,
+          "cantidad": "1 par",
+          "articulo": "zapatos",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": null
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 14 - Laura Rojas",
+      "numero_pedido": 14,
+      "cliente": "Laura Rojas",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Elissabat",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "manilla / pulsera",
+          "personaje": "Lagoona Blue",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "brazalete",
+          "personaje": "muñeca bailarina",
+          "linea/edicion/detalles": "por identificar"
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "antifaz",
+          "personaje": "muñeca bailarina",
+          "linea/edicion/detalles": "por identificar"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "arete (1 solo arete)",
+          "personaje": "Monster High",
+          "linea/edicion/detalles": "película Arrecife Monstruoso (Great Scarrier Reef)"
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "bolso",
+          "personaje": "Ever After High",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "cinturón de flores",
+          "personaje": "Ever After High",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 8,
+          "cantidad": "1",
+          "articulo": "arete de resorte",
+          "personaje": "Clawdeen Wolf",
+          "linea/edicion/detalles": null
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 15 - La chica de todo Draculaura",
+      "numero_pedido": 15,
+      "cliente": "La chica de todo Draculaura",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "diadema",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Diner"
+        },
+        {
+          "#": 2,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Diner"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "bufanda",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Diner"
+        },
+        {
+          "#": 4,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Skulltimate Secrets"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "arete (1 solo arete)",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Scaris"
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "bolso",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Scaris"
+        },
+        {
+          "#": 7,
+          "cantidad": "1 par",
+          "articulo": "zapatos",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Scaris"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 16 - Orlando",
+      "numero_pedido": 16,
+      "cliente": "Orlando",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "corona",
+          "personaje": "Draculaura",
+          "linea/edicion/detalles": "Sweet 1600"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "ganchito de pelo",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 3,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "Skulltimate Secrets"
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "cinturón",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "Skulltimate Secrets"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "manilla / pulsera",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "anillo",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "bolso",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": null
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 17 - Mauro",
+      "numero_pedido": 17,
+      "cliente": "Mauro",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "flor del pelo",
+          "personaje": "Lagoona Blue",
+          "linea/edicion/detalles": "Reel Drama"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "collar",
+          "personaje": "Lagoona Blue",
+          "linea/edicion/detalles": "Reel Drama"
+        },
+        {
+          "#": 3,
+          "cantidad": "1 par",
+          "articulo": "medias veladas de malla negra",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "pedido personalizado"
+        },
+        {
+          "#": 4,
+          "cantidad": "1 par",
+          "articulo": "calentadoras grises",
+          "personaje": "Frankie Stein",
+          "linea/edicion/detalles": "pedido personalizado"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 18 - Jorge",
+      "numero_pedido": 18,
+      "cliente": "Jorge",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1 par",
+          "articulo": "aretes dorados",
+          "personaje": "Hija de la Sirenita",
+          "linea/edicion/detalles": "por confirmar nombre"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "anillo plateado (forma de tijeras)",
+          "personaje": "Hija de Rapunzel",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "anillo dorado (forma de torre)",
+          "personaje": "Hija de Rapunzel",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 4,
+          "cantidad": "1 par",
+          "articulo": "mallas",
+          "personaje": "Bunny Blanc",
+          "linea/edicion/detalles": "Ever After High — pedido personalizado"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "anillo (estilo perlas)",
+          "personaje": "Hija de la Sirenita",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "anillo (de cartas)",
+          "personaje": "Lizzie Hearts",
+          "linea/edicion/detalles": "Ever After High (hija de la Reina Roja)"
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "anillo dorado (forma de zanahorias)",
+          "personaje": "Bunny Blanc",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 8,
+          "cantidad": "1 par",
+          "articulo": "manillas / brazaletes negros",
+          "personaje": "Kitty Cheshire",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 9,
+          "cantidad": "1 par",
+          "articulo": "manillas negras con relieve",
+          "personaje": "Madeline Hatter",
+          "linea/edicion/detalles": "Ever After High (hija del Sombrerero Loco)"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 19 - Ricardo",
+      "numero_pedido": 19,
+      "cliente": "Ricardo",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "balaca / diadema",
+          "personaje": "Kitty Cheshire",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 2,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Kitty Cheshire",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "cuello (plástico tipo peludito)",
+          "personaje": "Kitty Cheshire",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "manillita",
+          "personaje": "Madeline Hatter",
+          "linea/edicion/detalles": "Ever After High (hija del Sombrerero Loco)"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "anillo",
+          "personaje": "Madeline Hatter",
+          "linea/edicion/detalles": "Ever After High (hija del Sombrerero Loco)"
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "diadema (forma de tacita de té)",
+          "personaje": "Madeline Hatter",
+          "linea/edicion/detalles": "Ever After High (hija del Sombrerero Loco)"
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "bolso (forma de tetera)",
+          "personaje": "Madeline Hatter",
+          "linea/edicion/detalles": "Ever After High (hija del Sombrerero Loco)"
+        },
+        {
+          "#": 8,
+          "cantidad": "1",
+          "articulo": "anillo",
+          "personaje": "Madeline Hatter",
+          "linea/edicion/detalles": "Ever After High (hija del Sombrerero Loco)"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 20 - Maria Lis",
+      "numero_pedido": 20,
+      "cliente": "Maria Lis",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "bolso",
+          "personaje": "Hija de Rapunzel",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 2,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Hija de Rapunzel",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "collar",
+          "personaje": "Hija de Rapunzel",
+          "linea/edicion/detalles": "Ever After High"
+        },
+        {
+          "#": 4,
+          "cantidad": "1 par",
+          "articulo": "alas",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": "Bratzillaz"
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "cinturón",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": "Bratzillaz"
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "servicio de desmanche",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": "Bratzillaz — servicio"
+        },
+        {
+          "#": 7,
+          "cantidad": "1",
+          "articulo": "anillo",
+          "personaje": "C.A. Cupid",
+          "linea/edicion/detalles": "Bratzillaz — de regalo"
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 21 - Elisa",
+      "numero_pedido": 21,
+      "cliente": "Elisa",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "arete (forma de huesito)",
+          "personaje": "Claudine Wolf",
+          "linea/edicion/detalles": "hermana mayor de Clawdeen Wolf"
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "arete (tipo argolla)",
+          "personaje": "Claudine Wolf",
+          "linea/edicion/detalles": "hermana mayor de Clawdeen Wolf"
+        },
+        {
+          "#": 3,
+          "cantidad": "1",
+          "articulo": "tablet",
+          "personaje": null,
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 4,
+          "cantidad": "1",
+          "articulo": "lapicero",
+          "personaje": null,
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 5,
+          "cantidad": "1",
+          "articulo": "guion",
+          "personaje": null,
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 6,
+          "cantidad": "1",
+          "articulo": "manilla / pulsera",
+          "personaje": "Elissabat",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 7,
+          "cantidad": "1 par",
+          "articulo": "aretes",
+          "personaje": "Elissabat",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 8,
+          "cantidad": "1",
+          "articulo": "trofeo",
+          "personaje": "Elissabat",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 9,
+          "cantidad": "1",
+          "articulo": "diadema",
+          "personaje": "Jinafire Long",
+          "linea/edicion/detalles": null
+        }
+      ]
+    },
+    {
+      "pedido": "pedido 22 - Nicolás",
+      "numero_pedido": 22,
+      "cliente": "Nicolás",
+      "items": [
+        {
+          "#": 1,
+          "cantidad": "1",
+          "articulo": "anillo (forma de dado)",
+          "personaje": "Operetta",
+          "linea/edicion/detalles": null
+        },
+        {
+          "#": 2,
+          "cantidad": "1",
+          "articulo": "anillo (forma de dado — repuesto)",
+          "personaje": "Operetta",
+          "linea/edicion/detalles": "de regalo"
+        }
+      ]
+    }
+  ]
+}

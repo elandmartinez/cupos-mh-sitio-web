@@ -2,7 +2,12 @@ import { supabase } from '../lib/supabase';
 import { nowIso, repoFailure, repoSuccess } from './types';
 import type { RepoResult } from './types';
 
-/** `public.purchases_extra_fees` — a fine/extra charge owed by a client purchase. */
+/**
+ * `public.purchases_extra_fees` — a fine/extra charge owed by a purchase. It is
+ * polymorphic, like `purchases_payments`: the parent is one of `client_purchase_id`
+ * (a regular purchase) or `article_order_payment_track_id` (a custom order), and a
+ * CHECK enforces exactly one. `reason` is only used for custom orders.
+ */
 const TABLE = 'purchases_extra_fees';
 
 /** One row of `public.purchases_extra_fees`, exactly as the database stores it. */
@@ -11,14 +16,26 @@ export interface PurchaseExtraFee {
   created_at: string;
   updated_at: string | null;
   client_purchase_id: number | null;
+  /** FK → `articles_orders_payment_track.id` when the fee belongs to a custom order. */
+  article_order_payment_track_id: number | null;
+  /** Why the charge exists (custom orders only); `null` for regular purchases. */
+  reason: string | null;
   /** Whole pesos. */
   amount: number | null;
 }
 
-/** New extra fee — everything except the generated/DB-owned columns. */
-export type CreatePurchaseExtraFeeInput = Omit<PurchaseExtraFee, 'id' | 'created_at' | 'updated_at'>;
+/**
+ * New extra fee. Exactly one parent is expected (set by the caller, enforced by
+ * the database CHECK); `amount` is the only required field.
+ */
+export type CreatePurchaseExtraFeeInput = {
+  amount: number | null;
+  client_purchase_id?: number | null;
+  article_order_payment_track_id?: number | null;
+  reason?: string | null;
+};
 /** Full update — the whole writable set is written. */
-export type UpdatePurchaseExtraFeeInput = Omit<PurchaseExtraFee, 'id' | 'created_at' | 'updated_at'>;
+export type UpdatePurchaseExtraFeeInput = CreatePurchaseExtraFeeInput;
 /** Partial update — only the columns present in the object are touched. */
 export type PatchPurchaseExtraFeeInput = Partial<UpdatePurchaseExtraFeeInput>;
 
@@ -58,6 +75,23 @@ async function findMany(
     }
 
     const { data, error } = await query.order(orderBy.column, { ascending: orderBy.ascending });
+    if (error) throw error;
+    return repoSuccess((data ?? []) as PurchaseExtraFee[]);
+  } catch (error) {
+    return repoFailure(error, 'No se pudieron obtener los cargos extra.');
+  }
+}
+
+/** Extra fees for a set of custom-order payment tracks (newest first). */
+async function findManyForTracks(trackIds: number[]): Promise<RepoResult<PurchaseExtraFee[]>> {
+  if (trackIds.length === 0) return repoSuccess([]);
+
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('*')
+      .in('article_order_payment_track_id', trackIds)
+      .order('created_at', { ascending: false });
     if (error) throw error;
     return repoSuccess((data ?? []) as PurchaseExtraFee[]);
   } catch (error) {
@@ -165,6 +199,7 @@ async function removeMany(ids: number[]): Promise<RepoResult<null>> {
 export const purchasesExtraFeesRepository = {
   find,
   findMany,
+  findManyForTracks,
   create,
   update,
   updatePartial,

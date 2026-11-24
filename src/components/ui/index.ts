@@ -24,4 +24,6 @@ export type {
 } from './skeleton';
 
 export { default as LanguageSwitch } from './languageSwitch';
+export { default as DateInput } from './dateInput';
+export { default as FieldError } from './fieldError';
 

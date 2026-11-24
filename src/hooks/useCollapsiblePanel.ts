@@ -18,8 +18,9 @@ const EASING = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
  * here to hang a transition on.
  *
  * Spread `ref` onto the panel and pass `hidden` to the `hidden` attribute. The
- * element needs `overflow: hidden` and no padding of its own — wrap the padded
- * content in a child (see `.collapsibleBodyInner` in theme.css).
+ * element needs no padding of its own — wrap the padded content in a child (see
+ * `.collapsibleBodyInner` in theme.css). Overflow is clipped only while the
+ * height folds, then released so children (e.g. a scaling row) can overflow.
  */
 export function useCollapsiblePanel(open: boolean) {
   const ref = useRef<HTMLDivElement>(null);
@@ -37,12 +38,19 @@ export function useCollapsiblePanel(open: boolean) {
 
     if (open) {
       setHidden(false);
-      if (reducedMotion) return;
+      if (reducedMotion) {
+        // No fold to animate — release any clip a previous collapse left behind.
+        panel.style.overflow = '';
+        return;
+      }
 
       // The state update above has not been committed yet, so at this instant
       // the panel is still `display: none` and would measure as zero. Un-hide it
       // by hand — the pending render agrees with this — then measure for real.
       panel.hidden = false;
+      // Clip only while the height folds open; once open, let children overflow
+      // (e.g. a sale row that scales on hover).
+      panel.style.overflow = 'hidden';
       const running = panel.animate(
         [
           { height: '0px', opacity: 0 },
@@ -50,6 +58,9 @@ export function useCollapsiblePanel(open: boolean) {
         ],
         { duration: EXPAND_MS, easing: EASING }
       );
+      running.onfinish = () => {
+        panel.style.overflow = '';
+      };
       return () => running.cancel();
     }
 
@@ -61,6 +72,7 @@ export function useCollapsiblePanel(open: boolean) {
     // Collapsing is measured from the panel as it stands — it is still visible
     // from the previous render. `forwards` holds the flattened frame until
     // `hidden` lands, so the panel cannot flash back to full height for a frame.
+    panel.style.overflow = 'hidden';
     const running = panel.animate(
       [
         { height: `${panel.scrollHeight}px`, opacity: 1 },

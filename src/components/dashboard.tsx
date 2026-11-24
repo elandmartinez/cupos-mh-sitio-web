@@ -11,8 +11,9 @@ import ProductImage from './productImage';
 import Modal from './modal';
 import CollapsibleSection from './collapsibleSection';
 import SalesSection from './salesSection';
+import CustomArticlesSection from './customArticlesSection';
 import EmptyState from './emptyState';
-import { LanguageSwitch, SkeletonCard, SkeletonCardGrid } from './ui';
+import { DateInput, LanguageSwitch, SkeletonCard, SkeletonCardGrid } from './ui';
 import monsterHighLogo from "../../public/monster-high-logo.png";
 
 import type { Product, CreateProductInput } from "../hooks/useProducts"
@@ -407,6 +408,8 @@ export default function Dashboard() {
               onOpenPurchase={handleOpenPurchase}
             />
           </CollapsibleSection>
+
+          <CustomArticlesSection />
         </div>
       </main>
 
@@ -500,12 +503,10 @@ export default function Dashboard() {
               <label className="label" htmlFor="productReleaseDate">
                 {t('products.releaseDate')}
               </label>
-              <input
+              <DateInput
                 id="productReleaseDate"
-                type="date"
-                name="release_date"
                 value={formData.release_date || ''}
-                onChange={handleInputChange}
+                onChange={(iso) => setFormData((prev) => ({ ...prev, release_date: iso }))}
                 className="input"
               />
             </div>

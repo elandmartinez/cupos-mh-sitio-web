@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate } from './date';
+import { formatDate, toDisplayDate, toIsoDate } from './date';
 
 describe('formatDate', () => {
   it('formats a bare date column without shifting the day', () => {
@@ -31,5 +31,37 @@ describe('formatDate', () => {
     expect(formatted).toContain('Oct');
     expect(formatted).toContain('2026');
     expect(formatted).not.toContain('oct');
+  });
+});
+
+describe('toDisplayDate', () => {
+  it('renders DD/MM/YYYY from an ISO date', () => {
+    expect(toDisplayDate('2026-11-22')).toBe('22/11/2026');
+  });
+
+  it('renders empty for missing or malformed input', () => {
+    expect(toDisplayDate('')).toBe('');
+    expect(toDisplayDate(null)).toBe('');
+    expect(toDisplayDate(undefined)).toBe('');
+    expect(toDisplayDate('2026-11')).toBe('');
+  });
+});
+
+describe('toIsoDate', () => {
+  it('parses DD/MM/YYYY into ISO', () => {
+    expect(toIsoDate('22/11/2026')).toBe('2026-11-22');
+    expect(toIsoDate('05/03/2026')).toBe('2026-03-05');
+  });
+
+  it('rejects impossible calendar dates', () => {
+    expect(toIsoDate('31/02/2026')).toBe('');
+    expect(toIsoDate('00/01/2026')).toBe('');
+    expect(toIsoDate('32/01/2026')).toBe('');
+  });
+
+  it('rejects incomplete or malformed input', () => {
+    expect(toIsoDate('')).toBe('');
+    expect(toIsoDate('22/11')).toBe('');
+    expect(toIsoDate('22-11-2026')).toBe('');
   });
 });

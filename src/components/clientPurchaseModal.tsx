@@ -1,11 +1,13 @@
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePurchasePayments } from '../hooks/usePurchasePayments';
+import { useProfiles } from '../hooks/useProfiles';
 import { usePresent } from '../hooks/usePresent';
 import { useFormatters } from '../hooks/useFormatters';
 import Modal from './modal';
 import Button from './button';
 import ConfirmModal from './confirmModal';
+import { FieldError } from './ui';
 import type { Product } from '../hooks/useProducts';
 import type {
   ClientPurchase,
@@ -46,6 +48,7 @@ interface PurchaseFormState {
   client_phone_number: string;
   client_social_media: string;
   agreed_fees: number;
+  profile_id: string;
 }
 
 /**
@@ -79,6 +82,7 @@ export default function ClientPurchaseModal({
     addExtraFee,
     deleteExtraFee,
   } = usePurchasePayments();
+  const { profiles, fetchProfiles } = useProfiles();
 
   const isEditing = purchase != null;
   const titleId = useId();
@@ -92,6 +96,7 @@ export default function ClientPurchaseModal({
     client_phone_number: purchase?.client_phone_number ?? '',
     client_social_media: purchase?.client_social_media ?? '',
     agreed_fees: purchase?.agreed_fees ?? 0,
+    profile_id: purchase?.profile_id ?? '',
   }));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -99,6 +104,7 @@ export default function ClientPurchaseModal({
   // The two money forms are independent: each section toggles its own form.
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [extraFeeFormOpen, setExtraFeeFormOpen] = useState(false);
   const [extraFeeAmount, setExtraFeeAmount] = useState(0);
 
@@ -114,7 +120,12 @@ export default function ClientPurchaseModal({
     }
   }, [purchase, fetchPaymentsForPurchase, fetchExtraFeesForPurchase]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // The account-link selector is populated from the profile list (admin-only).
+  useEffect(() => {
+    fetchProfiles();
+  }, [fetchProfiles]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
@@ -128,7 +139,10 @@ export default function ClientPurchaseModal({
     setSaving(true);
 
     if (isEditing && currentPurchase) {
-      const result = await updatePurchase(currentPurchase, form);
+      const result = await updatePurchase(currentPurchase, {
+        ...form,
+        profile_id: form.profile_id || null,
+      });
       setSaving(false);
       if (result.error) {
         setError(result.error);
@@ -140,7 +154,11 @@ export default function ClientPurchaseModal({
     }
 
     if (!isEditing && addPurchase && product) {
-      const result = await addPurchase({ ...form, product_id: product.id });
+      const result = await addPurchase({
+        ...form,
+        product_id: product.id,
+        profile_id: form.profile_id || null,
+      });
       setSaving(false);
       if (result.error) {
         setError(result.error);
@@ -156,6 +174,11 @@ export default function ClientPurchaseModal({
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPurchase) return;
+    const remaining = totalOwed - (currentPurchase.amount_paid_so_far ?? 0);
+    if (paymentAmount > remaining) {
+      setPaymentError(t('payments.exceedsBalance'));
+      return;
+    }
     const { updatedPurchase } = await addPayment(
       { client_purchase_id: currentPurchase.id, amount: paymentAmount },
       currentPurchase.agreed_fees
@@ -324,6 +347,30 @@ export default function ClientPurchaseModal({
           </div>
 
           <div className="fieldGroup">
+            <label className="label" htmlFor={`${titleId}-profile`}>
+              {t('purchases.owner')}
+            </label>
+            <select
+              id={`${titleId}-profile`}
+              name="profile_id"
+              value={form.profile_id}
+              onChange={handleChange}
+              className="input"
+            >
+              <option value="">{t('purchases.noOwner')}</option>
+              {profiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.role === 'ADMIN'
+                    ? t('purchases.ownerAdmin')
+                    : t('purchases.ownerCustomer')}
+                  {' · '}
+                  {profile.name || profile.email || profile.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="fieldGroup">
             <label className="label" htmlFor={`${titleId}-fees`}>
               {t('purchases.agreedPrice')}
             </label>
@@ -374,13 +421,19 @@ export default function ClientPurchaseModal({
                         inputMode="numeric"
                         min="1"
                         value={paymentAmount || ''}
-                        onChange={(e) =>
-                          setPaymentAmount(e.target.value ? parseInt(e.target.value, 10) : 0)
-                        }
+                        onChange={(e) => {
+                          setPaymentAmount(e.target.value ? parseInt(e.target.value, 10) : 0);
+                          setPaymentError(null);
+                        }}
                         className="input"
                         required
+                        aria-invalid={paymentError ? true : undefined}
+                        aria-describedby={paymentError ? `${titleId}-paymentAmount-error` : undefined}
                       />
                       <p className="fieldHint">{t('payments.amountHint')}</p>
+                      {paymentError && (
+                        <FieldError id={`${titleId}-paymentAmount-error`} message={paymentError} />
+                      )}
                     </div>
                     <div className="buttonGroup">
                       <Button variant="secondary" onClick={() => setPaymentFormOpen(false)}>

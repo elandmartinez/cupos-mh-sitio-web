@@ -29,6 +29,8 @@ export interface ClientPurchase {
   /** App-maintained: the sum of fines owed (rows in `purchases_extra_fees`). */
   extra_charges_total: number | null;
   product_id: number | null;
+  /** Owner profile (links to `profiles.id`); `null` = walk-in customer. */
+  profile_id: string | null;
   /** Free-text lifecycle label; the database defaults it to 'no_payment_done'. */
   status: string | null;
 }
@@ -57,7 +59,10 @@ export type CreateClientPurchaseInput = Pick<
   | 'client_social_media'
   | 'agreed_fees'
   | 'product_id'
->;
+> & {
+  /** Owner profile; omit for a walk-in customer. */
+  profile_id?: string | null;
+};
 
 /** Full update of the client/fee details — `product_id` is never moved. */
 export type UpdateClientPurchaseInput = Pick<
@@ -67,6 +72,7 @@ export type UpdateClientPurchaseInput = Pick<
   | 'client_phone_number'
   | 'client_social_media'
   | 'agreed_fees'
+  | 'profile_id'
 >;
 
 /** Partial update — only the client/fee fields present are touched. */

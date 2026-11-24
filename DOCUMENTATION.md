@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-11-15 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes, the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts), the **design-system primitives pass** (a `src/components/ui/` barrel, `Skeleton*` loading placeholders, lazily-loaded dialogs) and the **ES/EN i18n pass** (i18next singleton, locale files, `LanguageSwitch`, locale-aware formatters) — the last two are **in the working tree on top of `aab7385`, not yet committed**; plus the **AI-tooling cleanup** (removed `.claude/`/`.cline/`, relocated `.cursor/agents/` → `.agents/agents/`, deleted `uxonfly.md`); plus the **payment-totals pass** (no DB trigger — totals computed in `src/helpers/purchaseTotals.ts` and written via `clientsPurchasesRepository.updateTotals`), the **sales-row edit** navigation and the **first-name / social-media** fields
+> **Status:** work in progress · **Last documented:** 2026-11-20 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes, the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts), the **design-system primitives pass** (a `src/components/ui/` barrel, `Skeleton*` loading placeholders, lazily-loaded dialogs) and the **ES/EN i18n pass** (i18next singleton, locale files, `LanguageSwitch`, locale-aware formatters) — the last two are **in the working tree on top of `aab7385`, not yet committed**; plus the **AI-tooling cleanup** (removed `.claude/`/`.cline/`, relocated `.cursor/agents/` → `.agents/agents/`, deleted `uxonfly.md`); plus the **payment-totals pass** (no DB trigger — totals computed in `src/helpers/purchaseTotals.ts` and written via `clientsPurchasesRepository.updateTotals`), the **sales-row edit** navigation and the **first-name / social-media** fields; and the **roles pass** (DB + frontend: `profiles`, `clients_purchases.profile_id`, the polymorphic `purchases_payments` link, `custom_articles_orders` / `articles_orders_payment_track` with their CRUD, the `role`-branching `dashboardApp`, and the read-only `CustomerDashboard`)
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -11,7 +11,9 @@
 
 An **internal admin web app for managing "cupos"** (order slots/reservations) for a
 small reseller business, branded with a *Monster High* theme. It is **not** a public
-storefront — everything sits behind a Supabase email/password login.
+storefront — everything sits behind a Supabase email/password login. It now serves
+**two roles** — `admin` (the current dashboard) and `customer` (a read-only
+"my purchases" view) — resolved from `profiles.role` and enforced by RLS (see §9).
 
 The app lets a signed-in operator manage three related things:
 
@@ -353,6 +355,7 @@ deliberately not done. Costs and the measured bundle delta are in §11 and §13.
 | `description` | text \| null | |
 | `value` | int \| null | whole pesos (comment says `smallint`). |
 | `release_date` | date \| null | |
+| `image_path` | text \| null | **legacy** — unused; the image lives in the `products-images` bucket. |
 
 Type: `Product` in `src/hooks/useProducts.ts`.
 
@@ -372,6 +375,7 @@ Type: `Product` in `src/hooks/useProducts.ts`.
 | `amount_paid_so_far` | int \| null | **App-maintained** — sum of received payments. |
 | `extra_charges_total` | int \| null | **App-maintained** — sum of fines owed. |
 | `product_id` | int \| null | FK → `products.id`. |
+| `profile_id` | uuid \| null | FK → `profiles.id` (owner); `null` = walk-in. |
 
 Type: `ClientPurchase` in `src/hooks/useClientPurchases.ts`. On insert the client
 seeds `amount_paid_so_far: 0`, `extra_charges_total: 0` and `is_fully_paid: false`;
@@ -385,35 +389,97 @@ afterwards the app writes them through `updateTotals` (they are excluded from th
 | `id` | int PK | |
 | `created_at` | timestamptz | set by DB. |
 | `updated_at` | timestamptz \| null | client-set on update. |
-| `client_purchase_id` | int \| null | FK → `clients_purchases.id`. |
+| `client_purchase_id` | int \| null | FK → `clients_purchases.id` (a *regular* purchase's payment). |
 | `amount` | int \| null | whole pesos. |
+| `article_order_payment_track_id` | int \| null | FK → `articles_orders_payment_track.id` (a *custom order's* payment). Exactly one of `client_purchase_id` / `article_order_payment_track_id` is set (CHECK). |
 
 Type: `PurchasePayment` in `src/hooks/usePurchasePayments.ts`.
 
 ### Table `purchases_extra_fees`
+
+Polymorphic, like `purchases_payments`: the parent is one of `client_purchase_id`
+(regular purchase) or `article_order_payment_track_id` (custom order), enforced by
+a CHECK (exactly one). `reason` is only used for custom orders.
 
 | Column | Type | Notes |
 | :-- | :-- | :-- |
 | `id` | int PK | |
 | `created_at` | timestamptz | set by DB. |
 | `updated_at` | timestamptz \| null | client-set on update. |
-| `client_purchase_id` | int \| null | FK → `clients_purchases.id`. |
+| `client_purchase_id` | int \| null | FK → `clients_purchases.id` (regular purchase parent). |
+| `article_order_payment_track_id` | int \| null | FK → `articles_orders_payment_track.id` (custom order parent). |
+| `reason` | text \| null | why the charge exists (custom orders only). |
 | `amount` | int \| null | whole pesos — a **fine owed** (multa) on top of the agreed fee. |
 
 Type: `PurchaseExtraFee` in `src/hooks/usePurchasePayments.ts`.
 
+### Table `profiles`
+
+| Column | Type | Notes |
+| :-- | :-- | :-- |
+| `id` | uuid PK | = `auth.users.id` (1:1). |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz \| null | |
+| `role` | text \| null | `'ADMIN'` / `'CUSTOMER'`; `DEFAULT 'CUSTOMER'`, no CHECK — `null` acts as customer. No `username` column (login stays email/password). |
+
+### Table `custom_articles_orders`
+
+Custom orders placed **off-website** (WhatsApp/phone), shown in the website as their
+own list — analogous to `products`.
+
+| Column | Type | Notes |
+| :-- | :-- | :-- |
+| `id` | bigint PK (identity) | |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz \| null | |
+| `name` | varchar \| null | |
+| `description` | varchar \| null | |
+| `value` | bigint \| null | |
+| `date_to_deliver` | date \| null | |
+| `image_path` | text \| null | |
+| `last_date_to_deliver` | date \| null | |
+| `has_date_to_deliver_been_updated` | boolean \| null | |
+| `profile_id` | uuid \| null | FK → `profiles.id` (owner). |
+
+### Table `articles_orders_payment_track`
+
+Payment *state* for one custom order (1:1 via `article_order_id`), holding the same
+aggregate money fields `clients_purchases` holds inline.
+
+| Column | Type | Notes |
+| :-- | :-- | :-- |
+| `id` | bigint PK (identity) | |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz \| null | |
+| `is_fully_paid` | boolean \| null | |
+| `agreed_fees` | int4 \| null | |
+| `amount_paid_so_far` | bigint \| null | |
+| `status` | varchar \| null | |
+| `extra_charges_total` | bigint \| null | |
+| `client_gave_starter_payment` | boolean \| null | |
+| `article_order_id` | bigint \| null | FK → `custom_articles_orders.id`. |
+
+Money flow for a custom order: `custom_articles_orders` → (1:1)
+`articles_orders_payment_track` → (1:N) `purchases_payments`
+(`article_order_payment_track_id`).
+
 ### No triggers — totals are app-owned
 
-There are **no database triggers or functions**. The app is the single owner of a
-purchase's `amount_paid_so_far`, `extra_charges_total` and `is_fully_paid`: after
+There are **no business-logic database triggers or functions**. The app is the
+single owner of a purchase's `amount_paid_so_far`, `extra_charges_total` and
+`is_fully_paid`: after
 every payment or extra-fee mutation it recomputes them from the purchase's
 payments *and* extra fees (`computePurchaseTotals` in
 `src/helpers/purchaseTotals.ts`) and writes them back through
 `clientsPurchasesRepository.updateTotals`.
 
 > The money-table foreign keys have no `on delete cascade`, so deleting a purchase
-> that still has payments or extra fees fails with a foreign-key violation — see
-> `SCHEMA.md` §4.
+> (or a custom order) that still has payments or extra fees fails with a
+> foreign-key violation — see `SCHEMA.md` §7.
+
+Two **auth-infra** functions *do* exist for the role split (they are not business
+logic): `public.is_admin()` (security-definer, read by the RLS policies) and the
+`handle_new_user` trigger that creates a `profiles` row on signup. See `SCHEMA.md`.
 
 ### Storage bucket `products-images`
 
@@ -446,11 +512,14 @@ write stamps it explicitly.
 | Repository | Surface | API |
 | :-- | :-- | :-- |
 | `productsRepository` | table `products` | `Product`, `Create/Update/PatchProductInput`, `find`, `findMany`, `create`, `update`, `updatePartial`, `updateMany`, `delete`, `deleteMany`. |
-| `clientsPurchasesRepository` | table `clients_purchases` | `ClientPurchase`, `ClientPurchaseWithProduct`, `Create/Update/PatchClientPurchaseInput`, `UpdatePurchaseTotalsInput`, the same verb set, plus `findWithProduct` / `findManyWithProduct` / `updateTotals`. |
-| `purchasesPaymentsRepository` | table `purchases_payments` | `PurchasePayment`, `Create/Update/PatchPurchasePaymentInput`, plus the same verb set. |
+| `clientsPurchasesRepository` | table `clients_purchases` | `ClientPurchase`, `ClientPurchaseWithProduct`, `Create/Update/PatchClientPurchaseInput` (incl. `profile_id`), `UpdatePurchaseTotalsInput`, the same verb set, plus `findWithProduct` / `findManyWithProduct` / `updateTotals`. |
+| `purchasesPaymentsRepository` | table `purchases_payments` | `PurchasePayment`, `Create/Update/PatchPurchasePaymentInput`, the same verb set, plus `findManyForTracks(trackIds)` for the custom-order side. A payment's parent is `client_purchase_id` **or** `article_order_payment_track_id`. |
 | `purchasesExtraFeesRepository` | table `purchases_extra_fees` | `PurchaseExtraFee`, `Create/Update/PatchPurchaseExtraFeeInput`, plus the same verb set. |
 | `productImagesRepository` | bucket `products-images` | `PRODUCT_IMAGES_BUCKET`, `SIGNED_URL_EXPIRY_SECONDS` (1 h), `sanitizeSegment`, `getPath`, `upload`, `move`, `remove`, `getSignedUrl`. |
 | `authRepository` | `supabase.auth` | `getSession`, `signInWithPassword`, `signOut`, `onAuthStateChange(cb)` → an unsubscribe function. |
+| `profilesRepository` | table `profiles` | `Profile`, `ProfileRole`, `findById`, `findMany` (admin-only via RLS) — the role source and the "link a customer" list. |
+| `customArticlesOrdersRepository` | table `custom_articles_orders` | `CustomArticleOrder`, `Create/Update/PatchCustomArticleOrderInput`, `find`, `findMany`, `create`, `update`, `updatePartial`, `delete`. |
+| `articlesOrdersPaymentTrackRepository` | table `articles_orders_payment_track` | `ArticleOrderPaymentTrack`, `Create/Update/Patch…Input`, `UpdateTrackTotalsInput`, `find`, `findByOrderId`, `findManyByOrderIds`, `create`, `updatePartial`, `updateTotals`, `delete`. |
 
 Conventions worth knowing:
 
@@ -549,6 +618,24 @@ extra fees (`computePurchaseTotals`) and writes them back via
 `clientsPurchasesRepository.updateTotals` — the app owns the totals; there is no
 trigger. The caller passes the purchase's `agreed_fees` so the helper has the base.
 
+#### `useCustomArticlesOrders()` — `src/hooks/useCustomArticlesOrders.ts`
+
+The custom-orders feature for both roles. Returns `orders` (each with its 1:1
+`track`), `paymentsByTrack`, `loading`/`error`, and the actions: `fetchOrders`,
+`fetchPaymentsForTrack`, `addOrder` / `updateOrder` / `deleteOrder`, and
+`addPayment` / `deletePayment`. RLS scopes every read (a customer's `findMany`
+returns only *their* orders), so one hook serves the admin section and the
+read-only customer view. Payment mutations recompute the track's
+`amount_paid_so_far` / `is_fully_paid` and write them back — no trigger. Extra
+charges are a single aggregate (`extra_charges_total`), not itemized (a deferred
+decision).
+
+#### `useProfiles()` — `src/hooks/useProfiles.ts`
+
+`{ profiles, loading, error, fetchProfiles }` — the admin-only list of `profiles`
+(RLS `profiles_admin_all`) that populates the "link a purchase to a customer
+account" selector.
+
 #### `usePresent()` — `src/hooks/usePresent.ts`
 
 UI-only (touches no repository). A **presence window**, so a surface can animate
@@ -614,16 +701,24 @@ the helpers underneath stay pure and unit-tested (§10.4).
 
 #### `AuthProvider` / `useAuth()` — `src/context/authContext.tsx`
 
-React context exposing `{ session, user, loading, signOut }`. On mount it restores
-the session with `getSession()`, then keeps it fresh via `onAuthStateChange()`.
-`signOut()` calls `supabase.auth.signOut()` then hard-redirects to `/`.
+React context exposing `{ session, user, role, loading, signOut }`. On mount it
+restores the session with `getSession()`, resolves the role via
+`profilesRepository.findById(user.id)`, and keeps both fresh via `onAuthStateChange()`.
+A token refresh (same user id) does **not** re-fetch the role, so the screen never
+flashes. `role` is `'ADMIN' | 'CUSTOMER'` (a `null` role folds to `'CUSTOMER'`), and
+`loading` stays `true` until both the session *and* the role are known, so the router
+never renders a screen for the wrong role. `signOut()` calls
+`supabase.auth.signOut()` then hard-redirects to `/`.
 
 ### 10.3 Components
 
 | Component | File | Responsibility |
 | :-- | :-- | :-- |
 | `LoginModal` | `loginModal.tsx` | Email/password form calling `supabase.auth.signInWithPassword()`; shows the error in a `role="alert"` region on failure; on success redirects to `/dashboard`. Renders the Monster High logo, a `h1` wordmark ("Gestión de cupos") and labelled, correctly-typed fields (`type="email"`, `autoComplete="username"`, `spellCheck={false}`). Submits through the accent `.submitBtn` with an inline `.spinner` while pending. Loaded with `client:load`. |
-| `DashboardApp` | `dashboardApp.tsx` | Thin composition: `<AuthProvider><AuthGuard><Dashboard/></AuthGuard></AuthProvider>`. Loaded with `client:only="react"`. |
+| `DashboardApp` | `dashboardApp.tsx` | Thin composition: `<AuthProvider><AuthGuard><DashboardRouter/></AuthGuard></AuthProvider>`; `DashboardRouter` branches on `useAuth().role` → `Dashboard` (admin) or the lazy `CustomerDashboard`. Loaded with `client:only="react"`. |
+| `CustomerDashboard` | `customerDashboard.tsx` | The read-only customer screen: top bar plus two sections — "Mis compras" (their `clients_purchases`) and "Mis pedidos personalizados" (their `custom_articles_orders`) — each row showing paid/total, a progress bar and a `Pagado`/`Pendiente` badge, opening a read-only money detail modal. No create/edit/delete anywhere; RLS scopes every query. |
+| `CustomArticlesSection` | `customArticlesSection.tsx` | The admin's "Pedidos personalizados" collapsible section: the list of `custom_articles_orders` plus "Nuevo pedido". Self-contained — owns `useCustomArticlesOrders` + `useProfiles` and renders its dialog as a sibling of the section, so folding the section never hides it. |
+| `CustomArticleOrderModal` | `customArticleOrderModal.tsx` | The one modal for a custom order: the order + money form (name, description, value, dates, owner account, agreed price, extra charges, starter-payment flag) and, when editing, the payment management against the order's `articles_orders_payment_track`. |
 | `AuthGuard` | `authGuard.tsx` | Reads `{ user, loading }` from `useAuth()`. Shows an `aria-live="polite"` spinner + "Verificando sesión…" while loading, redirects to `/` when there is no user, otherwise renders children. |
 | `Dashboard` | `dashboard.tsx` | The main screen. Top bar (logo, `user.email`, "Cerrar sesión"), then two collapsible sections: **"Mis productos"** (a grid of product cards, refresh + "Nuevo producto", a modal product form for name / description / value / release date / image with live preview rendered through `Modal`, and `ConfirmModal` for deletions) and **"Mis ventas"** (`SalesSection`). **Each product card is a single `<button>`** — image, name, ID badge, value and purchase count, no controls — and opens `ProductDetailModal`, which is where "Compras", "Editar" and "Eliminar" live; the dialog resolves its product out of the live list so an edit saved from the form shows up behind it, and deleting a product closes it. It also orchestrates `PurchasesModal`. Refreshing re-reads the products *and* every purchase, because a deleted product's purchases cascade away in the database rather than through the hook. Renames the stored image when a product's name changes and bumps `imageVersion` after any image change to defeat browser caching. Section headers carry a one-line summary (`N producto(s)`, `N pendientes · $X por cobrar`, `Todo pagado`). Loading/empty/error states are explicit; the empty state offers the primary action. Every dialog it holds (the product form, the delete confirmation, the detail view) goes through `usePresent`, so they animate out instead of unmounting mid-exit. |
 | `CollapsibleSection` | `collapsibleSection.tsx` | The reusable disclosure both dashboard sections are built on. A heading-styled `<button>` (`aria-expanded` + `aria-controls`, stable `useId` ids) toggles the panel; the panel **stays mounted** and *rests* `hidden` (so `aria-controls` always resolves and in-flight state is never thrown away), and `useCollapsiblePanel` lifts the attribute only long enough to fold the height to `0`. Optional `meta` string is right-aligned next to the title, with a `▲`/`▼` chevron as the visual affordance. Deliberately **not** a card — the header is a hairline-ruled row on the page background, so the content it wraps stays the only surface on screen. `defaultOpen` is `true`. |
@@ -752,7 +847,8 @@ No `vercel.json` is needed: Vercel's Astro preset runs `npm run build` and reads
       **Production and Preview**. `PUBLIC_*` values are inlined at build time, so
       they cannot be added after a build.
 - [ ] `npm run build` green, and `.vercel/output/functions/` still absent.
-- [ ] **RLS verified** on all three tables and the storage bucket — a static SPA has
+- [ ] **RLS verified** on every table (including `profiles`, `custom_articles_orders`
+      and `articles_orders_payment_track`) and the storage bucket — a static SPA has
       no server to enforce authorization ([§14](#14-known-issues--tech-debt)).
 
 ## 12. Developer & AI tooling
@@ -1002,6 +1098,13 @@ and, worse, to revert.
 ## 16. Suggested next steps
 
 Roughly in priority order:
+
+> **Roles & custom-orders — ✅ shipped.** `authContext` exposes `role`, `dashboardApp`
+> branches to `CustomerDashboard` (read-only) vs `Dashboard` (admin), and the admin
+> has a "Pedidos personalizados" CRUD. **Remaining:** run the DB fixes in
+> `admin_customer_profile_handling_refactor.md` §1 (drop the `profile_id` defaults,
+> uppercase `is_admin()`, the polymorphic CHECK, RLS for the two new tables, the
+> `payments_select_own` fix, and the `handmade-article-images` bucket).
 
 1. **Security pass:** ✅ `.env` untracked. Still to do: enable/verify **RLS** on all
    three tables and the storage bucket, set the Supabase env vars on the Vercel
