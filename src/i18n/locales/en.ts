@@ -37,6 +37,9 @@ const en: EsResources = {
     dashboardSubtitle: 'Your catalogue, your clients’ purchases and their payments.',
     refresh: 'Refresh',
     refreshAria: 'Refresh products and sales',
+    tabsAria: 'Panel sections',
+    tabProducts: 'My products',
+    tabOrders: 'My orders',
   },
 
   auth: {

@@ -97,6 +97,59 @@
 }
 
 /* ---------------------------------------------------------------------- */
+/* Tab navigation — two mutually exclusive views                          */
+/* "Mis productos" (catalogue + purchases) and "Mis pedidos" (custom      */
+/* orders). A tab is a text button on a hairline; the active one is       */
+/* underlined in the accent. `aria-selected` is the state, so the style   */
+/* hangs off it and can never disagree with what assistive tech is told.  */
+/* ---------------------------------------------------------------------- */
+
+.tabList {
+  display: flex;
+  gap: var(--space-8);
+  margin-bottom: var(--space-24);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0 var(--space-16);
+  /* Pull the tab's own border up one pixel so the active underline sits on the
+     list's hairline rather than a pixel below it. */
+  margin-bottom: -1px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tab[aria-selected='true'],
+.tab[aria-selected='true']:hover {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* A tabpanel that is not the active one rests `hidden` — the same rule the
+   collapsed sections use, so it leaves the layout without a `display` override. */
+.tabPanel[hidden] {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------- */
 /* Product grid — cards in a list are separated by 16px                   */
 /* ---------------------------------------------------------------------- */
 

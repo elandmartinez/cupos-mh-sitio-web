@@ -46,6 +46,9 @@ const es = {
     dashboardSubtitle: 'Tu catálogo, las compras de tus clientes y sus pagos.',
     refresh: 'Refrescar',
     refreshAria: 'Refrescar productos y ventas',
+    tabsAria: 'Secciones del panel',
+    tabProducts: 'Mis productos',
+    tabOrders: 'Mis pedidos',
   },
 
   auth: {

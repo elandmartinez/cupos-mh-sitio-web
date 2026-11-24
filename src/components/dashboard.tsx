@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProducts } from '../hooks/useProducts';
 import { useProductImages } from '../hooks/useProductImages';
@@ -35,6 +35,12 @@ const emptyFormData: CreateProductInput = {
   value: 0,
   release_date: '',
 };
+
+// The two top-level views the admin can switch between: products + their
+// purchases, and custom article orders. The order here is also the arrow-key
+// order in the tab strip.
+type TabKey = 'products' | 'orders';
+const TAB_ORDER: TabKey[] = ['products', 'orders'];
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -74,6 +80,30 @@ export default function Dashboard() {
   const detailDialog = usePresent<Product>();
   // Editing a purchase straight from the sales list — no product hop.
   const editPurchaseDialog = usePresent<ClientPurchaseWithProduct>();
+
+  // Which of the two views is showing, and refs to the tab buttons for the
+  // roving arrow-key focus (the ARIA tabs pattern).
+  const [activeTab, setActiveTab] = useState<TabKey>('products');
+  const tabRefs = useRef<Record<TabKey, HTMLButtonElement | null>>({
+    products: null,
+    orders: null,
+  });
+
+  // Arrow keys move between tabs and select as they go (automatic activation);
+  // Home/End jump to either end.
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, key: TabKey) => {
+    const index = TAB_ORDER.indexOf(key);
+    let next: TabKey | null = null;
+    if (e.key === 'ArrowRight') next = TAB_ORDER[(index + 1) % TAB_ORDER.length];
+    else if (e.key === 'ArrowLeft') next = TAB_ORDER[(index - 1 + TAB_ORDER.length) % TAB_ORDER.length];
+    else if (e.key === 'Home') next = TAB_ORDER[0];
+    else if (e.key === 'End') next = TAB_ORDER[TAB_ORDER.length - 1];
+    if (next && next !== key) {
+      e.preventDefault();
+      tabRefs.current[next]?.focus();
+      setActiveTab(next);
+    }
+  };
 
   // Keep purchase counts in sync with the product list
   useEffect(() => {
@@ -300,52 +330,18 @@ export default function Dashboard() {
           </div>
 
           <div className="pageHeaderActions">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="btnIcon btnRefresh"
-              aria-label={t('nav.refreshAria')}
-              title={t('nav.refresh')}
-            >
-              <span aria-hidden="true">⟳</span>
-            </button>
-            {!showProductsEmptyState && (
-              <button
-                type="button"
-                onClick={handleOpenNewForm}
-                className="btnPrimary"
-                aria-haspopup="dialog"
-              >
-                <span aria-hidden="true">+</span> {t('products.new')}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* A failure that blocks the panel is a banner above it, never a toast:
-            it stays on screen, names what failed and offers the retry. */}
-        {error && (
-          <div className="banner banner--danger dashboardBanner" role="alert">
-            <p>{error}</p>
-            <button type="button" onClick={handleRefresh} className="btnSecondary">
-              {t('common.retry')}
-            </button>
-          </div>
-        )}
-
-        <div className="dashboardSections">
-          <CollapsibleSection title={t('products.sectionTitle')} meta={productsMeta}>
-            {loading && products.length === 0 ? (
-              /* First load only: the grid keeps its shape so nothing jumps when
-                 the real cards arrive. A refresh leaves the products on screen,
-                 which is what tells them apart from a blank first paint. */
-              <SkeletonCardGrid label={t('products.loading')} />
-            ) : showProductsEmptyState ? (
-              <EmptyState
-                art="products"
-                title={t('products.emptyTitle')}
-                body={t('products.emptyBody')}
-                action={
+            {activeTab === 'products' && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  className="btnIcon btnRefresh"
+                  aria-label={t('nav.refreshAria')}
+                  title={t('nav.refresh')}
+                >
+                  <span aria-hidden="true">⟳</span>
+                </button>
+                {!showProductsEmptyState && (
                   <button
                     type="button"
                     onClick={handleOpenNewForm}
@@ -354,61 +350,152 @@ export default function Dashboard() {
                   >
                     <span aria-hidden="true">+</span> {t('products.new')}
                   </button>
-                }
-              />
-            ) : (
-              <div className="productsGrid">
-              {products.map((product) => {
-                const productPurchases = purchasesByProduct[product.id] || [];
-                // The card carries no controls: it is one tap target that opens
-                // the product's dialog, which is where every action lives. It
-                // is a real <button>, so everything inside it stays phrasing
-                // content — hence spans, not an <h3>.
-                return (
-                  <button
-                    type="button"
-                    key={product.id}
-                    className="card productCard"
-                    onClick={() => handleOpenDetails(product)}
-                    aria-haspopup="dialog"
-                  >
-                    <ProductImage
-                      product={product}
-                      imageVersion={imageVersion}
-                      getSignedUrl={getSignedUrl}
-                      className="productImage"
-                    />
-
-                    <span className="productHeader">
-                      <span className="productName">{product.name}</span>
-                      <span className="badge badge--primary">
-                        {t('products.idBadge', { id: product.id })}
-                      </span>
-                    </span>
-
-                    <span className="productCardMeta">
-                      <span className="productValue">{formatCurrency(product.value)}</span>
-                      <span className="productPurchases">
-                        {t('products.purchasesCount', { count: productPurchases.length })}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-              </div>
+                )}
+              </>
             )}
-          </CollapsibleSection>
+          </div>
+        </div>
 
-          <CollapsibleSection title={t('sales.sectionTitle')} meta={salesMeta}>
-            <SalesSection
-              purchases={allPurchases}
-              loading={purchasesLoading}
-              error={purchasesError}
-              onRetry={handleRefresh}
-              onOpenPurchase={handleOpenPurchase}
-            />
-          </CollapsibleSection>
+        {/* Two mutually exclusive views. The tabs own the switch; `aria-selected`
+            is the state, and the inactive panel rests `hidden` so its collapse
+            state and (for orders) its data survive a round-trip. */}
+        <div className="tabList" role="tablist" aria-label={t('nav.tabsAria')}>
+          <button
+            type="button"
+            role="tab"
+            id="tab-products"
+            ref={(el) => {
+              tabRefs.current.products = el;
+            }}
+            aria-selected={activeTab === 'products'}
+            aria-controls="tabpanel-products"
+            className="tab"
+            onClick={() => setActiveTab('products')}
+            onKeyDown={(e) => handleTabKeyDown(e, 'products')}
+          >
+            {t('nav.tabProducts')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-orders"
+            ref={(el) => {
+              tabRefs.current.orders = el;
+            }}
+            aria-selected={activeTab === 'orders'}
+            aria-controls="tabpanel-orders"
+            className="tab"
+            onClick={() => setActiveTab('orders')}
+            onKeyDown={(e) => handleTabKeyDown(e, 'orders')}
+          >
+            {t('nav.tabOrders')}
+          </button>
+        </div>
 
+        <div
+          id="tabpanel-products"
+          role="tabpanel"
+          aria-labelledby="tab-products"
+          className="tabPanel"
+          hidden={activeTab !== 'products'}
+        >
+          {/* A failure that blocks the panel is a banner above it, never a toast:
+              it stays on screen, names what failed and offers the retry. */}
+          {error && (
+            <div className="banner banner--danger dashboardBanner" role="alert">
+              <p>{error}</p>
+              <button type="button" onClick={handleRefresh} className="btnSecondary">
+                {t('common.retry')}
+              </button>
+            </div>
+          )}
+
+          <div className="dashboardSections">
+            <CollapsibleSection title={t('products.sectionTitle')} meta={productsMeta}>
+              {loading && products.length === 0 ? (
+                /* First load only: the grid keeps its shape so nothing jumps when
+                   the real cards arrive. A refresh leaves the products on screen,
+                   which is what tells them apart from a blank first paint. */
+                <SkeletonCardGrid label={t('products.loading')} />
+              ) : showProductsEmptyState ? (
+                <EmptyState
+                  art="products"
+                  title={t('products.emptyTitle')}
+                  body={t('products.emptyBody')}
+                  action={
+                    <button
+                      type="button"
+                      onClick={handleOpenNewForm}
+                      className="btnPrimary"
+                      aria-haspopup="dialog"
+                    >
+                      <span aria-hidden="true">+</span> {t('products.new')}
+                    </button>
+                  }
+                />
+              ) : (
+                <div className="productsGrid">
+                {products.map((product) => {
+                  const productPurchases = purchasesByProduct[product.id] || [];
+                  // The card carries no controls: it is one tap target that opens
+                  // the product's dialog, which is where every action lives. It
+                  // is a real <button>, so everything inside it stays phrasing
+                  // content — hence spans, not an <h3>.
+                  return (
+                    <button
+                      type="button"
+                      key={product.id}
+                      className="card productCard"
+                      onClick={() => handleOpenDetails(product)}
+                      aria-haspopup="dialog"
+                    >
+                      <ProductImage
+                        product={product}
+                        imageVersion={imageVersion}
+                        getSignedUrl={getSignedUrl}
+                        className="productImage"
+                      />
+  
+                      <span className="productHeader">
+                        <span className="productName">{product.name}</span>
+                        <span className="badge badge--primary">
+                          {t('products.idBadge', { id: product.id })}
+                        </span>
+                      </span>
+  
+                      <span className="productCardMeta">
+                        <span className="productValue">{formatCurrency(product.value)}</span>
+                        <span className="productPurchases">
+                          {t('products.purchasesCount', { count: productPurchases.length })}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+                </div>
+              )}
+            </CollapsibleSection>
+  
+            <CollapsibleSection title={t('sales.sectionTitle')} meta={salesMeta}>
+              <SalesSection
+                purchases={allPurchases}
+                loading={purchasesLoading}
+                error={purchasesError}
+                onRetry={handleRefresh}
+                onOpenPurchase={handleOpenPurchase}
+              />
+            </CollapsibleSection>
+
+          </div>
+        </div>
+
+        <div
+          id="tabpanel-orders"
+          role="tabpanel"
+          aria-labelledby="tab-orders"
+          className="tabPanel"
+          hidden={activeTab !== 'orders'}
+        >
           <CustomArticlesSection />
         </div>
       </main>
