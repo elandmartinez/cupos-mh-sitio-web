@@ -969,6 +969,15 @@
   color: var(--color-text);
 }
 
+/* The customer this article belongs to — a muted line under the title. */
+.saleClientOwner {
+  display: block;
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
 .saleMeta {
   display: block;
   margin-top: var(--space-4);
@@ -988,6 +997,19 @@
   white-space: pre-line;
   margin-top: var(--space-4);
   font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* The client filter select, sitting next to the "Nuevo pedido" action. */
+.customOrderFilterSelect {
+  flex: 0 1 16rem;
+  min-width: 9rem;
+}
+
+/* The filtered count shown under the action + filter row. */
+.customOrderCount {
+  margin: 0 0 var(--space-16);
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 

@@ -331,27 +331,15 @@ export default function Dashboard() {
 
           <div className="pageHeaderActions">
             {activeTab === 'products' && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleRefresh}
-                  className="btnIcon btnRefresh"
-                  aria-label={t('nav.refreshAria')}
-                  title={t('nav.refresh')}
-                >
-                  <span aria-hidden="true">⟳</span>
-                </button>
-                {!showProductsEmptyState && (
-                  <button
-                    type="button"
-                    onClick={handleOpenNewForm}
-                    className="btnPrimary"
-                    aria-haspopup="dialog"
-                  >
-                    <span aria-hidden="true">+</span> {t('products.new')}
-                  </button>
-                )}
-              </>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                className="btnIcon btnRefresh"
+                aria-label={t('nav.refreshAria')}
+                title={t('nav.refresh')}
+              >
+                <span aria-hidden="true">⟳</span>
+              </button>
             )}
           </div>
         </div>
@@ -434,45 +422,57 @@ export default function Dashboard() {
                   }
                 />
               ) : (
-                <div className="productsGrid">
-                {products.map((product) => {
-                  const productPurchases = purchasesByProduct[product.id] || [];
-                  // The card carries no controls: it is one tap target that opens
-                  // the product's dialog, which is where every action lives. It
-                  // is a real <button>, so everything inside it stays phrasing
-                  // content — hence spans, not an <h3>.
-                  return (
+                <>
+                  <div className="pageHeaderActions" style={{ marginBottom: 'var(--space-12)' }}>
                     <button
                       type="button"
-                      key={product.id}
-                      className="card productCard"
-                      onClick={() => handleOpenDetails(product)}
+                      onClick={handleOpenNewForm}
+                      className="btnPrimary"
                       aria-haspopup="dialog"
                     >
-                      <ProductImage
-                        product={product}
-                        imageVersion={imageVersion}
-                        getSignedUrl={getSignedUrl}
-                        className="productImage"
-                      />
-  
-                      <span className="productHeader">
-                        <span className="productName">{product.name}</span>
-                        <span className="badge badge--primary">
-                          {t('products.idBadge', { id: product.id })}
-                        </span>
-                      </span>
-  
-                      <span className="productCardMeta">
-                        <span className="productValue">{formatCurrency(product.value)}</span>
-                        <span className="productPurchases">
-                          {t('products.purchasesCount', { count: productPurchases.length })}
-                        </span>
-                      </span>
+                      <span aria-hidden="true">+</span> {t('products.new')}
                     </button>
-                  );
-                })}
-                </div>
+                  </div>
+                  <div className="productsGrid">
+                    {products.map((product) => {
+                      const productPurchases = purchasesByProduct[product.id] || [];
+                      // The card carries no controls: it is one tap target that opens
+                      // the product's dialog, which is where every action lives. It
+                      // is a real <button>, so everything inside it stays phrasing
+                      // content — hence spans, not an <h3>.
+                      return (
+                        <button
+                          type="button"
+                          key={product.id}
+                          className="card productCard"
+                          onClick={() => handleOpenDetails(product)}
+                          aria-haspopup="dialog"
+                        >
+                          <ProductImage
+                            product={product}
+                            imageVersion={imageVersion}
+                            getSignedUrl={getSignedUrl}
+                            className="productImage"
+                          />
+      
+                          <span className="productHeader">
+                            <span className="productName">{product.name}</span>
+                            <span className="badge badge--primary">
+                              {t('products.idBadge', { id: product.id })}
+                            </span>
+                          </span>
+      
+                          <span className="productCardMeta">
+                            <span className="productValue">{formatCurrency(product.value)}</span>
+                            <span className="productPurchases">
+                              {t('products.purchasesCount', { count: productPurchases.length })}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </CollapsibleSection>
   

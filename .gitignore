@@ -6,4 +6,4 @@ dist/
 .env.local
 
 # Local seed data — customer credentials/orders, never pushed.
-seed_custom_orders.sql
+seed_*.sql

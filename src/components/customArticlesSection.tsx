@@ -1,7 +1,7 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCustomArticlesOrders } from '../hooks/useCustomArticlesOrders';
-import { useProfiles } from '../hooks/useProfiles';
+import { useProfiles, type Profile } from '../hooks/useProfiles';
 import { usePresent } from '../hooks/usePresent';
 import { useFormatters } from '../hooks/useFormatters';
 import CollapsibleSection from './collapsibleSection';
@@ -13,6 +13,12 @@ import type { CustomArticleOrderWithTrack } from '../hooks/useCustomArticlesOrde
 // The create/edit modal (order + payments) is only reachable after a tap, so it
 // is split out of the section's first-load chunk.
 const CustomArticleOrderModal = lazy(() => import('./customArticleOrderModal'));
+
+/** A profile's human label for the filter and the card: name → email → id prefix. */
+function profileLabel(profile: Profile | undefined): string {
+  if (!profile) return '';
+  return profile.name || profile.email || profile.id.slice(0, 8);
+}
 
 /**
  * The admin's "Pedidos personalizados" section: the list of custom article
@@ -46,10 +52,33 @@ export default function CustomArticlesSection() {
   // `null` means "create"; an order means "edit" (see `usePresent`).
   const orderDialog = usePresent<CustomArticleOrderWithTrack | null>();
 
+  // Filter the list by client (`all` = every order).
+  const [clientFilter, setClientFilter] = useState<string>('all');
+
   useEffect(() => {
     fetchOrders();
     fetchProfiles();
   }, [fetchOrders, fetchProfiles]);
+
+  // profile_id -> Profile, for stamping each card with its owner.
+  const profileById = useMemo(() => {
+    const map = new Map<string, Profile>();
+    for (const profile of profiles) map.set(profile.id, profile);
+    return map;
+  }, [profiles]);
+
+  const filteredOrders = useMemo(() => {
+    if (clientFilter === 'all') return orders;
+    return orders.filter((order) => order.profile_id === clientFilter);
+  }, [orders, clientFilter]);
+
+  const clientOptions = useMemo(
+    () =>
+      [...profiles].sort((a, b) =>
+        (a.name || a.email || '').localeCompare(b.name || b.email || '')
+      ),
+    [profiles]
+  );
 
   const meta = loading ? undefined : t('customOrders.count', { count: orders.length });
 
@@ -75,9 +104,25 @@ export default function CustomArticlesSection() {
               <Button variant="primary" icon="+" onClick={() => orderDialog.open(null)} aria-haspopup="dialog">
                 {t('customOrders.new')}
               </Button>
+              <select
+                className="input customOrderFilterSelect"
+                aria-label={t('customOrders.filterClient')}
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+              >
+                <option value="all">{t('customOrders.filterAllClients')}</option>
+                {clientOptions.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profileLabel(profile)}
+                  </option>
+                ))}
+              </select>
             </div>
+            <p className="customOrderCount">
+              {t('customOrders.count', { count: filteredOrders.length })}
+            </p>
             <ul className="salesList">
-              {orders.map((order) => {
+              {filteredOrders.map((order) => {
                 const track = order.track;
                 const isFullyPaid = Boolean(track?.is_fully_paid);
                 const totalOwed = (track?.agreed_fees ?? 0) + (track?.extra_charges_total ?? 0);
@@ -89,6 +134,7 @@ export default function CustomArticlesSection() {
                   const date = formatDate(order.date_to_deliver);
                   if (date) metaParts.push(date);
                 }
+                const owner = order.profile_id ? profileById.get(order.profile_id) : undefined;
                 return (
                   <li key={order.id} className="salesListItem">
                     <button
@@ -101,6 +147,9 @@ export default function CustomArticlesSection() {
                         <span className="saleClientName">
                           {order.name || t('common.notAvailable')}
                         </span>
+                        {owner && (
+                          <span className="saleClientOwner">{profileLabel(owner)}</span>
+                        )}
                         <span className="saleMeta">{metaParts.join(' · ')}</span>
                         {order.description && (
                           <span className="saleDescription">{order.description}</span>

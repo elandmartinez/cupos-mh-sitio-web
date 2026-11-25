@@ -177,6 +177,8 @@ const en: EsResources = {
     emptyBody:
       'Record a client’s first custom order to follow its progress and payments.',
     new: 'New order',
+    filterClient: 'Filter by client',
+    filterAllClients: 'All clients',
     createTitle: 'New order',
     editTitle: 'Edit order',
     create: 'Create order',

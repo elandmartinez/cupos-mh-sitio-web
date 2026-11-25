@@ -186,6 +186,8 @@ const es = {
     emptyBody:
       'Registra el primer pedido personalizado de un cliente para seguir su avance y sus pagos.',
     new: 'Nuevo pedido',
+    filterClient: 'Filtrar por cliente',
+    filterAllClients: 'Todos los clientes',
     createTitle: 'Nuevo pedido',
     editTitle: 'Editar pedido',
     create: 'Crear pedido',
