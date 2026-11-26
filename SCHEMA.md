@@ -146,6 +146,7 @@ New in the website as its own list.
 | `last_date_to_deliver` | date \| null | |
 | `has_date_to_deliver_been_updated` | boolean \| null | |
 | `profile_id` | uuid \| null | FK → `profiles.id` (owner) |
+| `creation_progress` | int \| null | 0–100 percentage; the order's creation progress, set from the form slider (app-maintained). |
 
 ### Table `articles_orders_payment_track`
 
@@ -168,6 +169,12 @@ same aggregate money fields `clients_purchases` holds inline.
 **The custom-order money flow:** `custom_articles_orders` → (1:1)
 `articles_orders_payment_track` → (1:N) `purchases_payments` rows whose
 `article_order_payment_track_id` points at the track row.
+
+Migration for the creation-progress column:
+
+```sql
+alter table public.custom_articles_orders add column creation_progress int;
+```
 
 ---
 

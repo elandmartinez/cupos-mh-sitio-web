@@ -42,6 +42,8 @@ export interface FindManyProductsOptions {
   ids?: number[];
   /** Sort key; defaults to newest id first — the order the grid renders in. */
   orderBy?: { column: 'id' | 'name' | 'created_at' | 'release_date'; ascending: boolean };
+  /** Zero-based, inclusive row window (`[from, to]`) applied before ordering. */
+  range?: [number, number];
 }
 
 const DEFAULT_ORDER: NonNullable<FindManyProductsOptions['orderBy']> = {
@@ -62,12 +64,15 @@ async function find(id: number): Promise<RepoResult<Product | null>> {
 
 /** The list query behind the product grid. */
 async function findMany(options: FindManyProductsOptions = {}): Promise<RepoResult<Product[]>> {
-  const { ids, orderBy = DEFAULT_ORDER } = options;
+  const { ids, orderBy = DEFAULT_ORDER, range } = options;
 
   try {
     let query = supabase.from(TABLE).select('*');
     if (ids && ids.length > 0) {
       query = query.in('id', ids);
+    }
+    if (range) {
+      query = query.range(range[0], range[1]);
     }
 
     const { data, error } = await query.order(orderBy.column, { ascending: orderBy.ascending });
@@ -75,6 +80,19 @@ async function findMany(options: FindManyProductsOptions = {}): Promise<RepoResu
     return repoSuccess((data ?? []) as Product[]);
   } catch (error) {
     return repoFailure(error, 'No se pudieron obtener los productos.');
+  }
+}
+
+/** Total number of rows in `products`. */
+async function count(): Promise<RepoResult<number>> {
+  try {
+    const { count: total, error } = await supabase
+      .from(TABLE)
+      .select('*', { count: 'exact', head: true });
+    if (error) throw error;
+    return repoSuccess(total ?? 0);
+  } catch (error) {
+    return repoFailure(error, 'No se pudo contar los productos.');
   }
 }
 
@@ -167,6 +185,7 @@ async function removeMany(ids: number[]): Promise<RepoResult<null>> {
 export const productsRepository = {
   find,
   findMany,
+  count,
   create,
   update,
   updatePartial,

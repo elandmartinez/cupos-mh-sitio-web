@@ -40,6 +40,7 @@ const en: EsResources = {
     tabsAria: 'Panel sections',
     tabProducts: 'My products',
     tabOrders: 'My orders',
+    tabAdmin: 'Admin panel',
   },
 
   auth: {
@@ -168,6 +169,12 @@ const en: EsResources = {
     owed_other: '{{count}} pending · {{amount}} owed',
   },
 
+  pagination: {
+    previous: 'Previous',
+    next: 'Next',
+    page: 'Page {{page}} of {{total}}',
+  },
+
   customOrders: {
     sectionTitle: 'Custom orders',
     count_one: '{{count}} order',
@@ -179,6 +186,8 @@ const en: EsResources = {
     new: 'New order',
     filterClient: 'Filter by client',
     filterAllClients: 'All clients',
+    searchPlaceholder: 'Search by name…',
+    creationProgress: 'Order creation progress',
     createTitle: 'New order',
     editTitle: 'Edit order',
     create: 'Create order',
@@ -202,6 +211,37 @@ const en: EsResources = {
     deleteMessage:
       '"{{name}}" will be deleted along with its payments. This cannot be undone.',
     deleteConfirm: 'Delete order',
+  },
+
+  adminPanel: {
+    sectionTitle: 'Users',
+    new: 'New user',
+    count_one: '{{count}} user',
+    count_other: '{{count}} users',
+    loading: 'Loading users…',
+    emptyTitle: 'No users yet',
+    emptyBody: 'Create the first user so they can sign in and see their panel.',
+    email: 'Email',
+    password: 'Password',
+    name: 'Name',
+    role: 'Role',
+    roleAdmin: 'Admin',
+    roleCustomer: 'Customer',
+    createTitle: 'New user',
+    editTitle: 'Edit user',
+    create: 'Create user',
+    disabled: 'Disabled',
+    disable: 'Disable',
+    enable: 'Enable',
+    deleteLabel: 'Delete user',
+    deleteTitle: 'Delete user?',
+    deleteMessage: 'The account of "{{name}}" will be deleted. This cannot be undone.',
+    deleteConfirm: 'Delete user',
+    disableTitle: 'Disable user?',
+    disableMessage: '"{{name}}" will not be able to sign in while disabled.',
+    disableConfirm: 'Disable',
+    emailRequired: 'Email is required.',
+    passwordRequired: 'Password is required.',
   },
 
   customer: {

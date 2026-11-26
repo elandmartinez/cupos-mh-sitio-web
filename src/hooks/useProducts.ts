@@ -14,6 +14,9 @@ export type { CreateProductInput, Product };
 /** Only the editable columns are written, so a partial object is accepted. */
 export type UpdateProductInput = PatchProductInput;
 
+/** Number of products fetched per page. */
+export const PRODUCTS_PAGE_SIZE = 10;
+
 /**
  * The `products` table: the catalogue list plus create/update/delete.
  *
@@ -24,13 +27,18 @@ export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(0);
+  const [totalCount, setTotalCount] = useState<number>(0);
 
-  // FETCH ALL PRODUCTS
-  const fetchProducts = useCallback(async () => {
+  // FETCH ONE PAGE OF PRODUCTS (0-based `page`; also sets the total count).
+  const fetchProducts = useCallback(async (page: number = 0) => {
     setLoading(true);
     setError(null);
 
-    const result = await productsRepository.findMany();
+    const from = page * PRODUCTS_PAGE_SIZE;
+    const to = from + PRODUCTS_PAGE_SIZE - 1;
+    const result = await productsRepository.findMany({ range: [from, to] });
+    const countResult = await productsRepository.count();
 
     if (!result.ok) {
       setError(result.error);
@@ -39,6 +47,7 @@ export function useProducts() {
     }
 
     setProducts(result.data);
+    if (countResult.ok) setTotalCount(countResult.data);
     setLoading(false);
   }, []);
 
@@ -92,6 +101,10 @@ export function useProducts() {
     products,
     loading,
     error,
+    page,
+    setPage,
+    totalCount,
+    pageSize: PRODUCTS_PAGE_SIZE,
     fetchProducts,
     addProduct,
     updateProduct,

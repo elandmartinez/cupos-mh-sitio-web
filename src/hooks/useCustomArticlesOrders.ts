@@ -17,6 +17,9 @@ export type {
 export type { ArticleOrderPaymentTrack } from '../repositories/articlesOrdersPaymentTrackRepository';
 export type { PurchaseExtraFee } from '../repositories/purchasesExtraFeesRepository';
 
+/** Number of orders fetched per page. */
+export const ORDERS_PAGE_SIZE = 10;
+
 /** A custom order with its 1:1 payment track attached (or `null` if none yet). */
 export interface CustomArticleOrderWithTrack extends CustomArticleOrder {
   track: ArticleOrderPaymentTrack | null;
@@ -36,6 +39,7 @@ export interface CustomArticleOrderFormInput {
   client_gave_starter_payment: boolean | null;
   /** The initial payment amount, recorded as a payment when creating the order. */
   starter_payment_amount: number | null;
+  creation_progress: number;
 }
 
 /**
@@ -72,6 +76,9 @@ export function useCustomArticlesOrders() {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [totalCount, setTotalCount] = useState<number>(0);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -96,6 +103,38 @@ export function useCustomArticlesOrders() {
     setOrders(
       result.data.map((order) => ({ ...order, track: trackByOrder.get(order.id) ?? null }))
     );
+    setLoading(false);
+  }, []);
+
+  // FETCH ONE PAGE OF ORDERS (0-based `nextPage`), with an optional name search.
+  const fetchOrdersPage = useCallback(async (nextPage: number, nextSearch: string) => {
+    setLoading(true);
+    setError(null);
+
+    const from = nextPage * ORDERS_PAGE_SIZE;
+    const to = from + ORDERS_PAGE_SIZE - 1;
+    const search = nextSearch || undefined;
+    const result = await customArticlesOrdersRepository.findMany({ search, range: [from, to] });
+    if (!result.ok) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+
+    const countResult = await customArticlesOrdersRepository.count(search);
+    const orderIds = result.data.map((order) => order.id);
+    const tracksResult = await articlesOrdersPaymentTrackRepository.findManyByOrderIds(orderIds);
+    const tracks = tracksResult.ok ? tracksResult.data : [];
+
+    const trackByOrder = new Map<number, ArticleOrderPaymentTrack>();
+    for (const track of tracks) {
+      if (track.article_order_id != null) trackByOrder.set(track.article_order_id, track);
+    }
+
+    setOrders(
+      result.data.map((order) => ({ ...order, track: trackByOrder.get(order.id) ?? null }))
+    );
+    if (countResult.ok) setTotalCount(countResult.data);
     setLoading(false);
   }, []);
 
@@ -131,6 +170,7 @@ export function useCustomArticlesOrders() {
       last_date_to_deliver: null,
       has_date_to_deliver_been_updated: false,
       profile_id: input.profile_id,
+      creation_progress: input.creation_progress,
     });
     if (!orderResult.ok) {
       setError(orderResult.error);
@@ -182,6 +222,7 @@ export function useCustomArticlesOrders() {
           ? true
           : Boolean(order.has_date_to_deliver_been_updated),
         profile_id: input.profile_id,
+        creation_progress: input.creation_progress,
       });
       if (!orderResult.ok) {
         setError(orderResult.error);
@@ -367,7 +408,14 @@ export function useCustomArticlesOrders() {
     extraFeesByTrack,
     loading,
     error,
+    page,
+    setPage,
+    searchQuery,
+    setSearchQuery,
+    totalCount,
     fetchOrders,
+    fetchOrdersPage,
+    pageSize: ORDERS_PAGE_SIZE,
     fetchPaymentsForTrack,
     fetchExtraFeesForTrack,
     addOrder,

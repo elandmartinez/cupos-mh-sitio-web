@@ -18,6 +18,7 @@ export interface CustomArticleOrder {
   last_date_to_deliver: string | null;
   has_date_to_deliver_been_updated: boolean | null;
   profile_id: string | null;
+  creation_progress: number | null;
 }
 
 /** The columns the app may write; the rest are DB- or app-owned. */
@@ -30,6 +31,7 @@ export type CustomArticleOrderFields = Pick<
   | 'last_date_to_deliver'
   | 'has_date_to_deliver_been_updated'
   | 'profile_id'
+  | 'creation_progress'
 >;
 
 /** New order — every editable column is supplied (nulls allowed). */
@@ -41,6 +43,10 @@ export type PatchCustomArticleOrderInput = Partial<UpdateCustomArticleOrderInput
 
 export interface FindManyCustomArticleOrdersOptions {
   orderBy?: { column: 'id' | 'created_at' | 'name'; ascending: boolean };
+  /** Case-insensitive substring match on `name`. */
+  search?: string;
+  /** Zero-based, inclusive row window (`[from, to]`). */
+  range?: [number, number];
 }
 
 const DEFAULT_ORDER: NonNullable<FindManyCustomArticleOrdersOptions['orderBy']> = {
@@ -63,16 +69,40 @@ async function find(id: number): Promise<RepoResult<CustomArticleOrder | null>> 
 async function findMany(
   options: FindManyCustomArticleOrdersOptions = {}
 ): Promise<RepoResult<CustomArticleOrder[]>> {
-  const { orderBy = DEFAULT_ORDER } = options;
+  const { orderBy = DEFAULT_ORDER, search, range } = options;
 
   try {
-    const { data, error } = await supabase.from(TABLE).select('*').order(orderBy.column, {
+    let query = supabase.from(TABLE).select('*');
+    if (search) {
+      query = query.ilike('name', '%' + search + '%');
+    }
+    if (range) {
+      query = query.range(range[0], range[1]);
+    }
+
+    const { data, error } = await query.order(orderBy.column, {
       ascending: orderBy.ascending,
     });
     if (error) throw error;
     return repoSuccess((data ?? []) as CustomArticleOrder[]);
   } catch (error) {
     return repoFailure(error, 'No se pudieron obtener los pedidos personalizados.');
+  }
+}
+
+/** Total number of orders, optionally filtered by the same `name` search. */
+async function count(search?: string): Promise<RepoResult<number>> {
+  try {
+    let query = supabase.from(TABLE).select('*', { count: 'exact', head: true });
+    if (search) {
+      query = query.ilike('name', '%' + search + '%');
+    }
+
+    const { count: total, error } = await query;
+    if (error) throw error;
+    return repoSuccess(total ?? 0);
+  } catch (error) {
+    return repoFailure(error, 'No se pudieron contar los pedidos personalizados.');
   }
 }
 
@@ -135,6 +165,7 @@ async function remove(id: number): Promise<RepoResult<null>> {
 export const customArticlesOrdersRepository = {
   find,
   findMany,
+  count,
   create,
   update,
   updatePartial,

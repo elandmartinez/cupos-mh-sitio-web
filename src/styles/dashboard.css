@@ -492,6 +492,23 @@
   white-space: pre-line;
 }
 
+/* The order's image leads the read-only detail, like the product detail image. */
+.orderDetailImage {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  margin: 0 0 var(--space-16);
+}
+
+/* The order's creation progress, shown only when a value exists. */
+.orderDetailProgress {
+  margin: var(--space-8) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
 .paymentsSection {
   margin-top: var(--space-16);
   padding-top: var(--space-16);
@@ -978,6 +995,126 @@
   color: var(--color-text-muted);
 }
 
+/* ---------------------------------------------------------------------- */
+/* Custom-article cards — a responsive grid like the product cards        */
+/* ---------------------------------------------------------------------- */
+
+.articlesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-16);
+}
+
+/* Two columns once there is room for them side by side. */
+@media (min-width: 780px) {
+  .articlesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* The whole card is the control — tapping it opens the edit modal. Mirrors
+   `.card.productCard`: a border-first surface that warms and lifts on hover. */
+.card.articleCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-12);
+  padding: var(--space-12);
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: all var(--duration-slow) var(--ease-standard);
+}
+
+.card.articleCard:hover {
+  box-shadow: 1px 1px 10px var(--color-hover-primary);
+  scale: 1.01;
+}
+
+.card.articleCard:active {
+  border-color: var(--color-primary-active);
+}
+
+/* Bleeds to the card's edges, so the top corners match its radius. */
+.articleCardImage {
+  width: calc(100% + 2 * var(--space-12));
+  margin: calc(-1 * var(--space-12)) calc(-1 * var(--space-12)) 0;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  display: block;
+}
+
+.articleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-8);
+}
+
+.articleName {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.articleOwner {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.articleMeta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Itemized description, clamped so a long list ends in an ellipsis. */
+.articleDescription {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+  white-space: pre-line;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Progress + money, pinned to the card's foot so equal-height rows line up. */
+.articleFooter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin-top: auto;
+  padding-top: var(--space-8);
+}
+
+/* The image at the top of the custom-article modal — full width, like the
+   product detail modal, with the add/replace/delete controls under it. */
+.articleImageArea {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-12);
+  margin-bottom: var(--space-24);
+}
+
+.articleImageArea .fileInput {
+  width: 100%;
+}
+
+.articleModalImage {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
 .saleMeta {
   display: block;
   margin-top: var(--space-4);
@@ -1011,6 +1148,45 @@
   margin: 0 0 var(--space-16);
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+}
+
+/* Search + client-filter controls sit in one wrapping row under the action
+   button; labels sit above their field, so the row aligns them at the bottom. */
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
+}
+
+/* The name search box — capped so it reads as a filter, not a full form. */
+.searchInput {
+  flex: 1 1 16rem;
+  max-width: 16rem;
+  min-width: 0;
+}
+
+/* The labelled client-filter group keeps the select's width even though the
+   label now sits above it (the old width lived on the select itself). */
+.filterSelectField {
+  flex: 0 1 16rem;
+  min-width: 9rem;
+}
+
+/* Previous / status / Next bar under the order grid. */
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-12);
+  margin-top: var(--space-24);
+}
+
+.paginationStatus {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .saleSide {
@@ -1103,4 +1279,63 @@
   .productsGrid {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+/* ---------------------------------------------------------------------- */
+/* User management list — the admin panel's account rows                  */
+/* ---------------------------------------------------------------------- */
+
+/* A user is a plain row carrying its own controls, not a whole-row button (it
+   has three actions), so it reads like a list with a hairline between rows. */
+.userRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-12);
+  padding: var(--space-12) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.userRow:first-child {
+  padding-top: 0;
+}
+
+.userRow:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* Name over email — the `flex-grow` pushes the badges and actions to the right. */
+.userMain {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.userName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.userMeta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* Role and disabled badges sit together, right of the identity. */
+.userSide {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* Edit / disable-or-enable / delete — the row's controls, in a wrapping group. */
+.userActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
 }

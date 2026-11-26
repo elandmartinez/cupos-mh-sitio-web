@@ -12,8 +12,9 @@ import Modal from './modal';
 import CollapsibleSection from './collapsibleSection';
 import SalesSection from './salesSection';
 import CustomArticlesSection from './customArticlesSection';
+import AdminPanel from './adminPanel';
 import EmptyState from './emptyState';
-import { DateInput, LanguageSwitch, SkeletonCard, SkeletonCardGrid } from './ui';
+import { DateInput, LanguageSwitch, Pagination, SkeletonCard, SkeletonCardGrid } from './ui';
 import monsterHighLogo from "../../public/monster-high-logo.png";
 
 import type { Product, CreateProductInput } from "../hooks/useProducts"
@@ -36,17 +37,17 @@ const emptyFormData: CreateProductInput = {
   release_date: '',
 };
 
-// The two top-level views the admin can switch between: products + their
-// purchases, and custom article orders. The order here is also the arrow-key
-// order in the tab strip.
-type TabKey = 'products' | 'orders';
-const TAB_ORDER: TabKey[] = ['products', 'orders'];
+// The three top-level views the admin can switch between: products + their
+// purchases, custom article orders, and user management. The order here is also
+// the arrow-key order in the tab strip.
+type TabKey = 'products' | 'orders' | 'admin';
+const TAB_ORDER: TabKey[] = ['products', 'orders', 'admin'];
 
 export default function Dashboard() {
   const { t } = useTranslation();
   // Money in the panel follows the interface language (see helpers/currency).
   const { formatCurrency } = useFormatters();
-  const { products, loading, error, addProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
+  const { products, loading, error, page, setPage, totalCount, pageSize, addProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
   const { uploadProductImage, renameProductImage, deleteProductImage, getSignedUrl } = useProductImages();
   const {
     purchasesByProduct,
@@ -87,6 +88,7 @@ export default function Dashboard() {
   const tabRefs = useRef<Record<TabKey, HTMLButtonElement | null>>({
     products: null,
     orders: null,
+    admin: null,
   });
 
   // Arrow keys move between tabs and select as they go (automatic activation);
@@ -119,6 +121,12 @@ export default function Dashboard() {
     fetchAllPurchases();
   }, [fetchAllPurchases]);
 
+  // Re-fetch the product page whenever the pagination page changes. This fires
+  // on mount too (briefly duplicating the hook's own first fetch) — harmless.
+  useEffect(() => {
+    fetchProducts(page);
+  }, [page, fetchProducts]);
+
   // Drop the product form's fields once its dialog has actually gone. Doing it
   // in `closeForm` instead would empty the form while it is still on screen,
   // halfway through animating out.
@@ -136,7 +144,7 @@ export default function Dashboard() {
   const handleRefresh = () => {
     // Re-fetching the products re-runs the effect above, so the per-product
     // purchase counts come along for free.
-    fetchProducts();
+    fetchProducts(page);
     fetchAllPurchases();
   };
 
@@ -378,6 +386,21 @@ export default function Dashboard() {
           >
             {t('nav.tabOrders')}
           </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-admin"
+            ref={(el) => {
+              tabRefs.current.admin = el;
+            }}
+            aria-selected={activeTab === 'admin'}
+            aria-controls="tabpanel-admin"
+            className="tab"
+            onClick={() => setActiveTab('admin')}
+            onKeyDown={(e) => handleTabKeyDown(e, 'admin')}
+          >
+            {t('nav.tabAdmin')}
+          </button>
         </div>
 
         <div
@@ -474,6 +497,7 @@ export default function Dashboard() {
                   </div>
                 </>
               )}
+              <Pagination page={page} totalPages={Math.ceil(totalCount / pageSize)} onPageChange={setPage} />
             </CollapsibleSection>
   
             <CollapsibleSection title={t('sales.sectionTitle')} meta={salesMeta}>
@@ -497,6 +521,16 @@ export default function Dashboard() {
           hidden={activeTab !== 'orders'}
         >
           <CustomArticlesSection />
+        </div>
+
+        <div
+          id="tabpanel-admin"
+          role="tabpanel"
+          aria-labelledby="tab-admin"
+          className="tabPanel"
+          hidden={activeTab !== 'admin'}
+        >
+          <AdminPanel />
         </div>
       </main>
 

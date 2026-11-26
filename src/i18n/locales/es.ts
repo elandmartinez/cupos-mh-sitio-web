@@ -49,6 +49,7 @@ const es = {
     tabsAria: 'Secciones del panel',
     tabProducts: 'Mis productos',
     tabOrders: 'Mis pedidos',
+    tabAdmin: 'Panel de administrador',
   },
 
   auth: {
@@ -177,6 +178,12 @@ const es = {
     owed_other: '{{count}} pendientes · {{amount}} por cobrar',
   },
 
+  pagination: {
+    previous: 'Anterior',
+    next: 'Siguiente',
+    page: 'Página {{page}} de {{total}}',
+  },
+
   customOrders: {
     sectionTitle: 'Pedidos personalizados',
     count_one: '{{count}} pedido',
@@ -188,6 +195,8 @@ const es = {
     new: 'Nuevo pedido',
     filterClient: 'Filtrar por cliente',
     filterAllClients: 'Todos los clientes',
+    searchPlaceholder: 'Buscar por nombre…',
+    creationProgress: 'Progreso de creación de la orden',
     createTitle: 'Nuevo pedido',
     editTitle: 'Editar pedido',
     create: 'Crear pedido',
@@ -211,6 +220,37 @@ const es = {
     deleteMessage:
       'Se eliminará "{{name}}" junto con sus pagos. No se puede deshacer.',
     deleteConfirm: 'Eliminar pedido',
+  },
+
+  adminPanel: {
+    sectionTitle: 'Usuarios',
+    new: 'Nuevo usuario',
+    count_one: '{{count}} usuario',
+    count_other: '{{count}} usuarios',
+    loading: 'Cargando usuarios…',
+    emptyTitle: 'Todavía no hay usuarios',
+    emptyBody: 'Crea el primer usuario para que pueda iniciar sesión y ver su panel.',
+    email: 'Correo electrónico',
+    password: 'Contraseña',
+    name: 'Nombre',
+    role: 'Rol',
+    roleAdmin: 'Admin',
+    roleCustomer: 'Cliente',
+    createTitle: 'Nuevo usuario',
+    editTitle: 'Editar usuario',
+    create: 'Crear usuario',
+    disabled: 'Deshabilitado',
+    disable: 'Deshabilitar',
+    enable: 'Habilitar',
+    deleteLabel: 'Eliminar usuario',
+    deleteTitle: '¿Eliminar usuario?',
+    deleteMessage: 'Se eliminará la cuenta de "{{name}}". No se puede deshacer.',
+    deleteConfirm: 'Eliminar usuario',
+    disableTitle: '¿Deshabilitar usuario?',
+    disableMessage: '"{{name}}" no podrá iniciar sesión mientras esté deshabilitado.',
+    disableConfirm: 'Deshabilitar',
+    emailRequired: 'El correo electrónico es obligatorio.',
+    passwordRequired: 'La contraseña es obligatoria.',
   },
 
   customer: {

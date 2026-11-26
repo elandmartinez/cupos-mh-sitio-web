@@ -7,7 +7,9 @@ import { useFormatters } from '../hooks/useFormatters';
 import CollapsibleSection from './collapsibleSection';
 import EmptyState from './emptyState';
 import Button from './button';
-import { SkeletonList, SkeletonCard } from './ui';
+import { SkeletonList, SkeletonCard, Pagination } from './ui';
+import { useCustomArticleImages } from '../hooks/useCustomArticleImages';
+import CustomArticleImage from './customArticleImage';
 import type { CustomArticleOrderWithTrack } from '../hooks/useCustomArticlesOrders';
 
 // The create/edit modal (order + payments) is only reachable after a tap, so it
@@ -36,7 +38,13 @@ export default function CustomArticlesSection() {
     extraFeesByTrack,
     loading,
     error,
-    fetchOrders,
+    fetchOrdersPage,
+    page,
+    setPage,
+    searchQuery,
+    setSearchQuery,
+    totalCount,
+    pageSize,
     fetchPaymentsForTrack,
     fetchExtraFeesForTrack,
     addOrder,
@@ -48,6 +56,11 @@ export default function CustomArticlesSection() {
     deleteExtraFee,
   } = useCustomArticlesOrders();
   const { profiles, fetchProfiles } = useProfiles();
+  const { getSignedUrl } = useCustomArticleImages();
+
+  // Bumped after any image upload/delete (via the modal) so the cards re-fetch
+  // their thumbnails.
+  const [imageVersion, setImageVersion] = useState(0);
 
   // `null` means "create"; an order means "edit" (see `usePresent`).
   const orderDialog = usePresent<CustomArticleOrderWithTrack | null>();
@@ -55,10 +68,17 @@ export default function CustomArticlesSection() {
   // Filter the list by client (`all` = every order).
   const [clientFilter, setClientFilter] = useState<string>('all');
 
+  // The search box's local text. Committed to `searchQuery` on change, which
+  // (like a page change) triggers a server-side refetch.
+  const [searchInput, setSearchInput] = useState(searchQuery);
+
   useEffect(() => {
-    fetchOrders();
+    fetchOrdersPage(page, searchQuery);
+  }, [page, searchQuery, fetchOrdersPage]);
+
+  useEffect(() => {
     fetchProfiles();
-  }, [fetchOrders, fetchProfiles]);
+  }, [fetchProfiles]);
 
   // profile_id -> Profile, for stamping each card with its owner.
   const profileById = useMemo(() => {
@@ -80,7 +100,22 @@ export default function CustomArticlesSection() {
     [profiles]
   );
 
-  const meta = loading ? undefined : t('customOrders.count', { count: orders.length });
+  // Commit a search keystroke to the hook's query (and jump back to page 0).
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    setSearchQuery(value);
+    setPage(0);
+  };
+
+  const meta = loading ? undefined : t('customOrders.count', { count: totalCount });
+
+  // Closing the modal is the signal that an image may have changed — re-fetch
+  // the thumbnails.
+  const handleCloseModal = () => {
+    orderDialog.close();
+    setImageVersion((v) => v + 1);
+  };
 
   return (
     <>
@@ -104,24 +139,41 @@ export default function CustomArticlesSection() {
               <Button variant="primary" icon="+" onClick={() => orderDialog.open(null)} aria-haspopup="dialog">
                 {t('customOrders.new')}
               </Button>
-              <select
-                className="input customOrderFilterSelect"
-                aria-label={t('customOrders.filterClient')}
-                value={clientFilter}
-                onChange={(e) => setClientFilter(e.target.value)}
-              >
-                <option value="all">{t('customOrders.filterAllClients')}</option>
-                {clientOptions.map((profile) => (
-                  <option key={profile.id} value={profile.id}>
-                    {profileLabel(profile)}
-                  </option>
-                ))}
-              </select>
+            </div>
+            <div className="filterRow">
+              <input
+                className="input searchInput"
+                type="search"
+                aria-label={t('customOrders.searchPlaceholder')}
+                placeholder={t('customOrders.searchPlaceholder')}
+                value={searchInput}
+                onChange={handleSearchChange}
+              />
+              <div className="fieldGroup filterSelectField">
+                <label className="label" htmlFor="customOrderClientFilter">
+                  {t('customOrders.filterClient')}
+                </label>
+                <select
+                  id="customOrderClientFilter"
+                  className="input customOrderFilterSelect"
+                  value={clientFilter}
+                  onChange={(e) => setClientFilter(e.target.value)}
+                >
+                  <option value="all">{t('customOrders.filterAllClients')}</option>
+                  {clientOptions.map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profileLabel(profile)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <p className="customOrderCount">
-              {t('customOrders.count', { count: filteredOrders.length })}
+              {clientFilter === 'all'
+                ? t('customOrders.count', { count: totalCount })
+                : t('customOrders.count', { count: filteredOrders.length })}
             </p>
-            <ul className="salesList">
+            <div className="articlesGrid">
               {filteredOrders.map((order) => {
                 const track = order.track;
                 const isFullyPaid = Boolean(track?.is_fully_paid);
@@ -136,46 +188,52 @@ export default function CustomArticlesSection() {
                 }
                 const owner = order.profile_id ? profileById.get(order.profile_id) : undefined;
                 return (
-                  <li key={order.id} className="salesListItem">
-                    <button
-                      type="button"
-                      className="saleRow"
-                      onClick={() => orderDialog.open(order)}
-                      aria-haspopup="dialog"
-                    >
-                      <span className="saleMain">
-                        <span className="saleClientName">
-                          {order.name || t('common.notAvailable')}
-                        </span>
-                        {owner && (
-                          <span className="saleClientOwner">{profileLabel(owner)}</span>
-                        )}
-                        <span className="saleMeta">{metaParts.join(' · ')}</span>
-                        {order.description && (
-                          <span className="saleDescription">{order.description}</span>
-                        )}
+                  <button
+                    key={order.id}
+                    type="button"
+                    className="card articleCard"
+                    onClick={() => orderDialog.open(order)}
+                    aria-haspopup="dialog"
+                  >
+                    <CustomArticleImage
+                      order={order}
+                      imageVersion={imageVersion}
+                      getSignedUrl={getSignedUrl}
+                      className="articleCardImage"
+                    />
+                    <span className="articleHeader">
+                      <span className="articleName">{order.name || t('common.notAvailable')}</span>
+                      <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
+                        {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
                       </span>
-                      <span className="saleSide">
-                        <span className="saleMoney">
-                          {formatCurrency(track?.amount_paid_so_far)}
-                          <span className="saleMoneyTotal">
-                            {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
-                          </span>
-                        </span>
-                        <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
-                          {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
+                    </span>
+                    {owner && <span className="articleOwner">{profileLabel(owner)}</span>}
+                    {metaParts.length > 0 && (
+                      <span className="articleMeta">{metaParts.join(' · ')}</span>
+                    )}
+                    {order.description && (
+                      <span className="articleDescription">{order.description}</span>
+                    )}
+                    <span className="articleFooter">
+                      <span className="purchaseProgressBar" aria-hidden="true">
+                        <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                      </span>
+                      <span className="saleMoney">
+                        {formatCurrency(track?.amount_paid_so_far)}
+                        <span className="saleMoneyTotal">
+                          {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
                         </span>
                       </span>
-                      <span className="saleProgress" aria-hidden="true">
-                        <span className="purchaseProgressBar">
-                          <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
-                        </span>
-                      </span>
-                    </button>
-                  </li>
+                    </span>
+                  </button>
                 );
               })}
-            </ul>
+            </div>
+            <Pagination
+              page={page}
+              totalPages={Math.ceil(totalCount / pageSize)}
+              onPageChange={setPage}
+            />
           </>
         )}
       </CollapsibleSection>
@@ -183,7 +241,7 @@ export default function CustomArticlesSection() {
       {error && (
         <div className="banner banner--danger dashboardBanner" role="alert">
           <p>{error}</p>
-          <button type="button" onClick={fetchOrders} className="btnSecondary">
+          <button type="button" onClick={() => fetchOrdersPage(page, searchQuery)} className="btnSecondary">
             {t('common.retry')}
           </button>
         </div>
@@ -194,7 +252,7 @@ export default function CustomArticlesSection() {
           <CustomArticleOrderModal
             order={orderDialog.value}
             profiles={profiles}
-            onClose={orderDialog.close}
+            onClose={handleCloseModal}
             closing={orderDialog.isClosing}
             addOrder={addOrder}
             updateOrder={updateOrder}

@@ -15,6 +15,8 @@ import type {
   PurchaseExtraFee,
 } from '../hooks/useCustomArticlesOrders';
 import type { PurchasePayment } from '../hooks/usePurchasePayments';
+import { useCustomArticleImages } from '../hooks/useCustomArticleImages';
+import CustomArticleImage from './customArticleImage';
 
 interface CustomArticleOrderModalProps {
   /** The order being edited; `null` means "create a new one". */
@@ -60,6 +62,7 @@ interface OrderFormState {
   date_to_deliver: string;
   profile_id: string;
   agreed_fees: number;
+  creation_progress: number;
   client_gave_starter_payment: boolean;
   starter_payment_amount: number;
 }
@@ -113,6 +116,7 @@ export default function CustomArticleOrderModal({
     date_to_deliver: order?.date_to_deliver ?? '',
     profile_id: order?.profile_id ?? '',
     agreed_fees: order?.track?.agreed_fees ?? 0,
+    creation_progress: order?.creation_progress ?? 0,
     client_gave_starter_payment: order?.track?.client_gave_starter_payment ?? false,
     starter_payment_amount: 0,
   }));
@@ -132,6 +136,14 @@ export default function CustomArticleOrderModal({
   const deletePaymentDialog = usePresent<PurchasePayment>();
   const deleteExtraFeeDialog = usePresent<PurchaseExtraFee>();
 
+  // Image handling (mirrors the product form): a pending selection for upload,
+  // plus the current image shown in edit mode.
+  const { uploadImage, removeImage, moveImage, getSignedUrl } = useCustomArticleImages();
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+  const [currentImageVisible, setCurrentImageVisible] = useState(true);
+  const [imageVersion, setImageVersion] = useState(0);
+
   // Lazily load the order's payments and extra fees on first open for edit.
   useEffect(() => {
     if (order?.track) {
@@ -146,6 +158,7 @@ export default function CustomArticleOrderModal({
     date_to_deliver: form.date_to_deliver,
     profile_id: form.profile_id || null,
     agreed_fees: form.agreed_fees,
+    creation_progress: form.creation_progress,
     client_gave_starter_payment: form.client_gave_starter_payment,
     starter_payment_amount: form.starter_payment_amount,
   });
@@ -188,7 +201,10 @@ export default function CustomArticleOrderModal({
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const numeric = name === 'agreed_fees' || name === 'starter_payment_amount';
+    const numeric =
+      name === 'agreed_fees' ||
+      name === 'creation_progress' ||
+      name === 'starter_payment_amount';
     setForm((prev) => ({ ...prev, [name]: numeric ? (value ? parseInt(value, 10) : 0) : value }));
     if (name === 'agreed_fees' || name === 'starter_payment_amount' || name === 'profile_id') {
       clearFieldError(name);
@@ -215,6 +231,23 @@ export default function CustomArticleOrderModal({
         return;
       }
       if (result.data) {
+        const ownerChanged = result.data.profile_id !== currentOrder.profile_id;
+
+        if (pendingImage) {
+          await uploadImage(result.data, pendingImage);
+          // The file was keyed under the old owner's folder; the new upload lands
+          // under the new owner, so the orphaned old file is removed.
+          if (ownerChanged) {
+            await removeImage(currentOrder);
+          }
+          clearPendingImage();
+          setCurrentImageVisible(true);
+          bumpImageVersion();
+        } else if (ownerChanged) {
+          await moveImage(currentOrder, result.data);
+          bumpImageVersion();
+        }
+
         setCurrentOrder(result.data);
         setCurrentTrack(result.data.track);
       }
@@ -228,6 +261,9 @@ export default function CustomArticleOrderModal({
     if (result.error) {
       setError(result.error);
       return;
+    }
+    if (result.data && pendingImage) {
+      await uploadImage(result.data, pendingImage);
     }
     onClose();
   };
@@ -310,6 +346,34 @@ export default function CustomArticleOrderModal({
     onClose();
   };
 
+  const clearPendingImage = () => {
+    setPendingImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setPendingImage(null);
+  };
+
+  const bumpImageVersion = () => setImageVersion((v) => v + 1);
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow selecting the same file again later
+    if (!file) return;
+    setPendingImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setPendingImage(file);
+  };
+
+  const handleDeleteCurrentImage = async () => {
+    if (!currentOrder) return;
+    await removeImage(currentOrder);
+    setCurrentImageVisible(false);
+    bumpImageVersion();
+  };
+
   const payments = currentTrack ? (paymentsByTrack[currentTrack.id] || []) : [];
   const extraFees = currentTrack ? (extraFeesByTrack[currentTrack.id] || []) : [];
   const totalOwed = (currentTrack?.agreed_fees ?? 0) + (currentTrack?.extra_charges_total ?? 0);
@@ -331,6 +395,48 @@ export default function CustomArticleOrderModal({
           <Button variant="icon" className="btnClose" aria-label={t('common.close')} onClick={onClose}>
             ×
           </Button>
+        </div>
+
+        <div className="articleImageArea">
+          {isEditing && currentImageVisible && !pendingImage && currentOrder && (
+            <CustomArticleImage
+              order={currentOrder}
+              imageVersion={imageVersion}
+              getSignedUrl={getSignedUrl}
+              className="articleModalImage"
+              onMissing={() => setCurrentImageVisible(false)}
+            />
+          )}
+          {pendingImage && pendingImagePreview && (
+            <img src={pendingImagePreview} alt="" className="articleModalImage" />
+          )}
+          <input
+            id={`${titleId}-image`}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelected}
+            className="fileInput"
+            aria-label={t('products.image')}
+          />
+          <p className="fieldHint">{t('products.imageHint')}</p>
+          {isEditing && currentImageVisible && !pendingImage && (
+            <button
+              type="button"
+              onClick={handleDeleteCurrentImage}
+              className="btnGhost btnGhost--danger"
+            >
+              {t('products.removeCurrentImageAria')}
+            </button>
+          )}
+          {pendingImage && (
+            <button
+              type="button"
+              onClick={clearPendingImage}
+              className="btnGhost btnGhost--danger"
+            >
+              {t('products.discardSelectedImageAria')}
+            </button>
+          )}
         </div>
 
         {error && (
@@ -440,6 +546,24 @@ export default function CustomArticleOrderModal({
             {fieldErrors.agreed_fees && (
               <FieldError id={`${titleId}-fees-error`} message={fieldErrors.agreed_fees} />
             )}
+          </div>
+
+          <div className="fieldGroup">
+            <label className="label" htmlFor={`${titleId}-creationProgress`}>
+              {t('customOrders.creationProgress')}
+            </label>
+            <input
+              id={`${titleId}-creationProgress`}
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              name="creation_progress"
+              value={form.creation_progress}
+              onChange={handleTextChange}
+              className="rangeInput"
+            />
+            <span className="rangeReadout">{form.creation_progress}%</span>
           </div>
 
           <div className="fieldGroup">

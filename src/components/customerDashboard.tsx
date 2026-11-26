@@ -1,12 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/authContext';
 import { useClientPurchases } from '../hooks/useClientPurchases';
 import { useCustomArticlesOrders } from '../hooks/useCustomArticlesOrders';
+import { useCustomArticleImages } from '../hooks/useCustomArticleImages';
 import { usePurchasePayments } from '../hooks/usePurchasePayments';
 import { usePresent } from '../hooks/usePresent';
 import { useFormatters } from '../hooks/useFormatters';
 import CollapsibleSection from './collapsibleSection';
+import CustomArticleImage from './customArticleImage';
 import EmptyState from './emptyState';
 import Modal from './modal';
 import Button from './button';
@@ -70,6 +72,9 @@ export default function CustomerDashboard() {
 
   const purchaseDetailDialog = usePresent<ClientPurchaseWithProduct>();
   const orderDetailDialog = usePresent<CustomArticleOrderWithTrack>();
+
+  const [imageVersion, setImageVersion] = useState(0);
+  const { getSignedUrl } = useCustomArticleImages();
 
   useEffect(() => {
     fetchAllPurchases();
@@ -344,9 +349,20 @@ export default function CustomerDashboard() {
           </div>
 
           <div className="orderDetailBody">
+            <CustomArticleImage
+              order={orderDetail}
+              imageVersion={imageVersion}
+              getSignedUrl={getSignedUrl}
+              className="orderDetailImage"
+            />
             <h3 className="orderDetailName">{orderDetail.name || t('common.notAvailable')}</h3>
             {orderDetail.description && (
               <p className="orderDetailDescription">{orderDetail.description}</p>
+            )}
+            {orderDetail.creation_progress != null && (
+              <p className="orderDetailProgress">
+                {t('customOrders.creationProgress')}: {orderDetail.creation_progress}%
+              </p>
             )}
           </div>
 
