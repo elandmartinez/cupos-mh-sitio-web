@@ -379,6 +379,44 @@ h3 {
   cursor: not-allowed;
 }
 
+/* A text input with a trailing action — the show/hide password toggle. The
+   input keeps full width; the toggle sits inside it on the right. */
+.passwordField {
+  position: relative;
+}
+
+.passwordField .input {
+  padding-right: 2.75rem; /* room for the trailing toggle */
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  background-color: var(--color-surface-sunken);
+  color: var(--color-text);
+}
+
+.passwordToggle svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
 /* ---------------------------------------------------------------------- */
 /* Buttons — sizes sm 32 / md 40 / lg 48; primary, secondary, ghost,      */
 /* danger. Every variant has hover, active, focus-visible and disabled.   */
@@ -426,6 +464,13 @@ h3 {
   padding: 0;
   background-color: transparent;
   color: var(--color-text-muted);
+}
+
+/* Inline SVG glyphs inside an icon button are sized explicitly — an SVG with
+   only a `viewBox` would otherwise default to 300×150. */
+.btnIcon svg {
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 .btnPrimary {

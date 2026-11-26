@@ -28,6 +28,8 @@ export interface PatchAdminUserInput {
   name?: string;
   email?: string;
   role?: 'ADMIN' | 'CUSTOMER';
+  /** New password. Only sent when non-empty — blank means "keep current". */
+  password?: string;
 }
 
 /**

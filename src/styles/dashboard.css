@@ -1093,6 +1093,20 @@
   padding-top: var(--space-8);
 }
 
+/* A labelled progress bar on the order card: title over the 8px track. */
+.articleProgress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.progressTitle {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
 /* The image at the top of the custom-article modal — full width, like the
    product detail modal, with the add/replace/delete controls under it. */
 .articleImageArea {
@@ -1137,12 +1151,6 @@
   color: var(--color-text-muted);
 }
 
-/* The client filter select, sitting next to the "Nuevo pedido" action. */
-.customOrderFilterSelect {
-  flex: 0 1 16rem;
-  min-width: 9rem;
-}
-
 /* The filtered count shown under the action + filter row. */
 .customOrderCount {
   margin: 0 0 var(--space-16);
@@ -1160,8 +1168,9 @@
   margin-bottom: var(--space-16);
 }
 
-/* The name search box — capped so it reads as a filter, not a full form. */
-.searchInput {
+/* The labelled search field — width lives on the wrapper so the label sits
+   above it, matching the client filter's structure. */
+.searchField {
   flex: 1 1 16rem;
   max-width: 16rem;
   min-width: 0;

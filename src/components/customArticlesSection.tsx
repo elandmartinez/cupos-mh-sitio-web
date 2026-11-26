@@ -141,21 +141,26 @@ export default function CustomArticlesSection() {
               </Button>
             </div>
             <div className="filterRow">
-              <input
-                className="input searchInput"
-                type="search"
-                aria-label={t('customOrders.searchPlaceholder')}
-                placeholder={t('customOrders.searchPlaceholder')}
-                value={searchInput}
-                onChange={handleSearchChange}
-              />
+              <div className="fieldGroup searchField">
+                <label className="label" htmlFor="customOrderSearch">
+                  {t('customOrders.searchLabel')}
+                </label>
+                <input
+                  id="customOrderSearch"
+                  className="input"
+                  type="search"
+                  placeholder={t('customOrders.searchPlaceholder')}
+                  value={searchInput}
+                  onChange={handleSearchChange}
+                />
+              </div>
               <div className="fieldGroup filterSelectField">
                 <label className="label" htmlFor="customOrderClientFilter">
                   {t('customOrders.filterClient')}
                 </label>
                 <select
                   id="customOrderClientFilter"
-                  className="input customOrderFilterSelect"
+                  className="input"
                   value={clientFilter}
                   onChange={(e) => setClientFilter(e.target.value)}
                 >
@@ -181,6 +186,7 @@ export default function CustomArticlesSection() {
                 const progressPct = totalOwed
                   ? Math.min(100, Math.round(((track?.amount_paid_so_far ?? 0) / totalOwed) * 100))
                   : 0;
+                const creationPct = Math.max(0, Math.min(100, order.creation_progress ?? 0));
                 const metaParts: string[] = [];
                 if (order.date_to_deliver) {
                   const date = formatDate(order.date_to_deliver);
@@ -214,9 +220,24 @@ export default function CustomArticlesSection() {
                     {order.description && (
                       <span className="articleDescription">{order.description}</span>
                     )}
-                    <span className="articleFooter">
+                    <span className="articleProgress">
+                      <span className="progressTitle">{t('customOrders.orderProgress')}</span>
                       <span className="purchaseProgressBar" aria-hidden="true">
-                        <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                        <span
+                          className="purchaseProgressFill"
+                          style={{ width: `${creationPct}%` }}
+                        />
+                      </span>
+                    </span>
+                    <span className="articleFooter">
+                      <span className="articleProgress">
+                        <span className="progressTitle">{t('customOrders.paymentProgress')}</span>
+                        <span className="purchaseProgressBar" aria-hidden="true">
+                          <span
+                            className="purchaseProgressFill"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </span>
                       </span>
                       <span className="saleMoney">
                         {formatCurrency(track?.amount_paid_so_far)}

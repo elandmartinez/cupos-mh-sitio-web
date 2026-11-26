@@ -144,12 +144,22 @@ Deno.serve(async (req: Request) => {
         const hasEmail = typeof body.email === 'string';
         const hasName = typeof body.name === 'string';
         const hasRole = typeof body.role === 'string';
+        // A password is only applied when the caller sends a non-empty one, so
+        // an edit that leaves the field blank keeps the current password.
+        const hasPassword = typeof body.password === 'string' && body.password.length > 0;
 
         if (hasEmail) {
           const { error: emailError } = await service.auth.admin.updateUserById(id, {
             email: body.email as string,
           });
           if (emailError) throw emailError;
+        }
+
+        if (hasPassword) {
+          const { error: passwordError } = await service.auth.admin.updateUserById(id, {
+            password: body.password as string,
+          });
+          if (passwordError) throw passwordError;
         }
 
         if (hasName || hasRole) {
