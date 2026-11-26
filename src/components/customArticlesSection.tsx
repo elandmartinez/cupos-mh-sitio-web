@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCustomArticlesOrders } from '../hooks/useCustomArticlesOrders';
+import { useCustomArticlesOrders, ORDERS_PAGE_SIZE } from '../hooks/useCustomArticlesOrders';
 import { useProfiles, type Profile } from '../hooks/useProfiles';
 import { usePresent } from '../hooks/usePresent';
 import { useFormatters } from '../hooks/useFormatters';
@@ -38,13 +38,7 @@ export default function CustomArticlesSection() {
     extraFeesByTrack,
     loading,
     error,
-    fetchOrdersPage,
-    page,
-    setPage,
-    searchQuery,
-    setSearchQuery,
-    totalCount,
-    pageSize,
+    fetchOrders,
     fetchPaymentsForTrack,
     fetchExtraFeesForTrack,
     addOrder,
@@ -68,13 +62,16 @@ export default function CustomArticlesSection() {
   // Filter the list by client (`all` = every order).
   const [clientFilter, setClientFilter] = useState<string>('all');
 
-  // The search box's local text. Committed to `searchQuery` on change, which
-  // (like a page change) triggers a server-side refetch.
-  const [searchInput, setSearchInput] = useState(searchQuery);
+  // Local pagination over the fully-filtered (client + search) array.
+  const [page, setPage] = useState(0);
+  const pageSize = ORDERS_PAGE_SIZE;
+
+  // The search box's local text, applied client-side to the full order list.
+  const [searchInput, setSearchInput] = useState('');
 
   useEffect(() => {
-    fetchOrdersPage(page, searchQuery);
-  }, [page, searchQuery, fetchOrdersPage]);
+    fetchOrders();
+  }, [fetchOrders]);
 
   useEffect(() => {
     fetchProfiles();
@@ -88,9 +85,17 @@ export default function CustomArticlesSection() {
   }, [profiles]);
 
   const filteredOrders = useMemo(() => {
-    if (clientFilter === 'all') return orders;
-    return orders.filter((order) => order.profile_id === clientFilter);
-  }, [orders, clientFilter]);
+    const q = searchInput.trim().toLowerCase();
+    return orders.filter((order) => {
+      if (clientFilter !== 'all' && order.profile_id !== clientFilter) return false;
+      if (q && !(order.name || '').toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [orders, clientFilter, searchInput]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
+  const currentPage = Math.min(page, totalPages - 1);
+  const pageOrders = filteredOrders.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
 
   const clientOptions = useMemo(
     () =>
@@ -100,15 +105,14 @@ export default function CustomArticlesSection() {
     [profiles]
   );
 
-  // Commit a search keystroke to the hook's query (and jump back to page 0).
+  // Commit a search keystroke to the local input (and jump back to page 0).
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchInput(value);
-    setSearchQuery(value);
     setPage(0);
   };
 
-  const meta = loading ? undefined : t('customOrders.count', { count: totalCount });
+  const meta = loading ? undefined : t('customOrders.count', { count: filteredOrders.length });
 
   // Closing the modal is the signal that an image may have changed — re-fetch
   // the thumbnails.
@@ -162,7 +166,10 @@ export default function CustomArticlesSection() {
                   id="customOrderClientFilter"
                   className="input"
                   value={clientFilter}
-                  onChange={(e) => setClientFilter(e.target.value)}
+                  onChange={(e) => {
+                    setClientFilter(e.target.value);
+                    setPage(0);
+                  }}
                 >
                   <option value="all">{t('customOrders.filterAllClients')}</option>
                   {clientOptions.map((profile) => (
@@ -174,12 +181,10 @@ export default function CustomArticlesSection() {
               </div>
             </div>
             <p className="customOrderCount">
-              {clientFilter === 'all'
-                ? t('customOrders.count', { count: totalCount })
-                : t('customOrders.count', { count: filteredOrders.length })}
+              {t('customOrders.count', { count: filteredOrders.length })}
             </p>
             <div className="articlesGrid">
-              {filteredOrders.map((order) => {
+              {pageOrders.map((order) => {
                 const track = order.track;
                 const isFullyPaid = Boolean(track?.is_fully_paid);
                 const totalOwed = (track?.agreed_fees ?? 0) + (track?.extra_charges_total ?? 0);
@@ -251,8 +256,8 @@ export default function CustomArticlesSection() {
               })}
             </div>
             <Pagination
-              page={page}
-              totalPages={Math.ceil(totalCount / pageSize)}
+              page={currentPage}
+              totalPages={totalPages}
               onPageChange={setPage}
             />
           </>
@@ -262,7 +267,7 @@ export default function CustomArticlesSection() {
       {error && (
         <div className="banner banner--danger dashboardBanner" role="alert">
           <p>{error}</p>
-          <button type="button" onClick={() => fetchOrdersPage(page, searchQuery)} className="btnSecondary">
+          <button type="button" onClick={fetchOrders} className="btnSecondary">
             {t('common.retry')}
           </button>
         </div>
