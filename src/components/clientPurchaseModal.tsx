@@ -335,15 +335,20 @@ export default function ClientPurchaseModal({
             <label className="label" htmlFor={`${titleId}-social`}>
               {t('purchases.socialMedia')}
             </label>
-            <input
+            <select
               id={`${titleId}-social`}
-              type="text"
               name="client_social_media"
               value={form.client_social_media}
               onChange={handleChange}
-              autoComplete="off"
               className="input"
-            />
+            >
+              <option value="">{t('purchases.socialMediaEmpty')}</option>
+              <option value="messenger">{t('purchases.socialMessenger')}</option>
+              <option value="whatsapp">{t('purchases.socialWhatsapp')}</option>
+              <option value="facebook">{t('purchases.socialFacebook')}</option>
+              <option value="instagram">{t('purchases.socialInstagram')}</option>
+              <option value="tiktok">{t('purchases.socialTiktok')}</option>
+            </select>
           </div>
 
           <div className="fieldGroup">
