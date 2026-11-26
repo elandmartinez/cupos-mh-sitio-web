@@ -23,6 +23,7 @@ const en: EsResources = {
     language: 'Language',
     switchToEnglish: 'Switch to English',
     switchToSpanish: 'Switch to Spanish',
+    imagePlaceholder: 'No image',
   },
 
   /** Shared confirmation dialogs. Per-action wording is passed in by the caller. */

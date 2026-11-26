@@ -32,6 +32,8 @@ const es = {
     language: 'Idioma',
     switchToEnglish: 'Cambiar a inglés',
     switchToSpanish: 'Cambiar a español',
+    /** Placeholder shown where a custom-article image is expected but missing. */
+    imagePlaceholder: 'Sin imagen',
   },
 
   /** Shared confirmation dialogs. Per-action wording is passed in by the caller. */

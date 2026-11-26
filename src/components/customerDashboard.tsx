@@ -103,6 +103,9 @@ export default function CustomerDashboard() {
   const orderTrack = orderDetail?.track ?? null;
   const orderPayments = orderTrack ? (paymentsByTrack[orderTrack.id] || []) : [];
   const orderExtraFees = orderTrack ? (extraFeesByTrack[orderTrack.id] || []) : [];
+  const creationPct = orderDetail
+    ? Math.max(0, Math.min(100, orderDetail.creation_progress ?? 0))
+    : 0;
 
   const purchasesMeta = purchasesLoading
     ? undefined
@@ -230,6 +233,7 @@ export default function CustomerDashboard() {
                   const progressPct = totalOwed
                     ? Math.min(100, Math.round(((track?.amount_paid_so_far ?? 0) / totalOwed) * 100))
                     : 0;
+                  const creationPct = Math.max(0, Math.min(100, order.creation_progress ?? 0));
                   const metaParts: string[] = [];
                   if (order.date_to_deliver) {
                     const date = formatDate(order.date_to_deliver);
@@ -264,8 +268,17 @@ export default function CustomerDashboard() {
                           </span>
                         </span>
                         <span className="saleProgress" aria-hidden="true">
-                          <span className="purchaseProgressBar">
-                            <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                          <span className="articleProgress">
+                            <span className="progressTitle">{t('customOrders.orderProgress')}</span>
+                            <span className="purchaseProgressBar">
+                              <span className="purchaseProgressFill" style={{ width: `${creationPct}%` }} />
+                            </span>
+                          </span>
+                          <span className="articleProgress">
+                            <span className="progressTitle">{t('customOrders.paymentProgress')}</span>
+                            <span className="purchaseProgressBar">
+                              <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                            </span>
                           </span>
                         </span>
                       </button>
@@ -360,9 +373,13 @@ export default function CustomerDashboard() {
               <p className="orderDetailDescription">{orderDetail.description}</p>
             )}
             {orderDetail.creation_progress != null && (
-              <p className="orderDetailProgress">
-                {t('customOrders.creationProgress')}: {orderDetail.creation_progress}%
-              </p>
+              <div className="orderDetailProgress">
+                <span className="progressTitle">{t('customOrders.orderProgress')}</span>
+                <span className="purchaseProgressBar" aria-hidden="true">
+                  <span className="purchaseProgressFill" style={{ width: `${creationPct}%` }} />
+                </span>
+                <span className="purchaseProgressLabel">{orderDetail.creation_progress}%</span>
+              </div>
             )}
           </div>
 

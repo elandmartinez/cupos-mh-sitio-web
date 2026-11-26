@@ -504,9 +504,10 @@
 
 /* The order's creation progress, shown only when a value exists. */
 .orderDetailProgress {
-  margin: var(--space-8) 0 0;
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: var(--space-12) 0 0;
 }
 
 .paymentsSection {
@@ -1048,6 +1049,28 @@
   display: block;
 }
 
+/* Placeholder shown where a custom-article image is expected but missing.
+   Combined with `orderDetailImage`/`articleCardImage`, so it keeps the same box
+   (aspect-ratio, margins, radius); `display: flex` wins over their `display:
+   block` because it is declared after them. */
+.imagePlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  color: var(--color-text-muted);
+  background-color: var(--color-surface, transparent);
+  border: 1px dashed var(--color-border);
+}
+.imagePlaceholderIcon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.imagePlaceholderText {
+  font-size: var(--text-sm);
+}
+
 .articleHeader {
   display: flex;
   justify-content: space-between;
@@ -1224,6 +1247,9 @@
 .saleProgress {
   flex: 0 0 100%;
   margin-top: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
 }
 
 /* ---------------------------------------------------------------------- */

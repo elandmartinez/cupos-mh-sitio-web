@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface CustomArticleImageRef {
   id: number;
@@ -22,8 +23,8 @@ interface CustomArticleImageProps {
  * Mirrors `ProductImage` for the `handmade-article-images` bucket: the bucket is
  * private, so every read goes through `createSignedUrl` (an async call), and this
  * component owns fetching + caching its own signed URL instead of the parent
- * building a `src` string inline. Renders nothing while loading, and nothing
- * (calling `onMissing`) when the order has no image yet.
+ * building a `src` string inline. Renders nothing while loading, and a muted
+ * placeholder (calling `onMissing`) when the order has no image yet.
  */
 export default function CustomArticleImage({
   order,
@@ -33,17 +34,22 @@ export default function CustomArticleImage({
   alt = '',
   onMissing,
 }: CustomArticleImageProps) {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading');
   const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setStatus('loading');
     setSrc(null);
 
     getSignedUrl(order).then((url) => {
       if (cancelled) return;
       if (url) {
         setSrc(url);
+        setStatus('ready');
       } else {
+        setStatus('missing');
         onMissing?.();
       }
     });
@@ -57,11 +63,24 @@ export default function CustomArticleImage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order.id, order.profile_id, imageVersion]);
 
-  if (!src) return null;
+  if (status === 'loading') return null;
+
+  if (status === 'missing') {
+    return (
+      <div
+        className={`${className ?? ''} imagePlaceholder`}
+        role="img"
+        aria-label={t('common.imagePlaceholder')}
+      >
+        <span className="imagePlaceholderIcon" aria-hidden="true">🖼</span>
+        <span className="imagePlaceholderText">{t('common.imagePlaceholder')}</span>
+      </div>
+    );
+  }
 
   return (
     <img
-      src={src}
+      src={src ?? ''}
       alt={alt}
       className={className}
       width={200}
