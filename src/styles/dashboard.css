@@ -1046,7 +1046,7 @@
 /* Product thumbnail on a purchase row — a full-height column on the left. */
 .saleMedia {
   flex: 0 0 auto;
-  width: 7rem;
+  width: 12rem;
   align-self: stretch;
   /* A gray "well" so the image area reads as distinct from the details. */
   background-color: var(--color-surface-sunken);
