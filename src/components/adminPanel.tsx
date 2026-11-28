@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAdminUsers } from '../hooks/useAdminUsers';
 import type { AdminUser, PatchAdminUserInput } from '../hooks/useAdminUsers';
@@ -169,10 +169,22 @@ export default function AdminPanel() {
   const [fieldErrors, setFieldErrors] = useState<UserFieldErrors>({});
   const [showPassword, setShowPassword] = useState(false);
 
+  // Client-side search: filter the list by name or email.
+  const [searchInput, setSearchInput] = useState('');
+  const filteredUsers = useMemo(() => {
+    const q = searchInput.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((user) => {
+      const name = (user.name || '').toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      return name.includes(q) || email.includes(q);
+    });
+  }, [users, searchInput]);
+
   const titleId = useId();
 
   const isEditing = userDialog.value != null;
-  const meta = loading ? undefined : t('adminPanel.count', { count: users.length });
+  const meta = loading ? undefined : t('adminPanel.count', { count: filteredUsers.length });
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -313,8 +325,26 @@ export default function AdminPanel() {
                 {t('adminPanel.new')}
               </Button>
             </div>
+            <div className="filterRow">
+              <div className="fieldGroup searchField">
+                <label className="label" htmlFor="adminUserSearch">
+                  {t('adminPanel.searchLabel')}
+                </label>
+                <input
+                  id="adminUserSearch"
+                  className="input"
+                  type="search"
+                  placeholder={t('adminPanel.searchPlaceholder')}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+              </div>
+            </div>
+            {filteredUsers.length === 0 ? (
+              <p className="fieldHint">{t('adminPanel.noResults')}</p>
+            ) : (
             <ul className="salesList">
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <li key={user.id} className="salesListItem">
                   <div className="userRow">
                     <span className="userMain">
@@ -380,6 +410,7 @@ export default function AdminPanel() {
                 </li>
               ))}
             </ul>
+            )}
           </>
         )}
       </CollapsibleSection>

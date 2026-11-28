@@ -39,22 +39,22 @@ export default function PurchaseStatusProgress({ status }: PurchaseStatusProgres
   const currentIndex = STATUS_STEPS.findIndex((s) => s.status === normalized); // -1 when unknown/null/legacy `bought`
   const label = statusText(status, t);
   return (
-    <span className="statusProgress">
-      <span className="statusSteps" aria-hidden="true">
+    <div className="statusProgress">
+      {label && (
+        <p className="statusProgressLabel">
+          {t('purchases.packageStatus', { status: label })}
+        </p>
+      )}
+      <div className="statusSteps" aria-hidden="true">
         {STATUS_STEPS.map((step, i) => (
-          <span
+          <div
             key={step.status}
             className={`statusStep${i <= currentIndex ? ' is-active' : ''}${i === currentIndex ? ' is-current' : ''}`}
           >
             <img className="statusIcon" src={step.icon} alt="" draggable={false} />
-          </span>
+          </div>
         ))}
-      </span>
-      {label && (
-        <span className="statusProgressLabel">
-          {t('purchases.packageStatus', { status: label })}
-        </span>
-      )}
-    </span>
+      </div>
+    </div>
   );
 }
