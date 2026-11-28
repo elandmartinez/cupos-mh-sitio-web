@@ -305,6 +305,7 @@ export default function AdminPanel() {
   return (
     <>
       <CollapsibleSection title={t('adminPanel.sectionTitle')} meta={meta}>
+
         {loading && users.length === 0 ? (
           <SkeletonList label={t('adminPanel.loading')} />
         ) : users.length === 0 ? (
@@ -320,26 +321,32 @@ export default function AdminPanel() {
           />
         ) : (
           <>
-            <div className="pageHeaderActions" style={{ marginBottom: 'var(--space-12)' }}>
-              <Button variant="primary" icon="+" onClick={openCreate} aria-haspopup="dialog">
-                {t('adminPanel.new')}
-              </Button>
-            </div>
-            <div className="filterRow">
-              <div className="fieldGroup searchField">
-                <label className="label" htmlFor="adminUserSearch">
-                  {t('adminPanel.searchLabel')}
-                </label>
-                <input
-                  id="adminUserSearch"
-                  className="input"
-                  type="search"
-                  placeholder={t('adminPanel.searchPlaceholder')}
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                />
+
+            <div style={{ display: 'flex', gap: 'var(--space-32)', width: '100%', justifyContent: "space-between", marginBottom: 'var(--space-12)' }}>
+              <div className="filterRow">
+                <div className="fieldGroup searchField">
+                  <label className="label" htmlFor="adminUserSearch">
+                    {t('adminPanel.searchLabel')}
+                  </label>
+                  <input
+                    id="adminUserSearch"
+                    className="input"
+                    type="search"
+                    placeholder={t('adminPanel.searchPlaceholder')}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                  />
+                </div>
               </div>
+
+              <div className="pageHeaderActions" style={{ marginBottom: 'var(--space-12)' }}>
+                <Button variant="primary" icon="+" onClick={openCreate} aria-haspopup="dialog">
+                  {t('adminPanel.new')}
+                </Button>
+              </div>
+
             </div>
+
             {filteredUsers.length === 0 ? (
               <p className="fieldHint">{t('adminPanel.noResults')}</p>
             ) : (
