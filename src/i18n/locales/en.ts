@@ -126,6 +126,12 @@ const en: EsResources = {
     statusAtColombia: 'In Colombia',
     statusShippingToClient: 'Shipping to client',
     statusProductDelivered: 'Delivered to customer',
+    statusShippingToLockerAbroadDesc: 'Your package is on its way to the locker abroad.',
+    statusAtLockerAbroadDesc: 'Your package is at the locker abroad.',
+    statusShippingToColombiaDesc: 'Your package is on its way to Colombia.',
+    statusAtColombiaDesc: 'Your package has arrived in Colombia.',
+    statusShippingToClientDesc: 'Your package is on its way to your address.',
+    statusProductDeliveredDesc: 'Your package has been delivered.',
     packageStatus: 'Your package status: {{status}}',
 
     linkToProfile: 'Link product to client profile',
@@ -291,6 +297,8 @@ const en: EsResources = {
     purchaseDetailTitle: 'Purchase detail',
     orderDetailTitle: 'Order detail',
     ordersLoading: 'Loading orders…',
+    purchaseDate: 'Purchase date',
+    total: 'Total',
   },
 
   errors: {

@@ -2,14 +2,14 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { PurchaseStatus } from '../repositories/clientsPurchasesRepository';
 
-const STATUS_STEPS: { status: PurchaseStatus; icon: string }[] = [
-  { status: 'shipping_to_locker_abroad', icon: '/purchase-status-icons/shipping-to-locker-icon.png' },
-  { status: 'at_locker_abroad', icon: '/purchase-status-icons/locker-icon.png' },
-  { status: 'shipping_to_colombia', icon: '/purchase-status-icons/shipping-plane.png' },
-  { status: 'at_colombia', icon: '/purchase-status-icons/at-colombia-icon.png' },
-  { status: 'shipping_to_client', icon: '/purchase-status-icons/shipping-to-client-icon.png' },
-  { status: 'product_delivered_to_customer', icon: '/purchase-status-icons/package-delivered-to-client-icon.png' },
-];
+const STATUS_STEPS = [
+  { status: 'shipping_to_locker_abroad', icon: '/purchase-status-icons/shipping-to-locker-icon.png', descKey: 'purchases.statusShippingToLockerAbroadDesc' },
+  { status: 'at_locker_abroad', icon: '/purchase-status-icons/locker-icon.png', descKey: 'purchases.statusAtLockerAbroadDesc' },
+  { status: 'shipping_to_colombia', icon: '/purchase-status-icons/shipping-plane.png', descKey: 'purchases.statusShippingToColombiaDesc' },
+  { status: 'at_colombia', icon: '/purchase-status-icons/at-colombia-icon.png', descKey: 'purchases.statusAtColombiaDesc' },
+  { status: 'shipping_to_client', icon: '/purchase-status-icons/shipping-to-client-icon.png', descKey: 'purchases.statusShippingToClientDesc' },
+  { status: 'product_delivered_to_customer', icon: '/purchase-status-icons/package-delivered-to-client-icon.png', descKey: 'purchases.statusProductDeliveredDesc' },
+] as const;
 
 /** Translate one status to its label key result, handling the legacy rename. */
 function statusText(status: string | null, t: TFunction): string | null {
@@ -51,7 +51,9 @@ export default function PurchaseStatusProgress({ status }: PurchaseStatusProgres
             key={step.status}
             className={`statusStep${i <= currentIndex ? ' is-active' : ''}${i === currentIndex ? ' is-current' : ''}`}
           >
-            <img className="statusIcon" src={step.icon} alt="" draggable={false} />
+            <span className="statusIconWrap" data-tooltip={t(step.descKey)}>
+              <img className="statusIcon" src={step.icon} alt="" draggable={false} />
+            </span>
           </div>
         ))}
       </div>

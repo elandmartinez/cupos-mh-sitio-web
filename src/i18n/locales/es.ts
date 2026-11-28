@@ -136,6 +136,12 @@ const es = {
     statusAtColombia: 'En Colombia',
     statusShippingToClient: 'Envío al cliente',
     statusProductDelivered: 'Entregado al cliente',
+    statusShippingToLockerAbroadDesc: 'Tu paquete va en camino al casillero en el exterior.',
+    statusAtLockerAbroadDesc: 'Tu paquete ya está en el casillero en el exterior.',
+    statusShippingToColombiaDesc: 'Tu paquete viene en camino a Colombia.',
+    statusAtColombiaDesc: 'Tu paquete ya llegó a Colombia.',
+    statusShippingToClientDesc: 'Tu paquete va en camino a tu dirección.',
+    statusProductDeliveredDesc: 'Tu paquete ya fue entregado.',
     packageStatus: 'Estado de tu paquete: {{status}}',
 
     linkToProfile: 'Vincular producto al perfil del cliente',
@@ -301,6 +307,8 @@ const es = {
     purchaseDetailTitle: 'Detalle de la compra',
     orderDetailTitle: 'Detalle del pedido',
     ordersLoading: 'Cargando pedidos…',
+    purchaseDate: 'Fecha de compra',
+    total: 'Total',
   },
 
   errors: {

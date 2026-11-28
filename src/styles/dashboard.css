@@ -549,6 +549,91 @@
   margin: var(--space-12) 0 0;
 }
 
+/* Read-only purchase detail: the product image leads, then the name, the
+   description/date, the status stepper and a money breakdown. */
+.purchaseDetailBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.purchaseDetailMedia {
+  width: 100%;
+}
+
+.purchaseDetailImage {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.purchaseDetailName {
+  margin: var(--space-8) 0 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* `white-space: pre-line` keeps newline-separated items on their own lines. */
+.purchaseDetailDescription {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: pre-line;
+}
+
+.purchaseDetailDate {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.purchaseDetailDateLabel {
+  color: var(--color-text-muted);
+}
+
+/* The status stepper inside the modal: the shared `.statusProgress` is tuned for
+   a row context (100% basis), so reset it to a full-width auto-height block. */
+.purchaseDetailBody .statusProgress {
+  flex: 0 0 auto;
+  width: 100%;
+  margin-top: var(--space-16);
+}
+
+/* The money summary: label left, amount right, on a subtle panel. */
+.purchaseDetailTotals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: var(--space-8) 0 0;
+  padding: var(--space-12);
+  background-color: var(--color-surface-subtle);
+  border-radius: var(--radius-md);
+}
+
+.purchaseDetailTotalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  font-size: var(--text-sm);
+}
+
+.purchaseDetailTotalRow dt {
+  color: var(--color-text-muted);
+}
+
+.purchaseDetailTotalRow dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
 .paymentsSection {
   margin-top: var(--space-16);
   padding-top: var(--space-16);
@@ -1395,6 +1480,62 @@
   transition: opacity var(--duration-base) var(--ease-standard),
     filter var(--duration-base) var(--ease-standard),
     transform var(--duration-base) var(--ease-standard);
+}
+
+/* The icon wrapper anchors the hover tooltip that describes the stage. */
+.statusIconWrap {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+}
+
+/* Tooltip bubble above the icon, describing what this stage means. The icons
+   are decorative (the current stage is already spoken by the label), so this is
+   hover-only. */
+.statusIconWrap::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + var(--space-8));
+  left: 50%;
+  transform: translateX(-50%) translateY(var(--space-4));
+  width: max-content;
+  max-width: 11rem;
+  padding: var(--space-4) var(--space-8);
+  background-color: var(--color-text);
+  color: var(--color-surface);
+  font-size: var(--text-xs);
+  line-height: 1.35;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-elevated);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+  z-index: 2;
+}
+
+.statusIconWrap:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Pin the first/last tooltips to the stepper's edge so they don't spill out of
+   the card on narrow screens. */
+.statusStep:first-child .statusIconWrap::after {
+  left: 0;
+  transform: translateY(var(--space-4));
+}
+.statusStep:first-child .statusIconWrap:hover::after {
+  transform: translateY(0);
+}
+.statusStep:last-child .statusIconWrap::after {
+  left: auto;
+  right: 0;
+  transform: translateY(var(--space-4));
+}
+.statusStep:last-child .statusIconWrap:hover::after {
+  transform: translateY(0);
 }
 
 .statusStep.is-active .statusIcon {

@@ -319,62 +319,127 @@ export default function CustomerDashboard() {
         </div>
       </main>
 
-      {purchaseDetail && (
-        <Modal
-          labelledBy="customerPurchaseDetailTitle"
-          onClose={purchaseDetailDialog.close}
-          closing={purchaseDetailDialog.isClosing}
-        >
-          <div className="formCardHeader">
-            <h2 id="customerPurchaseDetailTitle">{t('customer.purchaseDetailTitle')}</h2>
-            <Button variant="icon" className="btnClose" aria-label={t('common.close')} onClick={purchaseDetailDialog.close}>
-              ×
-            </Button>
-          </div>
+      {purchaseDetail &&
+        (() => {
+          const productName =
+            purchaseDetail.product?.name ||
+            (purchaseDetail.product_id != null
+              ? t('common.productNumber', { id: purchaseDetail.product_id })
+              : t('common.productFallback'));
+          const { totalOwed, progressPct } = purchaseTotals(purchaseDetail);
+          const paid = purchaseDetail.amount_paid_so_far ?? 0;
+          const pending = Math.max(0, totalOwed - paid);
+          const agreedFees = purchaseDetail.agreed_fees ?? 0;
+          const extraCharges = purchaseDetail.extra_charges_total ?? 0;
+          const date = formatDate(purchaseDetail.created_at);
 
-          <div className="paymentsSection">
-            <div className="purchaseProgress">
-              <div className="purchaseProgressBar">
-                <div className="purchaseProgressFill" style={{ width: `${purchaseTotals(purchaseDetail).progressPct}%` }} />
+          return (
+            <Modal
+              labelledBy="customerPurchaseDetailTitle"
+              onClose={purchaseDetailDialog.close}
+              closing={purchaseDetailDialog.isClosing}
+            >
+              <div className="formCardHeader">
+                <h2 id="customerPurchaseDetailTitle">{t('customer.purchaseDetailTitle')}</h2>
+                <Button variant="icon" className="btnClose" aria-label={t('common.close')} onClick={purchaseDetailDialog.close}>
+                  ×
+                </Button>
               </div>
-              <div className="purchaseProgressLabel">
-                {formatCurrency(purchaseDetail.amount_paid_so_far)} /{' '}
-                {formatCurrency(purchaseTotals(purchaseDetail).totalOwed)}
+
+              <div className="purchaseDetailBody">
+                {purchaseDetail.product && (
+                  <div className="purchaseDetailMedia">
+                    <ProductImage
+                      product={purchaseDetail.product}
+                      imageVersion={0}
+                      getSignedUrl={getProductImageSignedUrl}
+                      className="purchaseDetailImage"
+                      alt={purchaseDetail.product.name ?? undefined}
+                    />
+                  </div>
+                )}
+
+                <h3 className="purchaseDetailName">{productName}</h3>
+                {purchaseDetail.product?.description && (
+                  <p className="purchaseDetailDescription">{purchaseDetail.product.description}</p>
+                )}
+
+                {date && (
+                  <p className="purchaseDetailDate">
+                    <span className="purchaseDetailDateLabel">{t('customer.purchaseDate')}</span>
+                    {date}
+                  </p>
+                )}
+
+                <PurchaseStatusProgress status={purchaseDetail.status} />
+
+                <dl className="purchaseDetailTotals">
+                  <div className="purchaseDetailTotalRow">
+                    <dt>{t('purchases.agreedPrice')}</dt>
+                    <dd>{formatCurrency(agreedFees)}</dd>
+                  </div>
+                  <div className="purchaseDetailTotalRow">
+                    <dt>{t('extraFees.sectionTitle')}</dt>
+                    <dd>{formatCurrency(extraCharges)}</dd>
+                  </div>
+                  <div className="purchaseDetailTotalRow">
+                    <dt>{t('customer.total')}</dt>
+                    <dd>{formatCurrency(totalOwed)}</dd>
+                  </div>
+                  <div className="purchaseDetailTotalRow">
+                    <dt>{t('purchases.paid')}</dt>
+                    <dd>{formatCurrency(paid)}</dd>
+                  </div>
+                  <div className="purchaseDetailTotalRow">
+                    <dt>{t('purchases.pending')}</dt>
+                    <dd>{formatCurrency(pending)}</dd>
+                  </div>
+                </dl>
               </div>
-            </div>
 
-            <section className="financeSubSection">
-              <h3 className="financeSectionTitle">{t('payments.sectionTitle')}</h3>
-              {purchasePayments.length === 0 ? (
-                <p className="fieldHint">{t('payments.empty')}</p>
-              ) : (
-                <ul className="paymentsList">
-                  {purchasePayments.map((payment) => (
-                    <li key={payment.id} className="paymentItem">
-                      <span>{formatCurrency(payment.amount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+              <div className="paymentsSection">
+                <div className="purchaseProgress">
+                  <div className="purchaseProgressBar">
+                    <div className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                  </div>
+                  <div className="purchaseProgressLabel">
+                    {formatCurrency(paid)} / {formatCurrency(totalOwed)}
+                  </div>
+                </div>
 
-            <section className="financeSubSection">
-              <h3 className="financeSectionTitle">{t('extraFees.sectionTitle')}</h3>
-              {purchaseExtraFees.length === 0 ? (
-                <p className="fieldHint">{t('extraFees.empty')}</p>
-              ) : (
-                <ul className="paymentsList">
-                  {purchaseExtraFees.map((fee) => (
-                    <li key={fee.id} className="paymentItem">
-                      <span>{formatCurrency(fee.amount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </div>
-        </Modal>
-      )}
+                <section className="financeSubSection">
+                  <h3 className="financeSectionTitle">{t('payments.sectionTitle')}</h3>
+                  {purchasePayments.length === 0 ? (
+                    <p className="fieldHint">{t('payments.empty')}</p>
+                  ) : (
+                    <ul className="paymentsList">
+                      {purchasePayments.map((payment) => (
+                        <li key={payment.id} className="paymentItem">
+                          <span>{formatCurrency(payment.amount)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                <section className="financeSubSection">
+                  <h3 className="financeSectionTitle">{t('extraFees.sectionTitle')}</h3>
+                  {purchaseExtraFees.length === 0 ? (
+                    <p className="fieldHint">{t('extraFees.empty')}</p>
+                  ) : (
+                    <ul className="paymentsList">
+                      {purchaseExtraFees.map((fee) => (
+                        <li key={fee.id} className="paymentItem">
+                          <span>{formatCurrency(fee.amount)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </div>
+            </Modal>
+          );
+        })()}
 
       {orderDetail && (
         <Modal
