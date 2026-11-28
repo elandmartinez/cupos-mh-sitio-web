@@ -119,6 +119,19 @@ const en: EsResources = {
     noOwner: 'No account',
     ownerAdmin: 'Admin',
     ownerCustomer: 'Customer',
+    status: 'Status',
+    statusShippingToLockerAbroad: 'Shipping to locker abroad',
+    statusAtLockerAbroad: 'At locker abroad',
+    statusShippingToColombia: 'Shipping to Colombia',
+    statusAtColombia: 'In Colombia',
+    statusShippingToClient: 'Shipping to client',
+    statusProductDelivered: 'Delivered to customer',
+
+    linkToProfile: 'Link product to client profile',
+    linkToProfileTitle: 'Link product to client profile',
+    linkToProfileMessage:
+      "Do you want to link this product purchase to the client {{name}}? This action will fill the client data fields with the ones from the client's personal profile.",
+    linkToProfileConfirm: 'Link',
 
     emptyTitle: 'No purchases yet',
     emptyBody:

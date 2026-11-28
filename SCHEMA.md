@@ -80,8 +80,16 @@ decide what to show — frontend role-branching is UX only; RLS is the real boun
 | `amount_paid_so_far` | bigint \| null | **app-maintained** — sum of received payments |
 | `extra_charges_total` | bigint \| null | **app-maintained** — sum of extra fees owed |
 | `product_id` | bigint \| null | FK → `products.id` |
-| `status` | varchar \| null | free-text lifecycle label |
+| `status` | varchar \| null | shipping lifecycle enum — one of `PURCHASE_STATUSES`, default `shipping_to_locker_abroad` |
 | `profile_id` | uuid \| null | FK → `profiles.id` (owner); `null` = walk-in |
+
+`client_name` (and only `client_name`) can be autofilled from the linked
+`profiles.name` — either via the "Vincular producto al perfil del cliente"
+button (legacy) or by selecting a profile in the "Cuenta del cliente" selector.
+
+`status` takes one of these six values (in lifecycle order):
+`shipping_to_locker_abroad` → `at_locker_abroad` → `shipping_to_colombia` →
+`at_colombia` → `shipping_to_client` → `product_delivered_to_customer`.
 
 ### Table `purchases_payments` — money received (polymorphic parent)
 

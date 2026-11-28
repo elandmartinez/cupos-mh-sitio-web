@@ -129,6 +129,19 @@ const es = {
     noOwner: 'Sin cuenta',
     ownerAdmin: 'Admin',
     ownerCustomer: 'Cliente',
+    status: 'Estado',
+    statusShippingToLockerAbroad: 'Envío a casillero (exterior)',
+    statusAtLockerAbroad: 'En casillero (exterior)',
+    statusShippingToColombia: 'Envío a Colombia',
+    statusAtColombia: 'En Colombia',
+    statusShippingToClient: 'Envío al cliente',
+    statusProductDelivered: 'Entregado al cliente',
+
+    linkToProfile: 'Vincular producto al perfil del cliente',
+    linkToProfileTitle: 'Vincular producto al perfil del cliente',
+    linkToProfileMessage:
+      '¿Quieres vincular esta compra al cliente {{name}}? Esta acción completará los campos del cliente con los datos de su perfil personal.',
+    linkToProfileConfirm: 'Vincular',
 
     emptyTitle: 'Todavía no hay compras',
     emptyBody:

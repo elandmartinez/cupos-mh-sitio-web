@@ -7,8 +7,11 @@ import { useFormatters } from '../hooks/useFormatters';
 import Modal from './modal';
 import Button from './button';
 import ConfirmModal from './confirmModal';
+import PurchaseStatusProgress from './purchaseStatusProgress';
 import { FieldError } from './ui';
 import type { Product } from '../hooks/useProducts';
+import { PURCHASE_STATUSES } from '../repositories/clientsPurchasesRepository';
+import type { PurchaseStatus } from '../repositories/clientsPurchasesRepository';
 import type {
   ClientPurchase,
   CreateClientPurchaseInput,
@@ -49,6 +52,7 @@ interface PurchaseFormState {
   client_social_media: string;
   agreed_fees: number;
   profile_id: string;
+  status: PurchaseStatus;
 }
 
 /**
@@ -97,6 +101,9 @@ export default function ClientPurchaseModal({
     client_social_media: purchase?.client_social_media ?? '',
     agreed_fees: purchase?.agreed_fees ?? 0,
     profile_id: purchase?.profile_id ?? '',
+    status: (PURCHASE_STATUSES as readonly string[]).includes(purchase?.status ?? '')
+      ? (purchase!.status as PurchaseStatus)
+      : 'shipping_to_locker_abroad',
   }));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -111,6 +118,7 @@ export default function ClientPurchaseModal({
   const deletePurchaseDialog = usePresent<ClientPurchase>();
   const deletePaymentDialog = usePresent<PurchasePayment>();
   const deleteExtraFeeDialog = usePresent<PurchaseExtraFee>();
+  const linkToProfileDialog = usePresent();
 
   // Lazily load the purchase's payments and extra fees on first open for edit.
   useEffect(() => {
@@ -131,6 +139,29 @@ export default function ClientPurchaseModal({
       ...prev,
       [name]: name === 'agreed_fees' ? (value ? parseInt(value, 10) : 0) : value,
     }));
+  };
+
+  // Fill the client-data fields from the linked profile. Only `client_name` is
+  // autofilled — the profile carries just `name` and `email`, no phone, social
+  // media, or first name.
+  const autofillFromProfile = (profileId: string) => {
+    const profile = profiles.find((p) => p.id === profileId);
+    if (!profile) return;
+    setForm((prev) => ({
+      ...prev,
+      profile_id: profileId,
+      client_name: profile.name ?? prev.client_name,
+    }));
+  };
+
+  const handleProfileChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const profileId = e.target.value;
+    autofillFromProfile(profileId);
+  };
+
+  const handleConfirmLinkToProfile = () => {
+    linkToProfileDialog.close();
+    if (form.profile_id) autofillFromProfile(form.profile_id);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -259,6 +290,11 @@ export default function ClientPurchaseModal({
   const paymentToDelete = deletePaymentDialog.value;
   const extraFeeToDelete = deleteExtraFeeDialog.value;
 
+  const selectedProfile = profiles.find((p) => p.id === form.profile_id);
+  const selectedProfileDisplayName = selectedProfile
+    ? selectedProfile.name || selectedProfile.email || selectedProfile.id.slice(0, 8)
+    : t('common.unnamedClient');
+
   return (
     <>
       <Modal labelledBy={titleId} onClose={onClose} cardClassName="purchasesCard" closing={closing}>
@@ -352,6 +388,32 @@ export default function ClientPurchaseModal({
           </div>
 
           <div className="fieldGroup">
+            <label className="label" htmlFor={`${titleId}-status`}>
+              {t('purchases.status')}
+            </label>
+            <select
+              id={`${titleId}-status`}
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+              className="input"
+            >
+              <option value="shipping_to_locker_abroad">
+                {t('purchases.statusShippingToLockerAbroad')}
+              </option>
+              <option value="at_locker_abroad">{t('purchases.statusAtLockerAbroad')}</option>
+              <option value="shipping_to_colombia">{t('purchases.statusShippingToColombia')}</option>
+              <option value="at_colombia">{t('purchases.statusAtColombia')}</option>
+              <option value="shipping_to_client">{t('purchases.statusShippingToClient')}</option>
+              <option value="product_delivered_to_customer">
+                {t('purchases.statusProductDelivered')}
+              </option>
+            </select>
+          </div>
+
+          <PurchaseStatusProgress status={form.status} />
+
+          <div className="fieldGroup">
             <label className="label" htmlFor={`${titleId}-profile`}>
               {t('purchases.owner')}
             </label>
@@ -359,7 +421,7 @@ export default function ClientPurchaseModal({
               id={`${titleId}-profile`}
               name="profile_id"
               value={form.profile_id}
-              onChange={handleChange}
+              onChange={handleProfileChange}
               className="input"
             >
               <option value="">{t('purchases.noOwner')}</option>
@@ -374,6 +436,20 @@ export default function ClientPurchaseModal({
               ))}
             </select>
           </div>
+
+          {isEditing && (
+            <div className="buttonGroup">
+              <Button
+                variant="secondary"
+                type="button"
+                disabled={!form.profile_id}
+                onClick={() => linkToProfileDialog.open()}
+                aria-haspopup="dialog"
+              >
+                {t('purchases.linkToProfile')}
+              </Button>
+            </div>
+          )}
 
           <div className="fieldGroup">
             <label className="label" htmlFor={`${titleId}-fees`}>
@@ -592,6 +668,18 @@ export default function ClientPurchaseModal({
           onConfirm={handleConfirmDeleteExtraFee}
           onCancel={deleteExtraFeeDialog.close}
           closing={deleteExtraFeeDialog.isClosing}
+        />
+      )}
+
+      {linkToProfileDialog.isPresent && (
+        <ConfirmModal
+          title={t('purchases.linkToProfileTitle')}
+          message={t('purchases.linkToProfileMessage', { name: selectedProfileDisplayName })}
+          confirmLabel={t('purchases.linkToProfileConfirm')}
+          confirmVariant="primary"
+          onConfirm={handleConfirmLinkToProfile}
+          onCancel={linkToProfileDialog.close}
+          closing={linkToProfileDialog.isClosing}
         />
       )}
     </>

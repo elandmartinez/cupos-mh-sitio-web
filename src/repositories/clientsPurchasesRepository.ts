@@ -13,6 +13,18 @@ const TABLE = 'clients_purchases';
  */
 const WITH_PRODUCT = '*, product:products(*)';
 
+/** The shipping lifecycle enum for a purchase, stored verbatim in `status`. */
+export const PURCHASE_STATUSES = [
+  'shipping_to_locker_abroad',
+  'at_locker_abroad',
+  'shipping_to_colombia',
+  'at_colombia',
+  'shipping_to_client',
+  'product_delivered_to_customer',
+] as const;
+
+export type PurchaseStatus = (typeof PURCHASE_STATUSES)[number];
+
 /** One row of `public.clients_purchases`, exactly as the database stores it. */
 export interface ClientPurchase {
   id: number;
@@ -31,8 +43,11 @@ export interface ClientPurchase {
   product_id: number | null;
   /** Owner profile (links to `profiles.id`); `null` = walk-in customer. */
   profile_id: string | null;
-  /** Free-text lifecycle label; the database defaults it to 'no_payment_done'. */
-  status: string | null;
+  /**
+   * Shipping lifecycle stage, one of {@link PURCHASE_STATUSES}; the database
+   * defaults it to `'shipping_to_locker_abroad'`.
+   */
+  status: PurchaseStatus | null;
 }
 
 /**
@@ -59,6 +74,7 @@ export type CreateClientPurchaseInput = Pick<
   | 'client_social_media'
   | 'agreed_fees'
   | 'product_id'
+  | 'status'
 > & {
   /** Owner profile; omit for a walk-in customer. */
   profile_id?: string | null;
@@ -73,6 +89,7 @@ export type UpdateClientPurchaseInput = Pick<
   | 'client_social_media'
   | 'agreed_fees'
   | 'profile_id'
+  | 'status'
 >;
 
 /** Partial update — only the client/fee fields present are touched. */

@@ -5,6 +5,7 @@ import { useFormatters } from '../hooks/useFormatters';
 import Modal from './modal';
 import EmptyState from './emptyState';
 import Button from './button';
+import PurchaseStatusProgress from './purchaseStatusProgress';
 import { SkeletonCard } from './ui';
 
 // The client-purchase modal (edit form + payments) is the heaviest dialog here,
@@ -137,12 +138,14 @@ export default function PurchasesModal({
                         </span>
                       )}
                     </span>
-                    <span
-                      className={`badge ${
-                        isFullyPaid ? 'badge--success' : 'badge--warning'
-                      }`}
-                    >
-                      {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
+                    <span className="purchaseBadges">
+                      <span
+                        className={`badge ${
+                          isFullyPaid ? 'badge--success' : 'badge--warning'
+                        }`}
+                      >
+                        {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
+                      </span>
                     </span>
                   </span>
 
@@ -158,6 +161,8 @@ export default function PurchasesModal({
                       {formatCurrency(totalOwed)}
                     </span>
                   </span>
+
+                  <PurchaseStatusProgress status={purchase.status} />
                 </button>
               );
             })

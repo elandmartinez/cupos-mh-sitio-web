@@ -7,7 +7,7 @@ implementation of the tokens below — when the two disagree, the CSS wins.
 Adapted from the Stitch `DESIGN.md` convention (see the `awesome-design-md`
 reference in `.agents/skills/`).
 
-**Last reviewed:** 2026-10-05
+**Last reviewed:** 2026-11-27
 
 ---
 
@@ -68,6 +68,9 @@ re-tune. Consistency is achieved through *restrained usage*, not hue changes.
 | `--color-danger-hover` / `-active` | `#991b1b` / `#7f1d1d` |
 | `--color-info-text` / `-subtle` | `#1d4ed8` / `#eff6ff` |
 | `--color-neutral-text` / `-subtle` | `#334155` / `#f1f5f9` |
+
+`--color-money` is `#16a34a` — a light dollar-bill green reserved for product
+price values (paired with the `/dollar-symbol.png` icon on the product card).
 
 **Rules**
 
@@ -180,8 +183,9 @@ contract as a section, so it is the *card* counterpart to `.collapsibleSection`
 not a page-level heading row.
 
 **The product card is itself the button** (`.card.productCard`) — it carries no
-controls, just the image and what is worth knowing before opening it: name, ID
-badge, value, purchase count. Tapping anywhere on it opens the product dialog,
+controls, just the image and what is worth knowing before opening it: name, value
+(with a dollar icon), purchase count. Tapping anywhere on it opens the product
+dialog,
 which is where "Compras", "Editar" and "Eliminar" live. Three buttons per card
 multiplied down a phone screen into a wall of chrome; one tap target keeps the
 grid reading as a catalogue of things rather than a panel of controls. Because

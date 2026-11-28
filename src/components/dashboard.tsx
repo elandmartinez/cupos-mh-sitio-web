@@ -478,15 +478,18 @@ export default function Dashboard() {
                             className="productImage"
                           />
       
-                          <span className="productHeader">
-                            <span className="productName">{product.name}</span>
-                            <span className="badge badge--primary">
-                              {t('products.idBadge', { id: product.id })}
-                            </span>
-                          </span>
+                          <span className="productName">{product.name}</span>
       
                           <span className="productCardMeta">
-                            <span className="productValue">{formatCurrency(product.value)}</span>
+                            <span className="productValue">
+                              <img
+                                src="/dollar-symbol.png"
+                                alt=""
+                                aria-hidden="true"
+                                className="productValueIcon"
+                              />
+                              {formatCurrency(product.value)}
+                            </span>
                             <span className="productPurchases">
                               {t('products.purchasesCount', { count: productPurchases.length })}
                             </span>

@@ -1,6 +1,6 @@
 # Cupos Sitio Web — Project Documentation
 
-> **Status:** work in progress · **Last documented:** 2026-11-24 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes, the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts), the **design-system primitives pass** (a `src/components/ui/` barrel, `Skeleton*` loading placeholders, lazily-loaded dialogs) and the **ES/EN i18n pass** (i18next singleton, locale files, `LanguageSwitch`, locale-aware formatters) — the last two are **in the working tree on top of `aab7385`, not yet committed**; plus the **AI-tooling cleanup** (removed `.claude/`/`.cline/`, relocated `.cursor/agents/` → `.agents/agents/`, deleted `uxonfly.md`); plus the **payment-totals pass** (no DB trigger — totals computed in `src/helpers/purchaseTotals.ts` and written via `clientsPurchasesRepository.updateTotals`), the **sales-row edit** navigation and the **first-name / social-media** fields; and the **roles pass** (DB + frontend: `profiles`, `clients_purchases.profile_id`, the polymorphic `purchases_payments` link, `custom_articles_orders` / `articles_orders_payment_track` with their CRUD, the `role`-branching `dashboardApp`, and the read-only `CustomerDashboard`); and the **admin tab-nav pass** (a `role="tablist"` two-tab strip — "Mis productos" / "Mis pedidos" — splitting products + their purchases from custom article orders); and the **custom-article image pass** (a `handmade-article-images` bucket, `customArticleImagesRepository` / `useCustomArticleImages` / `CustomArticleImage`, and an image field in the create/edit modal)
+> **Status:** work in progress · **Last documented:** 2026-11-27 · **Covers commit:** `f36b6a1` + the repository-layer, dashboard-sections, UXonFly design-system, reusable-primitives (`Button`, `CollapsibleCard`, `AddPurchaseModal`), motion (presence + fold hooks), product-card / product-detail-dialog passes, the `PROMPT-02` hardening pass (env guard, untracked artifacts, `404.astro`, `check`/`test` scripts), the **design-system primitives pass** (a `src/components/ui/` barrel, `Skeleton*` loading placeholders, lazily-loaded dialogs) and the **ES/EN i18n pass** (i18next singleton, locale files, `LanguageSwitch`, locale-aware formatters) — the last two are **in the working tree on top of `aab7385`, not yet committed**; plus the **AI-tooling cleanup** (removed `.claude/`/`.cline/`, relocated `.cursor/agents/` → `.agents/agents/`, deleted `uxonfly.md`); plus the **payment-totals pass** (no DB trigger — totals computed in `src/helpers/purchaseTotals.ts` and written via `clientsPurchasesRepository.updateTotals`), the **sales-row edit** navigation and the **first-name / social-media** fields; and the **roles pass** (DB + frontend: `profiles`, `clients_purchases.profile_id`, the polymorphic `purchases_payments` link, `custom_articles_orders` / `articles_orders_payment_track` with their CRUD, the `role`-branching `dashboardApp`, and the read-only `CustomerDashboard`); and the **admin tab-nav pass** (a `role="tablist"` two-tab strip — "Mis productos" / "Mis pedidos" — splitting products + their purchases from custom article orders); and the **custom-article image pass** (a `handmade-article-images` bucket, `customArticleImagesRepository` / `useCustomArticleImages` / `CustomArticleImage`, and an image field in the create/edit modal)
 >
 > This document describes the project as it exists today: what it does, how it is
 > wired together, and what is still rough. Keep it updated as the app grows.
@@ -378,11 +378,17 @@ Type: `Product` in `src/hooks/useProducts.ts`.
 | `extra_charges_total` | int \| null | **App-maintained** — sum of fines owed. |
 | `product_id` | int \| null | FK → `products.id`. |
 | `profile_id` | uuid \| null | FK → `profiles.id` (owner); `null` = walk-in. |
+| `status` | varchar \| null | shipping lifecycle enum — one of `PURCHASE_STATUSES` (`shipping_to_locker_abroad` → `at_locker_abroad` → `shipping_to_colombia` → `at_colombia` → `shipping_to_client` → `product_delivered_to_customer`), default `shipping_to_locker_abroad`. |
 
 Type: `ClientPurchase` in `src/hooks/useClientPurchases.ts`. On insert the client
 seeds `amount_paid_so_far: 0`, `extra_charges_total: 0` and `is_fully_paid: false`;
 afterwards the app writes them through `updateTotals` (they are excluded from the
-*form* update input type, so the edit form never touches them).
+*form* update input type, so the edit form never touches them). `status` is set
+through the create/edit form and defaults to `shipping_to_locker_abroad`.
+
+`profile_id` links the purchase to a `profiles` row; selecting a profile (or
+the "Vincular producto al perfil del cliente" button) autofills `client_name`
+from `profiles.name` — the only profile field mapped to the purchase.
 
 ### Table `purchases_payments`
 

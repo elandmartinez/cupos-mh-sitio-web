@@ -7,8 +7,11 @@ import { useCustomArticleImages } from '../hooks/useCustomArticleImages';
 import { usePurchasePayments } from '../hooks/usePurchasePayments';
 import { usePresent } from '../hooks/usePresent';
 import { useFormatters } from '../hooks/useFormatters';
+import { useProductImages } from '../hooks/useProductImages';
 import CollapsibleSection from './collapsibleSection';
 import CustomArticleImage from './customArticleImage';
+import ProductImage from './productImage';
+import PurchaseStatusProgress from './purchaseStatusProgress';
 import EmptyState from './emptyState';
 import Modal from './modal';
 import Button from './button';
@@ -75,6 +78,8 @@ export default function CustomerDashboard() {
 
   const [imageVersion, setImageVersion] = useState(0);
   const { getSignedUrl } = useCustomArticleImages();
+  // Product-image signed URLs (distinct from the custom-article hook above).
+  const { getSignedUrl: getProductImageSignedUrl } = useProductImages();
 
   useEffect(() => {
     fetchAllPurchases();
@@ -184,31 +189,45 @@ export default function CustomerDashboard() {
                     <li key={purchase.id} className="salesListItem">
                       <button
                         type="button"
-                        className="saleRow"
+                        className="saleRow saleRowWithImage"
                         onClick={() => openPurchase(purchase)}
                         aria-haspopup="dialog"
                       >
-                        <span className="saleMain">
-                          <span className="saleClientName">{productName}</span>
-                          <span className="saleMeta">
-                            {formatDate(purchase.created_at)}
-                          </span>
-                        </span>
-                        <span className="saleSide">
-                          <span className="saleMoney">
-                            {formatCurrency(purchase.amount_paid_so_far)}
-                            <span className="saleMoneyTotal">
-                              {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
+                        {purchase.product && (
+                          <ProductImage
+                            product={purchase.product}
+                            imageVersion={0}
+                            getSignedUrl={getProductImageSignedUrl}
+                            className="saleImage"
+                          />
+                        )}
+                        <span className="saleBody">
+                          <span className="saleMain">
+                            <span className="saleClientName">{productName}</span>
+                            <span className="saleMeta">
+                              {formatDate(purchase.created_at)}
                             </span>
                           </span>
-                          <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
-                            {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
+                          <span className="saleSide">
+                            <span className="saleMoney">
+                              {formatCurrency(purchase.amount_paid_so_far)}
+                              <span className="saleMoneyTotal">
+                                {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
+                              </span>
+                            </span>
+                            <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
+                              {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
+                            </span>
                           </span>
-                        </span>
-                        <span className="saleProgress" aria-hidden="true">
-                          <span className="purchaseProgressBar">
-                            <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                          <span className="saleProgress" aria-hidden="true">
+                            <span className="articleProgress">
+                              <span className="progressTitle">{t('customOrders.paymentProgress')}</span>
+                              <span className="purchaseProgressBar">
+                                <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                              </span>
+                            </span>
                           </span>
+                          <PurchaseStatusProgress status={purchase.status} />
                         </span>
                       </button>
                     </li>

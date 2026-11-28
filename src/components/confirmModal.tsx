@@ -8,6 +8,8 @@ interface ConfirmModalProps {
   /** The action, verb + object — "Eliminar producto", never "OK" or "Sí". */
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Danger (default) renders `btnDanger`; primary renders `btnPrimary` for non-destructive confirms. */
+  confirmVariant?: 'danger' | 'primary';
   onConfirm: () => void;
   onCancel: () => void;
   /** True while the dialog plays its exit animation (see `usePresent`). */
@@ -28,6 +30,7 @@ export default function ConfirmModal({
   message,
   confirmLabel,
   cancelLabel,
+  confirmVariant = 'danger',
   onConfirm,
   onCancel,
   closing = false,
@@ -63,7 +66,11 @@ export default function ConfirmModal({
         <button type="button" onClick={onCancel} className="btnSecondary">
           {cancelLabel ?? t('common.cancel')}
         </button>
-        <button type="button" onClick={onConfirm} className="btnDanger">
+        <button
+          type="button"
+          onClick={onConfirm}
+          className={confirmVariant === 'primary' ? 'btnPrimary' : 'btnDanger'}
+        >
           {confirmLabel ?? t('common.remove')}
         </button>
       </div>

@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFormatters } from '../hooks/useFormatters';
+import { useProductImages } from '../hooks/useProductImages';
+import ProductImage from './productImage';
+import PurchaseStatusProgress from './purchaseStatusProgress';
 import EmptyState from './emptyState';
 import { SkeletonList } from './ui';
 import type { ClientPurchaseWithProduct } from '../hooks/useClientPurchases';
@@ -32,6 +35,8 @@ export default function SalesSection({
   const { t } = useTranslation();
   // Dates and money both follow the language, so a switch re-renders them.
   const { formatCurrency, formatDate } = useFormatters();
+  // Signed URLs for the product thumbnails on each row.
+  const { getSignedUrl } = useProductImages();
 
   // Pending first — the reason to open this list — then the newest-first order
   // the query returned (Array#sort is stable, so equal keys keep it).
@@ -95,36 +100,52 @@ export default function SalesSection({
           <li key={purchase.id} className="salesListItem">
             <button
               type="button"
-              className="saleRow"
+              className="saleRow saleRowWithImage"
               onClick={() => onOpenPurchase(purchase)}
               aria-haspopup="dialog"
               aria-label={t('sales.editAria', {
                 name: purchase.client_name || t('common.unnamedClient'),
               })}
             >
-              <span className="saleMain">
-                <span className="saleClientName">
-                  {purchase.client_name || t('common.unnamedClient')}
-                </span>
-                <span className="saleMeta">{metaParts.join(' · ')}</span>
-              </span>
+              {purchase.product && (
+                <ProductImage
+                  product={purchase.product}
+                  imageVersion={0}
+                  getSignedUrl={getSignedUrl}
+                  className="saleImage"
+                />
+              )}
 
-              <span className="saleSide">
-                <span className="saleMoney">
-                  {formatCurrency(purchase.amount_paid_so_far)}
-                  <span className="saleMoneyTotal">
-                    {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
+              <span className="saleBody">
+                <span className="saleMain">
+                  <span className="saleClientName">
+                    {purchase.client_name || t('common.unnamedClient')}
+                  </span>
+                  <span className="saleMeta">{metaParts.join(' · ')}</span>
+                </span>
+
+                <span className="saleSide">
+                  <span className="saleMoney">
+                    {formatCurrency(purchase.amount_paid_so_far)}
+                    <span className="saleMoneyTotal">
+                      {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
+                    </span>
+                  </span>
+                  <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
+                    {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
                   </span>
                 </span>
-                <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
-                  {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
-                </span>
-              </span>
 
-              <span className="saleProgress" aria-hidden="true">
-                <span className="purchaseProgressBar">
-                  <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                <span className="saleProgress" aria-hidden="true">
+                  <span className="articleProgress">
+                    <span className="progressTitle">{t('customOrders.paymentProgress')}</span>
+                    <span className="purchaseProgressBar">
+                      <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
+                    </span>
+                  </span>
                 </span>
+
+                <PurchaseStatusProgress status={purchase.status} />
               </span>
             </button>
           </li>
