@@ -238,7 +238,32 @@
   display: block;
 }
 
+/* Image container on a card. Plain + `:empty` so an imageless card (or a
+   still-loading image) leaves no empty box or stray flex gap. */
+.productMedia:empty,
+.articleCardMedia:empty,
+.saleMedia:empty {
+  display: none;
+}
+
+/* The description containers keep the card's vertical rhythm now that the
+   name/meta are nested one level deeper. */
+.productCardBody,
+.articleCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+/* The article footer ("progress + money") is pinned to the card's foot with
+   `margin-top: auto`; the body must grow to fill the card so that pin still
+   works now that the footer lives one level deeper. */
+.articleCardBody {
+  flex: 1 1 auto;
+}
+
 .productName {
+  margin: 0;
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-text);
@@ -253,6 +278,7 @@
 }
 
 .productValue {
+  margin: 0;
   display: inline-flex;
   align-items: center;
   gap: var(--space-4);
@@ -270,6 +296,7 @@
 }
 
 .productPurchases {
+  margin: 0;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -439,13 +466,14 @@
 }
 
 .purchaseClientName {
+  margin: 0;
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-text);
 }
 
 .purchaseClientPhone {
-  margin-top: var(--space-4);
+  margin: var(--space-4) 0 0;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -911,13 +939,13 @@
   align-items: flex-start;
   gap: var(--space-4) var(--space-12);
   width: 100%;
-  border: none;
+  background-color: var(--color-surface);
+  border: 0.5px solid lightgray;
   font: inherit;
   color: inherit;
   text-align: left;
   cursor: pointer;
   transition: all var(--duration-slow) var(--ease-standard);
-  border-bottom: none;
   padding: 10px;
   border-radius: 8px;
   margin-bottom: 15px;
@@ -1009,19 +1037,32 @@
   flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--space-4) var(--space-12);
+  /* A subtle tinted "details" panel inside the white card. */
+  background-color: var(--color-surface-subtle);
+  padding: var(--space-8);
+  border-radius: var(--radius-sm);
 }
 
 /* Product thumbnail on a purchase row — a full-height column on the left. */
-.saleImage {
+.saleMedia {
   flex: 0 0 auto;
   width: 7rem;
   align-self: stretch;
+  /* A gray "well" so the image area reads as distinct from the details. */
+  background-color: var(--color-surface-sunken);
+  padding: var(--space-8);
+  border-radius: var(--radius-sm);
+}
+.saleImage {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   border-radius: var(--radius-sm);
 }
 
 .saleClientName {
   display: block;
+  margin: 0;
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text);
@@ -1062,6 +1103,7 @@
   gap: var(--space-12);
   padding: var(--space-12);
   width: 100%;
+  background-color: var(--color-primary-subtle);
   text-align: left;
   font: inherit;
   color: inherit;
@@ -1119,24 +1161,28 @@
 }
 
 .articleName {
+  margin: 0;
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-text);
 }
 
 .articleOwner {
+  margin: 0;
   font-size: var(--text-xs);
   font-weight: 500;
   color: var(--color-text-muted);
 }
 
 .articleMeta {
+  margin: 0;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
 /* Itemized description, clamped so a long list ends in an ellipsis. */
 .articleDescription {
+  margin: 0;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
@@ -1194,7 +1240,7 @@
 
 .saleMeta {
   display: block;
-  margin-top: var(--space-4);
+  margin: var(--space-4) 0 0;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -1209,7 +1255,7 @@
   line-clamp: 3;
   overflow: hidden;
   white-space: pre-line;
-  margin-top: var(--space-4);
+  margin: var(--space-4) 0 0;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -1272,6 +1318,7 @@
 
 /* Money is data, not decoration: full-contrast text, tabular figures. */
 .saleMoney {
+  margin: 0;
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text);
@@ -1319,19 +1366,22 @@
   min-width: 0;
 }
 
-/* The connector leading into each step; the first step has none. */
-.statusStep::before {
+/* The connector to the NEXT step; the last step has none. Placed after the
+   icon so it starts right at the icon's edge — a `::before` on the next step
+   left a blank gap between the icon and the line. */
+.statusStep::after {
   content: '';
   flex: 1;
   height: 2px;
   background-color: var(--color-border);
 }
 
-.statusStep:first-child::before {
+.statusStep:last-child::after {
   display: none;
 }
 
-.statusStep.is-active::before {
+/* The line fills up to — but not past — the current step. */
+.statusStep.is-active:not(.is-current)::after {
   background-color: var(--color-primary);
 }
 
@@ -1343,12 +1393,19 @@
   opacity: 0.35;
   filter: grayscale(1);
   transition: opacity var(--duration-base) var(--ease-standard),
-    filter var(--duration-base) var(--ease-standard);
+    filter var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
 }
 
 .statusStep.is-active .statusIcon {
   opacity: 1;
   filter: none;
+}
+
+/* The current stage pops: slightly larger + a soft primary glow. */
+.statusStep.is-current .statusIcon {
+  transform: scale(1.35);
+  filter: drop-shadow(0 0 4px var(--color-primary));
 }
 
 .statusProgressLabel {

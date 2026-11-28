@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { activateOnEnterOrSpace } from '../helpers/keyboard';
 import { useTranslation } from 'react-i18next';
 import { useFormatters } from '../hooks/useFormatters';
 import { useProductImages } from '../hooks/useProductImages';
@@ -98,56 +99,62 @@ export default function SalesSection({
 
         return (
           <li key={purchase.id} className="salesListItem">
-            <button
-              type="button"
+            <div
               className="saleRow saleRowWithImage"
+              role="button"
+              tabIndex={0}
               onClick={() => onOpenPurchase(purchase)}
+              onKeyDown={activateOnEnterOrSpace}
               aria-haspopup="dialog"
               aria-label={t('sales.editAria', {
                 name: purchase.client_name || t('common.unnamedClient'),
               })}
             >
               {purchase.product && (
-                <ProductImage
-                  product={purchase.product}
-                  imageVersion={0}
-                  getSignedUrl={getSignedUrl}
-                  className="saleImage"
-                />
+                <div className="saleMedia">
+                  <ProductImage
+                    product={purchase.product}
+                    imageVersion={0}
+                    getSignedUrl={getSignedUrl}
+                    className="saleImage"
+                  />
+                </div>
               )}
 
-              <span className="saleBody">
-                <span className="saleMain">
-                  <span className="saleClientName">
+              <div className="saleBody">
+                <div className="saleMain">
+                  <p className="saleClientName">
                     {purchase.client_name || t('common.unnamedClient')}
-                  </span>
-                  <span className="saleMeta">{metaParts.join(' · ')}</span>
-                </span>
+                  </p>
+                  <p className="saleMeta">{metaParts.join(' · ')}</p>
+                </div>
 
-                <span className="saleSide">
-                  <span className="saleMoney">
+                <div className="saleSide">
+                  <p className="saleMoney">
                     {formatCurrency(purchase.amount_paid_so_far)}
                     <span className="saleMoneyTotal">
                       {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
                     </span>
-                  </span>
+                  </p>
                   <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
                     {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
                   </span>
-                </span>
+                </div>
 
-                <span className="saleProgress" aria-hidden="true">
-                  <span className="articleProgress">
-                    <span className="progressTitle">{t('customOrders.paymentProgress')}</span>
+                <div className="saleProgress" aria-hidden="true">
+                  <div className="articleProgress">
+                    <p className="progressTitle">
+                      {t('customOrders.paymentProgress')} · {formatCurrency(purchase.amount_paid_so_far)} / {formatCurrency(totalOwed)}
+                    </p>
                     <span className="purchaseProgressBar">
                       <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
                     </span>
-                  </span>
-                </span>
+                  </div>
+                </div>
 
                 <PurchaseStatusProgress status={purchase.status} />
-              </span>
-            </button>
+              </div>
+            </div>
           </li>
         );
       })}

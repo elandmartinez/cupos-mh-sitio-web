@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { activateOnEnterOrSpace } from '../helpers/keyboard';
 import { useTranslation } from 'react-i18next';
 import { useCustomArticlesOrders, ORDERS_PAGE_SIZE } from '../hooks/useCustomArticlesOrders';
 import { useProfiles, type Profile } from '../hooks/useProfiles';
@@ -199,59 +200,65 @@ export default function CustomArticlesSection() {
                 }
                 const owner = order.profile_id ? profileById.get(order.profile_id) : undefined;
                 return (
-                  <button
+                  <article
                     key={order.id}
-                    type="button"
                     className="card articleCard"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => orderDialog.open(order)}
+                    onKeyDown={activateOnEnterOrSpace}
                     aria-haspopup="dialog"
                   >
-                    <CustomArticleImage
-                      order={order}
-                      imageVersion={imageVersion}
-                      getSignedUrl={getSignedUrl}
-                      className="articleCardImage"
-                    />
-                    <span className="articleHeader">
-                      <span className="articleName">{order.name || t('common.notAvailable')}</span>
-                      <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
-                        {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
-                      </span>
-                    </span>
-                    {owner && <span className="articleOwner">{profileLabel(owner)}</span>}
-                    {metaParts.length > 0 && (
-                      <span className="articleMeta">{metaParts.join(' · ')}</span>
-                    )}
-                    {order.description && (
-                      <span className="articleDescription">{order.description}</span>
-                    )}
-                    <span className="articleProgress">
-                      <span className="progressTitle">{t('customOrders.orderProgress')}</span>
-                      <span className="purchaseProgressBar" aria-hidden="true">
-                        <span
-                          className="purchaseProgressFill"
-                          style={{ width: `${creationPct}%` }}
-                        />
-                      </span>
-                    </span>
-                    <span className="articleFooter">
-                      <span className="articleProgress">
-                        <span className="progressTitle">{t('customOrders.paymentProgress')}</span>
+                    <div className="articleCardMedia">
+                      <CustomArticleImage
+                        order={order}
+                        imageVersion={imageVersion}
+                        getSignedUrl={getSignedUrl}
+                        className="articleCardImage"
+                      />
+                    </div>
+                    <div className="articleCardBody">
+                      <div className="articleHeader">
+                        <p className="articleName">{order.name || t('common.notAvailable')}</p>
+                        <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
+                          {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
+                        </span>
+                      </div>
+                      {owner && <p className="articleOwner">{profileLabel(owner)}</p>}
+                      {metaParts.length > 0 && (
+                        <p className="articleMeta">{metaParts.join(' · ')}</p>
+                      )}
+                      {order.description && (
+                        <p className="articleDescription">{order.description}</p>
+                      )}
+                      <div className="articleProgress">
+                        <p className="progressTitle">{t('customOrders.orderProgress')}</p>
                         <span className="purchaseProgressBar" aria-hidden="true">
                           <span
                             className="purchaseProgressFill"
-                            style={{ width: `${progressPct}%` }}
+                            style={{ width: `${creationPct}%` }}
                           />
                         </span>
-                      </span>
-                      <span className="saleMoney">
-                        {formatCurrency(track?.amount_paid_so_far)}
-                        <span className="saleMoneyTotal">
-                          {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
-                        </span>
-                      </span>
-                    </span>
-                  </button>
+                      </div>
+                      <div className="articleFooter">
+                        <div className="articleProgress">
+                          <p className="progressTitle">{t('customOrders.paymentProgress')}</p>
+                          <span className="purchaseProgressBar" aria-hidden="true">
+                            <span
+                              className="purchaseProgressFill"
+                              style={{ width: `${progressPct}%` }}
+                            />
+                          </span>
+                        </div>
+                        <p className="saleMoney">
+                          {formatCurrency(track?.amount_paid_so_far)}
+                          <span className="saleMoneyTotal">
+                            {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </article>
                 );
               })}
             </div>

@@ -136,6 +136,7 @@ const es = {
     statusAtColombia: 'En Colombia',
     statusShippingToClient: 'Envío al cliente',
     statusProductDelivered: 'Entregado al cliente',
+    packageStatus: 'Estado de tu paquete: {{status}}',
 
     linkToProfile: 'Vincular producto al perfil del cliente',
     linkToProfileTitle: 'Vincular producto al perfil del cliente',

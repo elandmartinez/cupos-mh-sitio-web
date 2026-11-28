@@ -1,4 +1,5 @@
 import { Suspense, lazy } from 'react';
+import { activateOnEnterOrSpace } from '../helpers/keyboard';
 import { useTranslation } from 'react-i18next';
 import { usePresent } from '../hooks/usePresent';
 import { useFormatters } from '../hooks/useFormatters';
@@ -120,25 +121,27 @@ export default function PurchasesModal({
                 : 0;
 
               return (
-                <button
+                <article
                   key={purchase.id}
-                  type="button"
                   className="card purchaseCard"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => purchaseDialog.open(purchase)}
+                  onKeyDown={activateOnEnterOrSpace}
                   aria-haspopup="dialog"
                 >
-                  <span className="purchaseHeader">
-                    <span className="purchaseTitleBlock">
-                      <span className="purchaseClientName">
+                  <div className="purchaseHeader">
+                    <div className="purchaseTitleBlock">
+                      <p className="purchaseClientName">
                         {purchase.client_name || t('common.unnamedClient')}
-                      </span>
+                      </p>
                       {purchase.client_phone_number && (
-                        <span className="purchaseClientPhone">
+                        <p className="purchaseClientPhone">
                           {purchase.client_phone_number}
-                        </span>
+                        </p>
                       )}
-                    </span>
-                    <span className="purchaseBadges">
+                    </div>
+                    <div className="purchaseBadges">
                       <span
                         className={`badge ${
                           isFullyPaid ? 'badge--success' : 'badge--warning'
@@ -146,10 +149,10 @@ export default function PurchasesModal({
                       >
                         {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
                       </span>
-                    </span>
-                  </span>
+                    </div>
+                  </div>
 
-                  <span className="purchaseProgress">
+                  <div className="purchaseProgress">
                     <span className="purchaseProgressBar">
                       <span
                         className="purchaseProgressFill"
@@ -160,10 +163,10 @@ export default function PurchasesModal({
                       {formatCurrency(purchase.amount_paid_so_far)} /{' '}
                       {formatCurrency(totalOwed)}
                     </span>
-                  </span>
+                  </div>
 
                   <PurchaseStatusProgress status={purchase.status} />
-                </button>
+                </article>
               );
             })
           )}

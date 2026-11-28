@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { activateOnEnterOrSpace } from '../helpers/keyboard';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/authContext';
 import { useClientPurchases } from '../hooks/useClientPurchases';
@@ -187,49 +188,55 @@ export default function CustomerDashboard() {
                   const { totalOwed, progressPct } = purchaseTotals(purchase);
                   return (
                     <li key={purchase.id} className="salesListItem">
-                      <button
-                        type="button"
+                      <div
                         className="saleRow saleRowWithImage"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => openPurchase(purchase)}
+                        onKeyDown={activateOnEnterOrSpace}
                         aria-haspopup="dialog"
                       >
                         {purchase.product && (
-                          <ProductImage
-                            product={purchase.product}
-                            imageVersion={0}
-                            getSignedUrl={getProductImageSignedUrl}
-                            className="saleImage"
-                          />
+                          <div className="saleMedia">
+                            <ProductImage
+                              product={purchase.product}
+                              imageVersion={0}
+                              getSignedUrl={getProductImageSignedUrl}
+                              className="saleImage"
+                            />
+                          </div>
                         )}
-                        <span className="saleBody">
-                          <span className="saleMain">
-                            <span className="saleClientName">{productName}</span>
-                            <span className="saleMeta">
+                        <div className="saleBody">
+                          <div className="saleMain">
+                            <p className="saleClientName">{productName}</p>
+                            <p className="saleMeta">
                               {formatDate(purchase.created_at)}
-                            </span>
-                          </span>
-                          <span className="saleSide">
-                            <span className="saleMoney">
+                            </p>
+                          </div>
+                          <div className="saleSide">
+                            <p className="saleMoney">
                               {formatCurrency(purchase.amount_paid_so_far)}
                               <span className="saleMoneyTotal">
                                 {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
                               </span>
-                            </span>
+                            </p>
                             <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
                               {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
                             </span>
-                          </span>
-                          <span className="saleProgress" aria-hidden="true">
-                            <span className="articleProgress">
-                              <span className="progressTitle">{t('customOrders.paymentProgress')}</span>
+                          </div>
+                          <div className="saleProgress" aria-hidden="true">
+                            <div className="articleProgress">
+                              <p className="progressTitle">
+                                {t('customOrders.paymentProgress')} · {formatCurrency(purchase.amount_paid_so_far)} / {formatCurrency(totalOwed)}
+                              </p>
                               <span className="purchaseProgressBar">
                                 <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
                               </span>
-                            </span>
-                          </span>
+                            </div>
+                          </div>
                           <PurchaseStatusProgress status={purchase.status} />
-                        </span>
-                      </button>
+                        </div>
+                      </div>
                     </li>
                   );
                 })}
@@ -260,47 +267,49 @@ export default function CustomerDashboard() {
                   }
                   return (
                     <li key={order.id} className="salesListItem">
-                      <button
-                        type="button"
+                      <div
                         className="saleRow"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => openOrder(order)}
+                        onKeyDown={activateOnEnterOrSpace}
                         aria-haspopup="dialog"
                       >
-                        <span className="saleMain">
-                          <span className="saleClientName">
+                        <div className="saleMain">
+                          <p className="saleClientName">
                             {order.name || t('common.notAvailable')}
-                          </span>
-                          <span className="saleMeta">{metaParts.join(' · ')}</span>
+                          </p>
+                          <p className="saleMeta">{metaParts.join(' · ')}</p>
                           {order.description && (
-                            <span className="saleDescription">{order.description}</span>
+                            <p className="saleDescription">{order.description}</p>
                           )}
-                        </span>
-                        <span className="saleSide">
-                          <span className="saleMoney">
+                        </div>
+                        <div className="saleSide">
+                          <p className="saleMoney">
                             {formatCurrency(track?.amount_paid_so_far)}
                             <span className="saleMoneyTotal">
                               {t('sales.paidOfTotal', { total: formatCurrency(totalOwed) })}
                             </span>
-                          </span>
+                          </p>
                           <span className={`badge ${isFullyPaid ? 'badge--success' : 'badge--warning'}`}>
                             {isFullyPaid ? t('purchases.paid') : t('purchases.pending')}
                           </span>
-                        </span>
-                        <span className="saleProgress" aria-hidden="true">
-                          <span className="articleProgress">
-                            <span className="progressTitle">{t('customOrders.orderProgress')}</span>
+                        </div>
+                        <div className="saleProgress" aria-hidden="true">
+                          <div className="articleProgress">
+                            <p className="progressTitle">{t('customOrders.orderProgress')}</p>
                             <span className="purchaseProgressBar">
                               <span className="purchaseProgressFill" style={{ width: `${creationPct}%` }} />
                             </span>
-                          </span>
-                          <span className="articleProgress">
-                            <span className="progressTitle">{t('customOrders.paymentProgress')}</span>
+                          </div>
+                          <div className="articleProgress">
+                            <p className="progressTitle">{t('customOrders.paymentProgress')}</p>
                             <span className="purchaseProgressBar">
                               <span className="purchaseProgressFill" style={{ width: `${progressPct}%` }} />
                             </span>
-                          </span>
-                        </span>
-                      </button>
+                          </div>
+                        </div>
+                      </div>
                     </li>
                   );
                 })}

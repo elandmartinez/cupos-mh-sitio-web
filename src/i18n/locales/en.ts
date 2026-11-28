@@ -126,6 +126,7 @@ const en: EsResources = {
     statusAtColombia: 'In Colombia',
     statusShippingToClient: 'Shipping to client',
     statusProductDelivered: 'Delivered to customer',
+    packageStatus: 'Your package status: {{status}}',
 
     linkToProfile: 'Link product to client profile',
     linkToProfileTitle: 'Link product to client profile',

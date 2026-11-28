@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { activateOnEnterOrSpace } from '../helpers/keyboard';
 import { useTranslation } from 'react-i18next';
 import { useProducts } from '../hooks/useProducts';
 import { useProductImages } from '../hooks/useProductImages';
@@ -460,41 +461,45 @@ export default function Dashboard() {
                     {products.map((product) => {
                       const productPurchases = purchasesByProduct[product.id] || [];
                       // The card carries no controls: it is one tap target that opens
-                      // the product's dialog, which is where every action lives. It
-                      // is a real <button>, so everything inside it stays phrasing
-                      // content — hence spans, not an <h3>.
+                      // the product's dialog, which is where every action lives. It is
+                      // a semantic container with `role="button"` (a real <button>
+                      // can't hold <div>/<p> children), so Enter/Space activate it.
                       return (
-                        <button
-                          type="button"
+                        <article
                           key={product.id}
                           className="card productCard"
+                          role="button"
+                          tabIndex={0}
                           onClick={() => handleOpenDetails(product)}
+                          onKeyDown={activateOnEnterOrSpace}
                           aria-haspopup="dialog"
                         >
-                          <ProductImage
-                            product={product}
-                            imageVersion={imageVersion}
-                            getSignedUrl={getSignedUrl}
-                            className="productImage"
-                          />
-      
-                          <span className="productName">{product.name}</span>
-      
-                          <span className="productCardMeta">
-                            <span className="productValue">
-                              <img
-                                src="/dollar-symbol.png"
-                                alt=""
-                                aria-hidden="true"
-                                className="productValueIcon"
-                              />
-                              {formatCurrency(product.value)}
-                            </span>
-                            <span className="productPurchases">
-                              {t('products.purchasesCount', { count: productPurchases.length })}
-                            </span>
-                          </span>
-                        </button>
+                          <div className="productMedia">
+                            <ProductImage
+                              product={product}
+                              imageVersion={imageVersion}
+                              getSignedUrl={getSignedUrl}
+                              className="productImage"
+                            />
+                          </div>
+                          <div className="productCardBody">
+                            <p className="productName">{product.name}</p>
+                            <div className="productCardMeta">
+                              <p className="productValue">
+                                <img
+                                  src="/dollar-symbol.png"
+                                  alt=""
+                                  aria-hidden="true"
+                                  className="productValueIcon"
+                                />
+                                {formatCurrency(product.value)}
+                              </p>
+                              <p className="productPurchases">
+                                {t('products.purchasesCount', { count: productPurchases.length })}
+                              </p>
+                            </div>
+                          </div>
+                        </article>
                       );
                     })}
                   </div>

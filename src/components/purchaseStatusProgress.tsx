@@ -50,7 +50,11 @@ export default function PurchaseStatusProgress({ status }: PurchaseStatusProgres
           </span>
         ))}
       </span>
-      {label && <span className="statusProgressLabel">{label}</span>}
+      {label && (
+        <span className="statusProgressLabel">
+          {t('purchases.packageStatus', { status: label })}
+        </span>
+      )}
     </span>
   );
 }
